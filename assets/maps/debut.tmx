@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.0" orientation="orthogonal" renderorder="right-down" width="100" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="11" nextobjectid="5">
+<map version="1.10" tiledversion="1.12.0" orientation="orthogonal" renderorder="right-down" width="100" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="11" nextobjectid="8">
  <editorsettings>
   <export target="debut.json" format="json"/>
  </editorsettings>
@@ -106,15 +106,15 @@
   <properties>
    <property name="texte" value="blablablablablablablablablablablablablablablablablablablablabla"/>
   </properties>
-  <object id="1" name="spawn" x="169.244" y="111.214">
+  <object id="1" name="spawn" x="51.1556" y="111.214">
    <point/>
   </object>
-  <object id="2" x="263.026" y="96.0172" width="69.2214" height="47.3909">
+  <object id="2" x="87.9778" y="94.6279" width="40.2527" height="47.3909">
    <properties>
-    <property name="texte" value="Qui suis - je ?"/>
+    <property name="texte" value="..."/>
    </properties>
   </object>
-  <object id="4" x="431.861" y="143.836">
+  <object id="4" x="366.712" y="141.948">
    <properties>
     <property name="frame" value="0"/>
     <property name="ligneNPJ" value="Tu connais un poéme ?"/>
@@ -123,6 +123,21 @@
     <property name="sprite" value="other_child"/>
    </properties>
    <point/>
+  </object>
+  <object id="5" x="154.845" y="96.235" width="39.0939" height="47.3909">
+   <properties>
+    <property name="texte" value="Heu... Salut ?"/>
+   </properties>
+  </object>
+  <object id="6" x="212.203" y="96.8144" width="58.9835" height="47.3909">
+   <properties>
+    <property name="texte" value="Tu es qui ?"/>
+   </properties>
+  </object>
+  <object id="7" x="469.24" y="95.6422" width="58.9835" height="47.3909">
+   <properties>
+    <property name="texte" value="Je reconnais cette endroit"/>
+   </properties>
   </object>
  </objectgroup>
  <layer id="1" name="tunnel" width="100" height="20">
