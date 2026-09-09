@@ -45,9 +45,10 @@ const LargeurImagePersonnage = 16; // largeur en pixels d'une frame (player.png 
 const HauteurImagePersonnage = 16; // hauteur en pixels d'une frame
 // Repartition des 6 frames (indices 0 a 5) — voir animations plus bas :
 //   1 (index 0) : inutilisee pour l'instant
-//   2 (index 1) : juste avant le saut, et reprise a l'atterrissage
-//   3 (index 2) : pendant le vol (tout le temps en l'air)
-//   4 (index 3) : immobile (standby)
+//   2 (index 1) : reprise a l'atterrissage (pas de saut : seule la chute
+//                 en marchant hors d'une plateforme declenche l'etat "en l'air")
+//   3 (index 2) : inutilisee pour l'instant (ancien frame de saut)
+//   4 (index 3) : immobile (standby), et pendant la chute
 //   5 et 6 (index 4-5) : cycle de marche
 // Un seul jeu de frames pour les deux sens : gauche/droite s'obtient par
 // setFlipX, applique uniformement a tous les etats (plus de frames idle
@@ -512,24 +513,6 @@ function JouerSonPas() {
   Filtre.connect(Volume);
   Volume.connect(Contexte.destination);
   Bruit.start();
-}
-
-// Saut — petit "hop" : la frequence monte rapidement puis s'eteint.
-function JouerSonSaut() {
-  const Contexte = ObtenirContexteAudio();
-  const Oscillateur = Contexte.createOscillator();
-  Oscillateur.type = 'triangle';
-  Oscillateur.frequency.setValueAtTime(320, Contexte.currentTime);
-  Oscillateur.frequency.exponentialRampToValueAtTime(640, Contexte.currentTime + 0.12);
-
-  const Volume = Contexte.createGain();
-  Volume.gain.setValueAtTime(0.12, Contexte.currentTime);
-  Volume.gain.exponentialRampToValueAtTime(0.001, Contexte.currentTime + 0.13);
-
-  Oscillateur.connect(Volume);
-  Volume.connect(Contexte.destination);
-  Oscillateur.start();
-  Oscillateur.stop(Contexte.currentTime + 0.14);
 }
 
 // Atterrissage — petit "thud" grave et court.
@@ -1065,8 +1048,6 @@ class ScenePrincipale extends Phaser.Scene {
     this.Fleches = this.input.keyboard.createCursorKeys();
     this.ToucheA = this.input.keyboard.addKey('A');
     this.ToucheD = this.input.keyboard.addKey('D');
-    this.ToucheW = this.input.keyboard.addKey('W');
-    this.ToucheEspace = this.input.keyboard.addKey('SPACE');
     this.ToucheInteraction = this.input.keyboard.addKey('E');
 
     // Etat de la sequence gare : attente -> enCours -> termine.
@@ -1309,7 +1290,6 @@ class ScenePrincipale extends Phaser.Scene {
 
       const Gauche = this.Fleches.left.isDown || this.ToucheA.isDown;
       const Droite = this.Fleches.right.isDown || this.ToucheD.isDown;
-      const Saut = this.Fleches.up.isDown || this.ToucheW.isDown || this.ToucheEspace.isDown;
 
       if (Gauche) {
         Corps.setVelocityX(-Vitesse);
@@ -1369,30 +1349,14 @@ class ScenePrincipale extends Phaser.Scene {
         }
       }
 
-      // Corps.blocked.down : vrai seulement quand le personnage touche une
-      // surface solide en dessous (empeche le saut en plein vol)
-      if (Saut && Corps.blocked.down) {
-        Corps.setVelocityY(-300); // saut plus court, moins "cheat"
-        JouerSonSaut();
-        // Frame 2 (index 1) au moment de quitter le sol — voir la
-        // repartition pres de LargeurImagePersonnage. blocked.down ne
-        // repassera a faux qu'au prochain pas de physique, donc ce frame
-        // reste affiche jusque-la, puis cede la place au frame de vol
-        // ci-dessous.
-        if (UtiliseSpritePersonnage) {
-          this.Personnage.anims.stop();
-          this.Personnage.setFrame(1);
-        }
-      }
-
-      // En l'air (pas seulement au moment du saut, mais tout du long), en
-      // priorite sur la marche/idle ci-dessus qui aurait pu s'appliquer si
-      // des touches de direction sont tenues en meme temps. Frame 3
-      // (index 2) tant que la vitesse verticale est negative (montee),
-      // frame 4 (index 3, standby) des que ca redescend (vitesse positive).
+      // Pas de saut : le personnage ne quitte le sol que s'il marche hors
+      // d'une plateforme (la gravite fait le reste). En l'air, en priorite
+      // sur la marche/idle ci-dessus qui aurait pu s'appliquer si des
+      // touches de direction sont tenues en meme temps — frame 4 (index 3,
+      // standby) pendant la chute.
       if (UtiliseSpritePersonnage && !Corps.blocked.down) {
         this.Personnage.anims.stop();
-        this.Personnage.setFrame(Corps.velocity.y < 0 ? 2 : 3);
+        this.Personnage.setFrame(3);
       }
 
       // Atterrissage : front montant de Corps.blocked.down (faux la frame
@@ -1400,7 +1364,8 @@ class ScenePrincipale extends Phaser.Scene {
       if (!this.EtaitAuSol && Corps.blocked.down) {
         JouerSonAtterrissage();
         this.EmetteurPoussiere.explode(6, this.Personnage.x, this.Personnage.y + 8);
-        // Reprend le frame 2 (index 1), le meme qu'au decollage.
+        // Reprend le frame 2 (index 1), un instant avant de repasser en
+        // marche/idle a la frame suivante.
         if (UtiliseSpritePersonnage) {
           this.Personnage.setFrame(1);
         }
