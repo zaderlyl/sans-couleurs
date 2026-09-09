@@ -3,8 +3,8 @@
  <editorsettings>
   <export target="debut.json" format="json"/>
  </editorsettings>
- <tileset firstgid="1" name="Tileset" tilewidth="16" tileheight="16" tilecount="105" columns="35">
-  <image source="../tilesets/Tileset.png" width="560" height="48"/>
+ <tileset firstgid="1" name="Tileset" tilewidth="16" tileheight="16" tilecount="175" columns="35">
+  <image source="../tilesets/Tileset.png" width="560" height="80"/>
  </tileset>
  <layer id="7" name="bg" width="100" height="20">
   <data encoding="csv">
@@ -109,7 +109,7 @@
   <object id="1" name="spawn" x="51.1556" y="111.214">
    <point/>
   </object>
-  <object id="2" x="87.9778" y="94.6279" width="40.2527" height="47.3909">
+  <object id="2" x="83.0047" y="96.1198" width="95.9519" height="47.3909">
    <properties>
     <property name="texte" value="..."/>
    </properties>
@@ -124,17 +124,17 @@
    </properties>
    <point/>
   </object>
-  <object id="5" x="154.845" y="96.235" width="39.0939" height="47.3909">
+  <object id="5" x="208.307" y="95.2404" width="119.879" height="47.3909">
    <properties>
     <property name="texte" value="Heu... Salut ?"/>
    </properties>
   </object>
-  <object id="6" x="212.203" y="96.8144" width="58.9835" height="47.3909">
+  <object id="6" x="372.449" y="94.4653" width="128.027" height="47.3909">
    <properties>
-    <property name="texte" value="Tu es qui ?"/>
+    <property name="texte" value="Je.... me souvien de rien..."/>
    </properties>
   </object>
-  <object id="7" x="469.24" y="95.6422" width="58.9835" height="47.3909">
+  <object id="7" x="533.117" y="96.1119" width="106.891" height="47.3909">
    <properties>
     <property name="texte" value="Je reconnais cette endroit"/>
    </properties>
