@@ -136,7 +136,14 @@ function CalculerBoitePixels(Carte, NomCalque) {
 // rangee) plutot qu'en pixels — utilise pour calibrer la position de la gare
 // depuis le calque "gare" de la carte active (voir create()), plutot que de
 // coder ses coordonnees en dur pour une seule carte.
-function CalculerBoiteTuiles(Carte, NomCalque) {
+// SeulementFlippees (optionnel) : ne compte que les tuiles retournees
+// horizontalement dans Tiled (Tuile.flipX). Sert a isoler la mosaique miroir
+// du calque "derriere" quand ce calque sert aussi a d'autres reperes visuels
+// sans rapport (ex: le decor de la tele) — cette mosaique est justement
+// construite en reprenant les tuiles de "gare" et en les retournant dans
+// Tiled, ce qui la rend facilement identifiable, contrairement a sa position
+// (qui elle n'est pas fixe d'une carte a l'autre).
+function CalculerBoiteTuiles(Carte, NomCalque, SeulementFlippees) {
   const Calque = Carte.getLayer(NomCalque);
   if (!Calque) return null;
 
@@ -146,7 +153,7 @@ function CalculerBoiteTuiles(Carte, NomCalque) {
   let RangeeMax = -Infinity;
   for (const Ligne of Calque.data) {
     for (const Tuile of Ligne) {
-      if (Tuile && Tuile.index !== -1) {
+      if (Tuile && Tuile.index !== -1 && (!SeulementFlippees || Tuile.flipX)) {
         ColMin = Math.min(ColMin, Tuile.x);
         ColMax = Math.max(ColMax, Tuile.x);
         RangeeMin = Math.min(RangeeMin, Tuile.y);
@@ -170,13 +177,16 @@ function ValeurBooleenneTiled(Valeur) {
   return !!Valeur;
 }
 
-// --- Interactivite gare (calque "gare", n'importe quelle carte) ---
-// La position/zone de la gare n'est PAS codee en dur : chaque carte peut la
-// placer a des cases differentes (ex: "enfance" n'est pas du tout aux memes
-// colonnes que "debut"/"map1") — voir CalculerBoiteTuiles et son usage dans
-// create() (this.PositionGareX/Y, this.ZoneGare, this.PositionIconeInteractionX,
-// this.PositionArriveeTrainX/Y), calcules depuis le contenu reel du calque
-// "gare" de la carte active plutot que fixes pour une seule carte.
+// --- Interactivite gare (calques "gare" et "derriere", n'importe quelle
+// carte) ---
+// Ni la position/zone de la gare, ni celles de sa mosaique de sortie ne sont
+// codees en dur : chaque carte peut les placer a des cases differentes (ex:
+// "enfance" n'est pas du tout aux memes colonnes que "debut"/"map1") — voir
+// CalculerBoiteTuiles et son usage dans create() (this.PositionGareX/Y,
+// this.ZoneGare, this.PositionIconeInteractionX pour "gare" ;
+// this.PositionGareInverseeX/Y, this.PositionSortieTunnelX/Y, this.ZoneRetour,
+// this.PositionIconeInteractionRetourX pour "derriere"), calcules depuis le
+// contenu reel de chaque calque plutot que fixes pour une seule carte.
 const TailleTuile = 16;
 
 // --- Icone d'interaction (E_animated.png) ---
@@ -212,49 +222,29 @@ const AncrageImageGareY = 240;
 
 const OrigineContenuGareX = AncrageImageGareX / TailleImageGare;
 const OrigineContenuGareY = AncrageImageGareY / TailleImageGare;
-// Decalage a appliquer entre le centre (en pixels monde) du bloc de tuiles de
-// la gare et la position du sprite quand il est flippe (setFlipX) pour jouer
-// l'arrivee en train sur SA PROPRE mosaique (voir JouerArriveeEnTrain) — pas
-// a confondre avec PositionGareInverseeX plus bas, qui vise un AUTRE bloc
-// (le calque "derriere" de map1). Le contenu utile d'une frame va de
-// AncrageImageGareX a TailleImageGare (176px), centre a AncrageImageGareX +
-// 176/2 = 168px, soit 8px au-dela du centre du cadre — d'ou ce decalage de 8,
-// invariant quelle que soit la largeur (en tuiles) du bloc de la carte active
-// (verifie : applique au bloc "derriere" de map1 (176px, cols 73-83, centre
-// 1256), ca redonne exactement 1256 - 8 = 1248 = PositionGareInverseeX).
+// Decalage a appliquer entre le centre (en pixels monde) d'un bloc de tuiles
+// et la position du sprite quand il est flippe (setFlipX) pour que son
+// contenu reste visuellement centre sur ce bloc (voir this.PositionGareInverseeX,
+// calcule dans create() a partir du calque "derriere"). Le contenu utile
+// d'une frame va de AncrageImageGareX a TailleImageGare (176px), centre a
+// AncrageImageGareX + 176/2 = 168px, soit 8px au-dela du centre du cadre —
+// d'ou ce decalage de 8, invariant quelle que soit la largeur (en tuiles) du
+// bloc de la carte active (verifie sur le bloc "derriere" de map1 : 176px,
+// cols 73-83, centre 1256, 1256 - 8 = 1248, la valeur historique).
 const DecalageCentreGareFlippe = (TailleImageGare - AncrageImageGareX) / 2 - AncrageImageGareX;
 
 // --- Sortie du "tunnel" (voyage en train) ---
-// Sur le calque "derriere" (purement visuel/repere, jamais rendu — voir
-// create()), cols 73-83 x rows 6-8 forment un miroir horizontal exact de la
-// mosaique de depart (cols 35-45) : mêmes tuiles, juste retournees et dans
+// Le calque "derriere" (purement visuel/repere, jamais rendu — voir
+// create()) forme, quand il existe, un miroir horizontal exact de la
+// mosaique de depart ("gare") : memes tuiles, juste retournees et dans
 // l'ordre inverse. On reutilise donc le meme sprite gare.png pour l'arrivee,
-// juste flippe (setFlipX), plutot qu'un second asset (voir DemarrerSequenceGare).
-//
-// Position du sprite flippe : avec flipX, l'ancrage (fraction OrigineContenuGareX
-// dans une image de TailleImageGare de large) se retrouve a l'oppose par
-// rapport au bloc de tuiles affiche (176px = 11 tuiles). Calcule via le
-// centre du bloc : centre en image = 168px, qui doit retomber sur le centre
-// du bloc de sortie ((1168+1344)/2 = 1256) -> SpriteX = 1256 - (176-168) = 1248.
-const PositionGareInverseeX = 1248;
-// Le joueur reapparait au centre du bloc de sortie (cols 73-83) ; la hauteur
-// exacte n'a pas besoin d'etre pile sur le sol — comme au spawn, la gravite
-// le fait retomber tout seul sur la premiere surface solide en dessous.
-const PositionSortieTunnelX = (73 * 16 + 84 * 16) / 2;
-const PositionSortieTunnelY = 96;
-
-// Zone de retour, a l'arrivee : une fois sur place (EtatGare "retourAttente",
-// voir DemarrerSequenceGare), le joueur peut de nouveau appuyer sur E pour
-// repartir dans l'autre sens (voir DemarrerRetourGare). Meme gabarit que
-// ZoneGare, centree sur le point d'arrivee plutot que recalculee sur la
-// mosaique miroir.
-const ZoneRetour = {
-  XMin: PositionSortieTunnelX - 32,
-  XMax: PositionSortieTunnelX + 32,
-  YMin: 8 * 16,
-  YMax: 9 * 16,
-};
-const PositionIconeInteractionRetourX = PositionSortieTunnelX;
+// juste flippe (setFlipX), plutot qu'un second asset (voir
+// DemarrerSequenceGare et JouerArriveeEnTrain). Sa position n'est PAS codee
+// en dur : comme pour le calque "gare" (voir CalculerBoiteTuiles plus bas),
+// elle est calculee depuis le contenu reel du calque "derriere" de la carte
+// active — this.PositionGareInverseeX/Y (sprite flippe), this.PositionSortieTunnelX/Y
+// (point d'apparition du joueur), this.ZoneRetour et this.PositionIconeInteractionRetourX,
+// tous calcules dans create().
 const PositionIconeInteractionRetourY = 80; // meme hauteur au-dessus du sol que celle de la gare
 
 // --- PNJ de dialogue (mini-jeu glisser-deposer) ---
@@ -713,15 +703,49 @@ class ScenePrincipale extends Phaser.Scene {
       Carte.createLayer('bg2', JeuDeTuiles, 0, 0);
 
       // 'derriere' n'existe pas forcement sur toutes les cartes (ex: "debut"
-      // n'en a pas encore) : purement visuel dans Tiled (repere pour placer
-      // des decors ensuite animes en code, comme la tele, et pour la
-      // mosaique miroir d'arrivee du train — voir DemarrerSequenceGare), il
-      // sert uniquement de flag ici ("cette carte a-t-elle une arrivee de
-      // train configuree ?"), jamais affiche lui-meme.
-      const CalqueDerriereExiste = Carte.layers.some((L) => L.name === 'derriere');
-      this.ArriveeTrainConfiguree = CalqueDerriereExiste;
-      if (CalqueDerriereExiste) {
+      // n'en a pas encore), et sert souvent a plusieurs choses a la fois sur
+      // celles qui l'ont (repere pour la tele, autres decors...), EN PLUS de
+      // la mosaique miroir d'arrivee du train (voir DemarrerSequenceGare et
+      // JouerArriveeEnTrain) — jamais affiche lui-meme. On isole cette
+      // mosaique du reste via CalculerBoiteTuiles(..., true) : ses tuiles
+      // sont justement celles de "gare" retournees horizontalement dans
+      // Tiled pour obtenir le miroir, ce qui les rend facilement
+      // identifiables (Tuile.flipX) independamment de leur position exacte,
+      // qui elle n'est PAS codee en dur (varie d'une carte a l'autre comme
+      // pour le calque "gare" plus bas).
+      const BoiteDerriere = CalculerBoiteTuiles(Carte, 'derriere', true);
+      this.ArriveeTrainConfiguree = !!BoiteDerriere;
+      const CalqueDerriereExiste = this.ArriveeTrainConfiguree; // alias local, lisibilite
+      if (BoiteDerriere) {
         Carte.createLayer('derriere', JeuDeTuiles, 0, 0).setVisible(false);
+        const { ColMin, ColMax, RangeeMin, RangeeMax } = BoiteDerriere;
+        const CentreDerriereX = (ColMin * TailleTuile + (ColMax + 1) * TailleTuile) / 2;
+        // Sprite flippe (setFlipX) centre sur ce bloc — voir DecalageCentreGareFlippe.
+        this.PositionGareInverseeX = CentreDerriereX - DecalageCentreGareFlippe;
+        this.PositionGareInverseeY = RangeeMax * TailleTuile; // meme convention que PositionGareY, sur SA propre rangee
+        // Point d'apparition du joueur a l'arrivee : centre du bloc, rangee
+        // du haut — la gravite le fait retomber tout seul sur le sol, comme
+        // au spawn normal.
+        this.PositionSortieTunnelX = CentreDerriereX;
+        this.PositionSortieTunnelY = RangeeMin * TailleTuile;
+        // Zone de retour (EtatGare "retourAttente", voir DemarrerSequenceGare
+        // et DemarrerRetourGare) : meme gabarit que ZoneGare, centree sur le
+        // point d'arrivee.
+        this.ZoneRetour = {
+          XMin: this.PositionSortieTunnelX - 32,
+          XMax: this.PositionSortieTunnelX + 32,
+          YMin: RangeeMax * TailleTuile,
+          YMax: (RangeeMax + 1) * TailleTuile,
+        };
+        this.PositionIconeInteractionRetourX = this.PositionSortieTunnelX;
+      } else {
+        // Pas de calque "derriere" sur cette carte : this.IconeInteractionRetour
+        // est quand meme cree juste apres (toujours cache) et a besoin d'une
+        // position numerique valide, meme si ZoneRetour ne sera jamais
+        // atteignable (EtatGare ne passe a "retourAttente" que via une
+        // arrivee sur un calque "derriere" existant).
+        this.PositionIconeInteractionRetourX = 0;
+        this.ZoneRetour = { XMin: 0, XMax: 0, YMin: 0, YMax: 0 };
       }
 
       // Reference gardee (this.CalqueGare sert de simple flag "cette carte a
@@ -743,7 +767,7 @@ class ScenePrincipale extends Phaser.Scene {
       // "enfance" n'est pas du tout aux memes colonnes que "debut"/"map1").
       const BoiteGare = CalculerBoiteTuiles(Carte, 'gare');
       if (BoiteGare) {
-        const { ColMin, ColMax, RangeeMin, RangeeMax } = BoiteGare;
+        const { ColMin, ColMax, RangeeMax } = BoiteGare;
         // Coin bas-gauche du bloc — voir la calibration pres de
         // AncrageImageGareX (generalisation de (35*16, 8*16) = (560, 128)).
         this.PositionGareX = ColMin * TailleTuile;
@@ -752,10 +776,6 @@ class ScenePrincipale extends Phaser.Scene {
         // bord droit inclus) — reutilise pour l'icone et pour l'arrivee en train.
         const CentreGareX = (ColMin * TailleTuile + (ColMax + 1) * TailleTuile) / 2;
         this.PositionIconeInteractionX = CentreGareX;
-        // Sprite flippe centre sur le meme bloc (voir DecalageCentreGareFlippe
-        // et JouerArriveeEnTrain) — pas le meme calcul que PositionGareInverseeX,
-        // qui vise un bloc DIFFERENT (calque "derriere" de map1).
-        this.PositionGareXFlippe = CentreGareX - DecalageCentreGareFlippe;
         // Zone d'interaction : quelques cases centrees sur le bloc, a sa
         // rangee du bas (meme gabarit relatif que l'ancien ZoneGare fixe,
         // cases 39-43 sur un bloc 35-45 centre en 40).
@@ -766,11 +786,6 @@ class ScenePrincipale extends Phaser.Scene {
           YMin: RangeeMax * TailleTuile,
           YMax: (RangeeMax + 1) * TailleTuile,
         };
-        // Point d'apparition du joueur en arrivant du train (voir
-        // JouerArriveeEnTrain) : centre du bloc, rangee du haut — la gravite
-        // le fait retomber tout seul sur le sol, comme au spawn normal.
-        this.PositionArriveeTrainX = CentreGareX;
-        this.PositionArriveeTrainY = RangeeMin * TailleTuile;
       } else {
         // Pas de calque "gare" sur cette carte : desactive toute l'interactivite
         // liee (this.CalqueGare reste undefined de toute facon, voir les
@@ -911,7 +926,7 @@ class ScenePrincipale extends Phaser.Scene {
       // 3e instance : invite du trajet retour, a l'arrivee (voir ZoneRetour
       // et DemarrerRetourGare). Meme fonctionnement que celle de la gare
       // (disparait definitivement une fois la sequence lancee).
-      this.IconeInteractionRetour = this.add.sprite(PositionIconeInteractionRetourX, PositionIconeInteractionRetourY, CleIconeInteraction, 0);
+      this.IconeInteractionRetour = this.add.sprite(this.PositionIconeInteractionRetourX, PositionIconeInteractionRetourY, CleIconeInteraction, 0);
       this.IconeInteractionRetour.setDepth(20);
       this.IconeInteractionRetour.setVisible(false);
 
@@ -942,12 +957,15 @@ class ScenePrincipale extends Phaser.Scene {
       PositionDepartY = PointDepart ? PointDepart.y : 120;
 
       // Arrivee en train depuis une autre carte (voir init() et
-      // CarteSuivante) : le joueur apparait pres de SA gare a lui plutot
-      // qu'au spawn normal — voir JouerArriveeEnTrain, appele en toute fin
-      // de create() une fois le reste de la scene pret.
-      if (this.ArriveeParTrain && this.PositionArriveeTrainX !== undefined) {
-        PositionDepartX = this.PositionArriveeTrainX;
-        PositionDepartY = this.PositionArriveeTrainY;
+      // CarteSuivante) : si cette carte a son propre calque "derriere", le
+      // joueur apparait sur SA mosaique de sortie plutot qu'au spawn normal
+      // — voir JouerArriveeEnTrain, appele en toute fin de create() une fois
+      // le reste de la scene pret. Sinon (calque pas encore configure), on
+      // retombe simplement sur le spawn normal ci-dessus : pas d'animation
+      // sans mosaique pour l'accueillir.
+      if (this.ArriveeParTrain && this.PositionSortieTunnelX !== undefined) {
+        PositionDepartX = this.PositionSortieTunnelX;
+        PositionDepartY = this.PositionSortieTunnelY;
       }
     } else {
       // ── Mode prototype (sans Tiled) : la ligne droite bicolore actuelle ──
@@ -1123,8 +1141,12 @@ class ScenePrincipale extends Phaser.Scene {
     // Arrivee en train (voir init()/CarteSuivante) : declenchee en tout
     // dernier, une fois le reste de la scene entierement pret (calques,
     // joueur, camera, PNJ...), pour que l'animation d'arrivee se joue sur une
-    // scene complete plutot qu'a moitie construite.
-    if (this.ArriveeParTrain && this.CalqueGare) {
+    // scene complete plutot qu'a moitie construite. this.ArriveeTrainConfiguree
+    // (calque "derriere") plutot que this.CalqueGare : cette carte doit avoir
+    // SA PROPRE mosaique de sortie pour qu'il y ait quoi que ce soit a
+    // animer (voir JouerArriveeEnTrain) — sinon le joueur apparait
+    // simplement au spawn normal, sans animation.
+    if (this.ArriveeParTrain && this.ArriveeTrainConfiguree) {
       this.JouerArriveeEnTrain();
     }
   }
@@ -1169,10 +1191,10 @@ class ScenePrincipale extends Phaser.Scene {
     // DemarrerRetourGare plutot que DemarrerSequenceGare.
     if (this.CalqueGare && this.EtatGare === 'retourAttente') {
       const DansZoneRetour =
-        this.Personnage.x > ZoneRetour.XMin &&
-        this.Personnage.x < ZoneRetour.XMax &&
-        this.Personnage.y > ZoneRetour.YMin &&
-        this.Personnage.y < ZoneRetour.YMax;
+        this.Personnage.x > this.ZoneRetour.XMin &&
+        this.Personnage.x < this.ZoneRetour.XMax &&
+        this.Personnage.y > this.ZoneRetour.YMin &&
+        this.Personnage.y < this.ZoneRetour.YMax;
 
       if (DansZoneRetour) {
         this.IconeInteractionRetour.setVisible(true);
@@ -1466,11 +1488,11 @@ class ScenePrincipale extends Phaser.Scene {
             // nouvelle position au lieu de mettre plusieurs frames a
             // "rattraper" le suivi doux habituel (voir remise a false plus
             // bas, une fois arrive).
-            this.Personnage.setPosition(PositionSortieTunnelX, PositionSortieTunnelY);
+            this.Personnage.setPosition(this.PositionSortieTunnelX, this.PositionSortieTunnelY);
             this.CameraDoitSauterEnX = true;
 
             this.SpriteGare.setFlipX(true);
-            this.SpriteGare.setPosition(PositionGareInverseeX, this.PositionGareY);
+            this.SpriteGare.setPosition(this.PositionGareInverseeX, this.PositionGareInverseeY);
             this.SpriteGare.setVisible(true);
             this.SpriteGare.play('arriveeGare');
 
@@ -1552,18 +1574,17 @@ class ScenePrincipale extends Phaser.Scene {
 
   // Arrivee en train sur CETTE carte, depuis la precedente (voir init(),
   // CarteSuivante et le this.scene.restart(...) dans DemarrerSequenceGare).
-  // Le joueur est deja positionne pres de sa propre gare (this.PositionArriveeTrainX/Y,
-  // voir create()) : on joue juste l'arrivee (arriveeGare, sprite flippe,
-  // this.PositionGareXFlippe) sur SA mosaique "gare" a elle plutot que sur un
-  // calque "derriere" dedie. this.CalqueGare (la mosaique Tiled) n'est
-  // JAMAIS reaffiche, ici ou ailleurs (voir sa creation dans create()) : le
-  // sprite anime reste visible en permanence, fige sur la frame 0 une fois
-  // l'anim finie, pour eviter le leger decalage au pixel pres entre les deux
-  // qui etait visible au moment de rebasculer de l'un a l'autre. Ecran deja
-  // noir au demarrage de cette carte (voir DemarrerSequenceGare, fadeOut
-  // avant le restart) : fadeOut(0) ici garantit qu'aucune frame ne s'affiche
-  // entre-temps meme si ce n'etait pas deja le cas (ex: carte ouverte
-  // directement via ?carte=... en test).
+  // Reprend exactement la meme logique que l'arrivee intra-carte de map1
+  // (voir la branche "if (this.ArriveeTrainConfiguree)" dans
+  // DemarrerSequenceGare) : le sprite anime joue l'arrivee (arriveeGare,
+  // flippe) sur le calque "derriere" DE CETTE CARTE (this.PositionGareInverseeX/Y,
+  // this.PositionSortieTunnelX/Y, calcules dans create() depuis ses tuiles
+  // reelles), et reste fige flippe une fois l'anim finie plutot que de se
+  // remettre a l'endroit — comme a l'arrivee intra-carte, la mosaique
+  // miroir n'a pas de "dessous" statique equivalent a this.CalqueGare vers
+  // lequel revenir. Ne fait rien si cette carte n'a pas encore son propre
+  // calque "derriere" (voir la garde dans update()/create() : le joueur
+  // apparait alors simplement au spawn normal, sans animation).
   JouerArriveeEnTrain() {
     this.cameras.main.fadeOut(0, 0, 0, 0);
     this.EtatGare = 'enCours';
@@ -1573,20 +1594,23 @@ class ScenePrincipale extends Phaser.Scene {
     this.Personnage.body.enable = false;
 
     this.SpriteGare.setFlipX(true);
-    this.SpriteGare.setPosition(this.PositionGareXFlippe, this.PositionGareY);
+    this.SpriteGare.setPosition(this.PositionGareInverseeX, this.PositionGareInverseeY);
     this.SpriteGare.setVisible(true);
     this.SpriteGare.play('arriveeGare');
 
     this.cameras.main.fadeIn(500, 0, 0, 0);
 
     this.SpriteGare.once('animationcomplete', () => {
-      this.SpriteGare.setFlipX(false);
-      this.SpriteGare.setPosition(this.PositionGareX, this.PositionGareY);
-      this.SpriteGare.setFrame(0); // reste visible, fige — voir le commentaire au-dessus
+      // Reste flippe et sur place, fige sur la frame 0 (train a l'arret) —
+      // voir le commentaire au-dessus, meme logique que l'arrivee intra-carte.
+      this.SpriteGare.setFrame(0);
       this.Personnage.setVisible(true);
       this.Personnage.body.enable = true;
-      // "attente" : cette gare redevient utilisable normalement, pour
-      // continuer plus loin si une carte suivante lui est configuree un jour.
+      // "attente" (pas "retourAttente") : le joueur n'est PAS repositionne
+      // sur la gare de depart de cette carte (this.PositionGareX/Y, un
+      // endroit different), donc pas de veritable trajet retour a proposer
+      // ici pour l'instant — juste la possibilite de repartir plus tard
+      // depuis SA PROPRE gare si une carte suivante lui est configuree.
       this.EtatGare = 'attente';
     });
   }
