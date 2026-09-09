@@ -114,7 +114,11 @@ GitHub pour s'y connecter.
 
 ## Licence
 
-Ce depot ne comporte pas de fichier de licence : tous droits sont donc
-reserves. Le code source est visible publiquement, mais sa reutilisation,
-sa modification ou sa redistribution ne sont pas autorisees sans
-l'accord explicite de l'auteur.
+Copyright (c) 2026 Lilian Cornet. Tous droits reserves.
+
+Ce depot ne comporte pas de fichier de licence : le code source, les
+histoires, les personnages et les assets restent la propriete exclusive
+de l'auteur. Le code est visible publiquement sur GitHub, mais sa
+reutilisation, sa modification, sa redistribution ou son exploitation
+commerciale ne sont autorisees sous aucune forme sans l'accord explicite
+et ecrit de l'auteur.
