@@ -514,22 +514,49 @@ function JouerSonPas() {
   Bruit.start();
 }
 
-// Saut — petit "hop" : la frequence monte rapidement puis s'eteint.
+// Saut — un souffle d'effort (meme technique que JouerSonPas : bruit filtre,
+// mais plus grave et plus large, un grain plus "aere" qu'un pas) accompagne
+// d'un poids discret qui descend doucement (comme JouerSonAtterrissage, en
+// plus subtil). Volontairement PAS un sifflement qui monte (le "boing" de
+// jeu cartoon) : ça detonnerait avec l'ambiance sourde du reste des sons.
 function JouerSonSaut() {
   const Contexte = ObtenirContexteAudio();
+  const Duree = 0.09;
+
+  const Tampon = Contexte.createBuffer(1, Contexte.sampleRate * Duree, Contexte.sampleRate);
+  const Donnees = Tampon.getChannelData(0);
+  for (let i = 0; i < Donnees.length; i++) Donnees[i] = Math.random() * 2 - 1;
+
+  const Bruit = Contexte.createBufferSource();
+  Bruit.buffer = Tampon;
+
+  const Filtre = Contexte.createBiquadFilter();
+  Filtre.type = 'bandpass';
+  Filtre.frequency.value = 500; // plus grave/large que le pas (1200) : souffle plutot que clic
+  Filtre.Q.value = 0.7;
+
+  const VolumeBruit = Contexte.createGain();
+  VolumeBruit.gain.setValueAtTime(0.08, Contexte.currentTime);
+  VolumeBruit.gain.exponentialRampToValueAtTime(0.001, Contexte.currentTime + Duree);
+
+  Bruit.connect(Filtre);
+  Filtre.connect(VolumeBruit);
+  VolumeBruit.connect(Contexte.destination);
+  Bruit.start();
+
   const Oscillateur = Contexte.createOscillator();
-  Oscillateur.type = 'triangle';
-  Oscillateur.frequency.setValueAtTime(320, Contexte.currentTime);
-  Oscillateur.frequency.exponentialRampToValueAtTime(640, Contexte.currentTime + 0.12);
+  Oscillateur.type = 'sine';
+  Oscillateur.frequency.setValueAtTime(180, Contexte.currentTime);
+  Oscillateur.frequency.exponentialRampToValueAtTime(130, Contexte.currentTime + 0.1);
 
-  const Volume = Contexte.createGain();
-  Volume.gain.setValueAtTime(0.12, Contexte.currentTime);
-  Volume.gain.exponentialRampToValueAtTime(0.001, Contexte.currentTime + 0.13);
+  const VolumeOscillateur = Contexte.createGain();
+  VolumeOscillateur.gain.setValueAtTime(0.09, Contexte.currentTime);
+  VolumeOscillateur.gain.exponentialRampToValueAtTime(0.001, Contexte.currentTime + 0.1);
 
-  Oscillateur.connect(Volume);
-  Volume.connect(Contexte.destination);
+  Oscillateur.connect(VolumeOscillateur);
+  VolumeOscillateur.connect(Contexte.destination);
   Oscillateur.start();
-  Oscillateur.stop(Contexte.currentTime + 0.14);
+  Oscillateur.stop(Contexte.currentTime + 0.11);
 }
 
 // Atterrissage — petit "thud" grave et court.
