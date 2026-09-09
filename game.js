@@ -136,14 +136,16 @@ function CalculerBoitePixels(Carte, NomCalque) {
 // rangee) plutot qu'en pixels — utilise pour calibrer la position de la gare
 // depuis le calque "gare" de la carte active (voir create()), plutot que de
 // coder ses coordonnees en dur pour une seule carte.
-// SeulementFlippees (optionnel) : ne compte que les tuiles retournees
-// horizontalement dans Tiled (Tuile.flipX). Sert a isoler la mosaique miroir
-// du calque "derriere" quand ce calque sert aussi a d'autres reperes visuels
-// sans rapport (ex: le decor de la tele) — cette mosaique est justement
-// construite en reprenant les tuiles de "gare" et en les retournant dans
-// Tiled, ce qui la rend facilement identifiable, contrairement a sa position
-// (qui elle n'est pas fixe d'une carte a l'autre).
-function CalculerBoiteTuiles(Carte, NomCalque, SeulementFlippees) {
+// FlipVoulu (optionnel, true/false) : ne compte que les tuiles dont l'etat de
+// retournement horizontal (Tuile.flipX) correspond. Sert a isoler la mosaique
+// miroir du calque "derriere" quand ce calque sert aussi a d'autres reperes
+// visuels sans rapport (ex: le decor de la tele) — cette mosaique est
+// justement construite en reprenant les tuiles de "gare" et en les
+// retournant dans Tiled, ce qui la rend facilement identifiable independamment
+// de sa position (voir son usage dans create(), avec !this.GareFlippee comme
+// valeur attendue — la mosaique miroir a TOUJOURS l'etat de flip oppose a
+// celui de "gare" sur la meme carte, que "gare" soit elle-meme flippee ou non).
+function CalculerBoiteTuiles(Carte, NomCalque, FlipVoulu) {
   const Calque = Carte.getLayer(NomCalque);
   if (!Calque) return null;
 
@@ -153,7 +155,7 @@ function CalculerBoiteTuiles(Carte, NomCalque, SeulementFlippees) {
   let RangeeMax = -Infinity;
   for (const Ligne of Calque.data) {
     for (const Tuile of Ligne) {
-      if (Tuile && Tuile.index !== -1 && (!SeulementFlippees || Tuile.flipX)) {
+      if (Tuile && Tuile.index !== -1 && (FlipVoulu === undefined || !!Tuile.flipX === FlipVoulu)) {
         ColMin = Math.min(ColMin, Tuile.x);
         ColMax = Math.max(ColMax, Tuile.x);
         RangeeMin = Math.min(RangeeMin, Tuile.y);
@@ -162,6 +164,24 @@ function CalculerBoiteTuiles(Carte, NomCalque, SeulementFlippees) {
     }
   }
   return ColMin <= ColMax ? { ColMin, ColMax, RangeeMin, RangeeMax } : null;
+}
+
+// Etat de retournement horizontal (Tuile.flipX) des tuiles d'un calque —
+// suppose une mosaique dessinee de façon uniforme (toutes ses tuiles dans le
+// meme sens), donc se contente de la premiere tuile non vide trouvee. Sert a
+// adapter le sens du sprite anime de la gare (this.SpriteGare) a celui que le
+// niveau design a choisi pour la mosaique statique de CETTE carte (ex:
+// "enfance" a dessine "gare" retournee par rapport a "debut"/"map1") plutot
+// que de toujours l'afficher dans un seul sens fixe.
+function CalqueEstFlippe(Carte, NomCalque) {
+  const Calque = Carte.getLayer(NomCalque);
+  if (!Calque) return false;
+  for (const Ligne of Calque.data) {
+    for (const Tuile of Ligne) {
+      if (Tuile && Tuile.index !== -1) return !!Tuile.flipX;
+    }
+  }
+  return false;
 }
 
 // Proprietes personnalisees Tiled lues comme un nombre/booleen, meme quand
@@ -702,18 +722,73 @@ class ScenePrincipale extends Phaser.Scene {
       Carte.createLayer('bg', JeuDeTuiles, 0, 0);
       Carte.createLayer('bg2', JeuDeTuiles, 0, 0);
 
+      // Reference gardee (this.CalqueGare sert de simple flag "cette carte a
+      // une gare" un peu partout, voir les gardes "if (this.CalqueGare ...)"
+      // plus bas) mais JAMAIS affiche : la mosaique statique posee dans
+      // Tiled ne s'alignait pas exactement au pixel pres avec le sprite
+      // anime (this.SpriteGare) qui se superpose dessus pendant les
+      // sequences, ce qui causait un leger decalage visible au moment de
+      // basculer de l'un a l'autre. this.SpriteGare (fige sur la frame 0 en
+      // dehors des sequences, voir plus bas) le remplace entierement, y
+      // compris au repos.
+      this.CalqueGare = Carte.createLayer('gare', JeuDeTuiles, 0, 0);
+      if (this.CalqueGare) this.CalqueGare.setVisible(false);
+      const CalqueSol = Carte.createLayer(NomCalqueSol, JeuDeTuiles, 0, 0); // 'sol'
+
+      // Sens de la mosaique "gare" de CETTE carte : certaines cartes (ex:
+      // "enfance") la dessinent retournee par rapport a "debut"/"map1", pour
+      // que le train fasse face au bon sens compte tenu du reste du decor.
+      // this.SpriteGare (voir plus bas) doit alors etre flippe pareil pour
+      // rester coherent avec la mosaique statique qu'il remplace au repos
+      // (voir this.CalqueGare juste au-dessus) — jamais un sens fixe pour
+      // toutes les cartes.
+      this.GareFlippee = CalqueEstFlippe(Carte, 'gare');
+
+      // Position/zone de la gare, calculees depuis le calque "gare" REEL de
+      // la carte active (voir CalculerBoiteTuiles) plutot que codees en dur —
+      // chaque carte peut placer sa gare a des cases differentes (ex:
+      // "enfance" n'est pas du tout aux memes colonnes que "debut"/"map1").
+      const BoiteGare = CalculerBoiteTuiles(Carte, 'gare');
+      if (BoiteGare) {
+        const { ColMin, ColMax, RangeeMax } = BoiteGare;
+        // Coin bas-gauche du bloc — voir la calibration pres de
+        // AncrageImageGareX (generalisation de (35*16, 8*16) = (560, 128)).
+        this.PositionGareX = ColMin * TailleTuile;
+        this.PositionGareY = RangeeMax * TailleTuile;
+        // Centre du bloc, en pixels monde (englobe toute la largeur, jusqu'au
+        // bord droit inclus) — reutilise pour l'icone et pour l'arrivee en train.
+        const CentreGareX = (ColMin * TailleTuile + (ColMax + 1) * TailleTuile) / 2;
+        this.PositionIconeInteractionX = CentreGareX;
+        // Zone d'interaction : quelques cases centrees sur le bloc, a sa
+        // rangee du bas (meme gabarit relatif que l'ancien ZoneGare fixe,
+        // cases 39-43 sur un bloc 35-45 centre en 40).
+        const ColCentre = ColMin + Math.floor((ColMax - ColMin) / 2);
+        this.ZoneGare = {
+          XMin: (ColCentre - 1) * TailleTuile,
+          XMax: (ColCentre + 3) * TailleTuile,
+          YMin: RangeeMax * TailleTuile,
+          YMax: (RangeeMax + 1) * TailleTuile,
+        };
+      } else {
+        // Pas de calque "gare" sur cette carte : desactive toute l'interactivite
+        // liee (this.CalqueGare reste undefined de toute facon, voir les
+        // gardes "if (this.CalqueGare ...)" plus bas).
+        this.ZoneGare = { XMin: 0, XMax: 0, YMin: 0, YMax: 0 };
+      }
+
       // 'derriere' n'existe pas forcement sur toutes les cartes (ex: "debut"
       // n'en a pas encore), et sert souvent a plusieurs choses a la fois sur
       // celles qui l'ont (repere pour la tele, autres decors...), EN PLUS de
       // la mosaique miroir d'arrivee du train (voir DemarrerSequenceGare et
       // JouerArriveeEnTrain) — jamais affiche lui-meme. On isole cette
-      // mosaique du reste via CalculerBoiteTuiles(..., true) : ses tuiles
-      // sont justement celles de "gare" retournees horizontalement dans
-      // Tiled pour obtenir le miroir, ce qui les rend facilement
-      // identifiables (Tuile.flipX) independamment de leur position exacte,
+      // mosaique du reste via son etat de flip HORIZONTAL OPPOSE a celui de
+      // "gare" sur cette meme carte (!this.GareFlippee, voir juste au-dessus) :
+      // cette mosaique est justement construite en reprenant les tuiles de
+      // "gare" et en les retournant une fois de plus dans Tiled, ce qui la
+      // rend facilement identifiable independamment de sa position exacte,
       // qui elle n'est PAS codee en dur (varie d'une carte a l'autre comme
-      // pour le calque "gare" plus bas).
-      const BoiteDerriere = CalculerBoiteTuiles(Carte, 'derriere', true);
+      // pour le calque "gare" ci-dessus).
+      const BoiteDerriere = CalculerBoiteTuiles(Carte, 'derriere', !this.GareFlippee);
       this.ArriveeTrainConfiguree = !!BoiteDerriere;
       const CalqueDerriereExiste = this.ArriveeTrainConfiguree; // alias local, lisibilite
       if (BoiteDerriere) {
@@ -746,51 +821,6 @@ class ScenePrincipale extends Phaser.Scene {
         // arrivee sur un calque "derriere" existant).
         this.PositionIconeInteractionRetourX = 0;
         this.ZoneRetour = { XMin: 0, XMax: 0, YMin: 0, YMax: 0 };
-      }
-
-      // Reference gardee (this.CalqueGare sert de simple flag "cette carte a
-      // une gare" un peu partout, voir les gardes "if (this.CalqueGare ...)"
-      // plus bas) mais JAMAIS affiche : la mosaique statique posee dans
-      // Tiled ne s'alignait pas exactement au pixel pres avec le sprite
-      // anime (this.SpriteGare) qui se superpose dessus pendant les
-      // sequences, ce qui causait un leger decalage visible au moment de
-      // basculer de l'un a l'autre. this.SpriteGare (fige sur la frame 0 en
-      // dehors des sequences, voir plus bas) le remplace entierement, y
-      // compris au repos.
-      this.CalqueGare = Carte.createLayer('gare', JeuDeTuiles, 0, 0);
-      if (this.CalqueGare) this.CalqueGare.setVisible(false);
-      const CalqueSol = Carte.createLayer(NomCalqueSol, JeuDeTuiles, 0, 0); // 'sol'
-
-      // Position/zone de la gare, calculees depuis le calque "gare" REEL de
-      // la carte active (voir CalculerBoiteTuiles) plutot que codees en dur —
-      // chaque carte peut placer sa gare a des cases differentes (ex:
-      // "enfance" n'est pas du tout aux memes colonnes que "debut"/"map1").
-      const BoiteGare = CalculerBoiteTuiles(Carte, 'gare');
-      if (BoiteGare) {
-        const { ColMin, ColMax, RangeeMax } = BoiteGare;
-        // Coin bas-gauche du bloc — voir la calibration pres de
-        // AncrageImageGareX (generalisation de (35*16, 8*16) = (560, 128)).
-        this.PositionGareX = ColMin * TailleTuile;
-        this.PositionGareY = RangeeMax * TailleTuile;
-        // Centre du bloc, en pixels monde (englobe toute la largeur, jusqu'au
-        // bord droit inclus) — reutilise pour l'icone et pour l'arrivee en train.
-        const CentreGareX = (ColMin * TailleTuile + (ColMax + 1) * TailleTuile) / 2;
-        this.PositionIconeInteractionX = CentreGareX;
-        // Zone d'interaction : quelques cases centrees sur le bloc, a sa
-        // rangee du bas (meme gabarit relatif que l'ancien ZoneGare fixe,
-        // cases 39-43 sur un bloc 35-45 centre en 40).
-        const ColCentre = ColMin + Math.floor((ColMax - ColMin) / 2);
-        this.ZoneGare = {
-          XMin: (ColCentre - 1) * TailleTuile,
-          XMax: (ColCentre + 3) * TailleTuile,
-          YMin: RangeeMax * TailleTuile,
-          YMax: (RangeeMax + 1) * TailleTuile,
-        };
-      } else {
-        // Pas de calque "gare" sur cette carte : desactive toute l'interactivite
-        // liee (this.CalqueGare reste undefined de toute facon, voir les
-        // gardes "if (this.CalqueGare ...)" plus bas).
-        this.ZoneGare = { XMin: 0, XMax: 0, YMin: 0, YMax: 0 };
       }
 
       // Ecran de tele : uniquement sur les cartes qui ont un calque
@@ -892,11 +922,13 @@ class ScenePrincipale extends Phaser.Scene {
       this.SpriteGare = this.add.sprite(this.PositionGareX, this.PositionGareY, CleGare, 0);
       this.SpriteGare.setOrigin(OrigineContenuGareX, OrigineContenuGareY);
       this.SpriteGare.setDepth(5);
-      // Visible par defaut (frame 0, non flippe) : c'est lui qui tient lieu
-      // de mosaique "au repos" en dehors des sequences (voir this.CalqueGare
-      // plus haut) — sauf si la carte n'a pas de calque "gare" exploitable
+      // Visible par defaut (frame 0) : c'est lui qui tient lieu de mosaique
+      // "au repos" en dehors des sequences (voir this.CalqueGare plus haut)
+      // — sauf si la carte n'a pas de calque "gare" exploitable
       // (this.PositionGareX resterait alors undefined, voir CalculerBoiteTuiles).
+      // Flippe pareil que la mosaique statique qu'il remplace (this.GareFlippee).
       this.SpriteGare.setVisible(this.PositionGareX !== undefined);
+      this.SpriteGare.setFlipX(this.GareFlippee);
 
       // Icone d'interaction : suit le joueur au-dessus de sa tete tant qu'il
       // est dans ZoneGare. iconeAttente boucle (invite), iconePressee joue
@@ -1443,8 +1475,9 @@ class ScenePrincipale extends Phaser.Scene {
     this.Personnage.body.enable = false;
     // Remise a plat de l'orientation/position du sprite : au cas ou ce
     // serait un 2e aller (apres un retour), il a ete laisse flippe et
-    // repositionne a l'arrivee la fois precedente (voir plus bas).
-    this.SpriteGare.setFlipX(false);
+    // repositionne a l'arrivee la fois precedente (voir plus bas). Sens
+    // normal de la gare de CETTE carte (this.GareFlippee), pas un sens fixe.
+    this.SpriteGare.setFlipX(this.GareFlippee);
     this.SpriteGare.setPosition(this.PositionGareX, this.PositionGareY);
     this.SpriteGare.setVisible(true);
     this.SpriteGare.play('clignoteGare');
@@ -1491,7 +1524,7 @@ class ScenePrincipale extends Phaser.Scene {
             this.Personnage.setPosition(this.PositionSortieTunnelX, this.PositionSortieTunnelY);
             this.CameraDoitSauterEnX = true;
 
-            this.SpriteGare.setFlipX(true);
+            this.SpriteGare.setFlipX(!this.GareFlippee);
             this.SpriteGare.setPosition(this.PositionGareInverseeX, this.PositionGareInverseeY);
             this.SpriteGare.setVisible(true);
             this.SpriteGare.play('arriveeGare');
@@ -1548,7 +1581,7 @@ class ScenePrincipale extends Phaser.Scene {
             this.Personnage.setPosition(this.PositionAvantVoyage.x, this.PositionAvantVoyage.y);
             this.CameraDoitSauterEnX = true; // recadrage instantane, meme principe qu'a l'aller
 
-            this.SpriteGare.setFlipX(false); // a l'origine, sprite a l'endroit
+            this.SpriteGare.setFlipX(this.GareFlippee); // a l'origine, sprite a l'endroit
             this.SpriteGare.setPosition(this.PositionGareX, this.PositionGareY);
             this.SpriteGare.setVisible(true);
             this.SpriteGare.play('arriveeGare');
@@ -1593,7 +1626,7 @@ class ScenePrincipale extends Phaser.Scene {
     this.Personnage.body.setVelocity(0, 0);
     this.Personnage.body.enable = false;
 
-    this.SpriteGare.setFlipX(true);
+    this.SpriteGare.setFlipX(!this.GareFlippee);
     this.SpriteGare.setPosition(this.PositionGareInverseeX, this.PositionGareInverseeY);
     this.SpriteGare.setVisible(true);
     this.SpriteGare.play('arriveeGare');
