@@ -56,6 +56,17 @@ const HauteurImagePersonnage = 16; // hauteur en pixels d'une frame
 // Echelle d'affichage du pixel art (tuiles de 16px, sinon minuscule a l'ecran)
 const ZoomCamera = 5;
 
+// --- Tremblement de camera pendant la marche (pseudo-realisme du deplacement) ---
+// Un leger balancement vertical, en boucle tant que le joueur marche au sol,
+// qui s'amplifie/s'attenue en fondu plutot que de s'enclencher/s'arreter
+// d'un coup (voir this.IntensiteMarche dans update() et son usage dans
+// MettreAJourCamera). Periode calquee sur la cadence des pas (voir
+// DelaiProchainPas, 260ms) : un cycle complet du balancement dure deux pas.
+const AmplitudeTremblementMarche = 0.6; // en pixels MONDE (avant zoom)
+const PeriodeTremblementMarche = 260 * 2; // ms — deux pas = un cycle complet
+const FrequenceTremblementMarche = (2 * Math.PI) / PeriodeTremblementMarche;
+const VitesseFonduTremblementMarche = 0.15; // vitesse de montee/descente de l'intensite, par frame
+
 // --- Herbe animee (animated_grass.png) ---
 // Les brins d'herbe sont des tuiles figees dans le calque "devant" (GID 33 a
 // 36 = les 4 variantes de grass.png, dans l'ordre). animated_grass.png
@@ -1002,6 +1013,11 @@ class ScenePrincipale extends Phaser.Scene {
     this.EtaitAuSol = true;
     this.DelaiProchainPas = 0;
 
+    // Tremblement de camera pendant la marche (voir MettreAJourCamera et
+    // AmplitudeTremblementMarche) : 0 = immobile, 1 = pleine intensite,
+    // remonte/redescend en fondu via VitesseFonduTremblementMarche.
+    this.IntensiteMarche = 0;
+
     // Suivi de camera entierement manuel (voir MettreAJourCamera dans
     // update()), plutot que startFollow(...) : constate a l'usage que
     // Phaser recalcule scrollY tout seul a chaque redimensionnement de la
@@ -1110,7 +1126,7 @@ class ScenePrincipale extends Phaser.Scene {
   }
 
   update(Temps, TempsEcoule) {
-    if (this.LargeurMondeCarte) this.MettreAJourCamera();
+    if (this.LargeurMondeCarte) this.MettreAJourCamera(Temps);
 
     // Interaction gare : tant que rien n'a ete declenche (EtatGare
     // "attente"), l'icone suit le joueur et boucle son invite des qu'il entre
@@ -1312,6 +1328,13 @@ class ScenePrincipale extends Phaser.Scene {
       } else {
         this.DelaiProchainPas = 0; // pret a jouer un pas des la reprise de la marche
       }
+
+      // Intensite du tremblement de camera (voir AmplitudeTremblementMarche
+      // et MettreAJourCamera) : meme condition que le bruit de pas (marche
+      // au sol), montee/descente en fondu pour ne pas s'enclencher/s'arreter
+      // d'un coup.
+      const IntensiteMarcheVoulue = (Gauche || Droite) && Corps.blocked.down ? 1 : 0;
+      this.IntensiteMarche = Phaser.Math.Linear(this.IntensiteMarche, IntensiteMarcheVoulue, VitesseFonduTremblementMarche);
 
       if (!Gauche && !Droite) {
         Corps.setVelocityX(0);
@@ -1858,7 +1881,7 @@ class ScenePrincipale extends Phaser.Scene {
   // Y : fixe sur CentreVerticalCadrage (le point du monde que l'on veut voir
   // au milieu de l'ecran) — augmente cette valeur pour "descendre" la vue
   // (faire monter l'horizon a l'ecran), diminue-la pour l'inverse.
-  MettreAJourCamera() {
+  MettreAJourCamera(Temps) {
     const CentreVerticalCadrage = 140;
     const Cam = this.cameras.main;
     const LargeurVueMonde = Cam.width / Cam.zoom;
@@ -1891,7 +1914,13 @@ class ScenePrincipale extends Phaser.Scene {
       0,
       Math.max(0, this.HauteurMondeCarte - HauteurVueMonde)
     );
-    Cam.scrollY = VueYVoulue + (HauteurVueMonde - Cam.height) / 2;
+    // Leger balancement pendant la marche (voir this.IntensiteMarche dans
+    // update()) : une oscillation continue en sinus, dont l'amplitude reelle
+    // suit l'intensite (0 immobile, 1 pleine marche) plutot que d'etre
+    // activee/coupee d'un coup. Ajoute directement au scrollY final : ne
+    // touche pas au cadrage vertical "au repos" ci-dessus.
+    const Tremblement = Math.sin(Temps * FrequenceTremblementMarche) * AmplitudeTremblementMarche * (this.IntensiteMarche || 0);
+    Cam.scrollY = VueYVoulue + (HauteurVueMonde - Cam.height) / 2 + Tremblement;
   }
 
   // Lit chaque objet portant une propriete "ligneNPJ" sur "Calque d'Objets
