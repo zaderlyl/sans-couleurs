@@ -22,7 +22,7 @@ const NomTuilesDansTiled = 'Tileset'; // DOIT correspondre exactement au nom du 
 // Carte de depart : "debut" par defaut (nouveau debut du jeu). Parametre
 // d'URL ?carte=<nom> pour ouvrir directement une autre carte pendant les
 // tests (ex: ?carte=enfance), sans repasser par le trajet en train complet.
-const CleCarteChoisie = new URLSearchParams(window.location.search).get('carte') || 'debut';
+const CleCarteChoisie = new URLSearchParams(window.location.search).get('carte') || 'map1';
 // Enchainement des cartes : quelle carte suivante charger quand le joueur
 // prend le train a la gare d'une carte donnee (voir DemarrerSequenceGare).
 // Une carte absente d'ici (ex: pas encore de suite a "enfance") garde
@@ -1134,6 +1134,8 @@ class ScenePrincipale extends Phaser.Scene {
           this.IconeInteraction.once('animationcomplete', () => {
             this.IconeInteraction.setVisible(false);
             this.DemarrerSequenceGare();
+
+            
           });
         }
       } else {

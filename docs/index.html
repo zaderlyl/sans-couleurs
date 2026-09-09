@@ -56,6 +56,21 @@
     align-items: center;
     gap: 8px;
     font-size: 12px;
+    flex-wrap: wrap;
+  }
+  .zone-token #zone-premiere-connexion,
+  .zone-token #zone-deverrouillage {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  /* La regle ci-dessus (selecteur ID) est plus specifique que la regle UA
+     par defaut "[hidden]{display:none}" et l'emporterait sinon, laissant
+     les deux zones visibles en meme temps malgre l'attribut hidden. */
+  .zone-token #zone-premiere-connexion[hidden],
+  .zone-token #zone-deverrouillage[hidden] {
+    display: none;
   }
   .zone-token input[type="password"], .zone-token input[type="text"] {
     padding: 6px 8px;
@@ -63,6 +78,7 @@
     border-radius: 4px;
     font-size: 12px;
     width: 220px;
+    max-width: 42vw;
     background: var(--champ-fond);
     color: var(--texte);
   }
@@ -360,9 +376,24 @@
   <div class="zone-token">
     <span class="pastille-etat" id="pastille-token"></span>
     <span id="etat-token-texte">Non connecte</span>
-    <input type="password" id="champ-token" placeholder="Token GitHub (repo scope)">
-    <button id="bouton-connecter" class="secondaire">Connecter</button>
-    <button id="bouton-deconnecter" class="secondaire" hidden>Oublier le token</button>
+
+    <!-- Premiere connexion (aucun token chiffre enregistre) : le token GitHub
+         + un code de verrouillage choisi ici et servant a le chiffrer. -->
+    <span id="zone-premiere-connexion" hidden>
+      <input type="password" id="champ-token" placeholder="Token GitHub (repo scope)">
+      <input type="password" id="champ-code-nouveau" placeholder="Code de verrouillage (a retenir)">
+      <button id="bouton-enregistrer-token" class="secondaire">Enregistrer</button>
+    </span>
+
+    <!-- Token deja enregistre (chiffre) mais pas encore deverrouille pour
+         cette session de navigateur : juste le code, plus court/rapide a
+         retaper qu'un token complet. -->
+    <span id="zone-deverrouillage" hidden>
+      <input type="password" id="champ-code-deverrouillage" placeholder="Code de verrouillage">
+      <button id="bouton-deverrouiller" class="secondaire">Deverrouiller</button>
+    </span>
+
+    <button id="bouton-oublier" class="secondaire" hidden>Oublier le token</button>
   </div>
 </header>
 
@@ -393,7 +424,7 @@
 </main>
 
 <footer>
-  Le token n'est jamais envoye ailleurs qu'a api.github.com ; il reste uniquement dans le stockage local de ce navigateur.
+  Le token n'est jamais envoye ailleurs qu'a api.github.com. Il est chiffre (AES-GCM) avec ton code de verrouillage avant d'etre enregistre dans ce navigateur ; en clair, il ne reste qu'en memoire le temps de cette session (efface a la fermeture du navigateur ou via "Oublier le token").
 </footer>
 
 <div class="overlay" id="overlay-nouvelle" hidden>
@@ -426,7 +457,6 @@
   var PROPRIETAIRE = 'zaderlyl';
   var DEPOT = 'sans-couleurs';
   var API = 'https://api.github.com/repos/' + PROPRIETAIRE + '/' + DEPOT;
-  var CLE_TOKEN = 'sans_couleurs_admin_token';
 
   document.getElementById('ligne-repo').textContent = 'depot : ' + PROPRIETAIRE + '/' + DEPOT;
 
@@ -492,35 +522,153 @@
     });
   }
 
-  // ---- Token --------------------------------------------------------
+  // ---- Token : chiffre au repos (localStorage), en clair seulement pour la
+  // session en cours (sessionStorage) -----------------------------------
+  //
+  // Le token GitHub n'est JAMAIS stocke tel quel : il est chiffre (AES-GCM,
+  // cle derivee par PBKDF2 depuis un code de verrouillage choisi par
+  // l'utilisateur) avant d'atterrir dans localStorage. Pour re-ouvrir une
+  // session sans retaper le token complet, on ne demande que ce code, plus
+  // court a memoriser/retaper. Une fois dechiffre, le token clair n'est
+  // garde qu'en sessionStorage (efface a la fermeture du navigateur/onglet)
+  // et en memoire (etat.token) — jamais en localStorage.
+  //
+  // Ca protege contre une lecture directe de localStorage (device partage,
+  // extension malveillante qui fouille le stockage...) mais pas contre un
+  // acces total a la machine PENDANT que la session est deverrouillee (le
+  // token clair est alors en memoire/sessionStorage, comme n'importe quelle
+  // appli web connectee) : "Oublier le token" efface tout, y compris cette
+  // copie en clair.
+  var CLE_BLOB_CHIFFRE = 'sans_couleurs_admin_token_chiffre';
+  var CLE_TOKEN_SESSION = 'sans_couleurs_admin_token_session';
+  var ITERATIONS_PBKDF2 = 250000;
 
-  function definirEtatToken(connecte) {
-    document.getElementById('pastille-token').classList.toggle('ok', connecte);
-    document.getElementById('etat-token-texte').textContent = connecte ? 'Connecte' : 'Non connecte';
-    document.getElementById('bouton-connecter').hidden = connecte;
-    document.getElementById('champ-token').hidden = connecte;
-    document.getElementById('bouton-deconnecter').hidden = !connecte;
+  function verOctets(base64) {
+    var binaire = atob(base64);
+    var octets = new Uint8Array(binaire.length);
+    for (var i = 0; i < binaire.length; i++) octets[i] = binaire.charCodeAt(i);
+    return octets;
+  }
+  function verBase64(octets) {
+    var binaire = '';
+    for (var i = 0; i < octets.length; i++) binaire += String.fromCharCode(octets[i]);
+    return btoa(binaire);
+  }
+
+  function derivierClef(code, sel) {
+    var encodeur = new TextEncoder();
+    return crypto.subtle.importKey('raw', encodeur.encode(code), 'PBKDF2', false, ['deriveKey'])
+      .then(function (clefBrute) {
+        return crypto.subtle.deriveKey(
+          { name: 'PBKDF2', salt: sel, iterations: ITERATIONS_PBKDF2, hash: 'SHA-256' },
+          clefBrute,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+      });
+  }
+
+  function chiffrerToken(token, code) {
+    var sel = crypto.getRandomValues(new Uint8Array(16));
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    return derivierClef(code, sel).then(function (clef) {
+      return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, clef, new TextEncoder().encode(token));
+    }).then(function (chiffre) {
+      return { sel: verBase64(sel), iv: verBase64(iv), donnees: verBase64(new Uint8Array(chiffre)) };
+    });
+  }
+
+  function dechiffrerToken(blob, code) {
+    return derivierClef(code, verOctets(blob.sel)).then(function (clef) {
+      return crypto.subtle.decrypt({ name: 'AES-GCM', iv: verOctets(blob.iv) }, clef, verOctets(blob.donnees));
+    }).then(function (clair) {
+      return new TextDecoder().decode(clair);
+    });
+    // Un mauvais code de verrouillage fait echouer decrypt() (l'authentification
+    // GCM ne correspond pas) : la promesse est rejetee, geree par l'appelant.
+  }
+
+  function lireBlobChiffre() {
+    try {
+      var brut = localStorage.getItem(CLE_BLOB_CHIFFRE);
+      return brut ? JSON.parse(brut) : null;
+    } catch (erreur) { return null; }
+  }
+  function sauvegarderBlobChiffre(blob) {
+    try { localStorage.setItem(CLE_BLOB_CHIFFRE, JSON.stringify(blob)); } catch (erreur) { /* stockage indisponible */ }
+  }
+  function effacerToutLeStockageToken() {
+    try { localStorage.removeItem(CLE_BLOB_CHIFFRE); } catch (erreur) { /* ignore */ }
+    try { sessionStorage.removeItem(CLE_TOKEN_SESSION); } catch (erreur) { /* ignore */ }
+  }
+
+  function definirEtatToken(etatAffichage) {
+    // etatAffichage : 'deconnecte' | 'a-deverrouiller' | 'connecte'
+    document.getElementById('pastille-token').classList.toggle('ok', etatAffichage === 'connecte');
+    document.getElementById('etat-token-texte').textContent =
+      etatAffichage === 'connecte' ? 'Connecte' :
+      etatAffichage === 'a-deverrouiller' ? 'Verrouille' : 'Non connecte';
+    document.getElementById('zone-premiere-connexion').hidden = etatAffichage !== 'deconnecte';
+    document.getElementById('zone-deverrouillage').hidden = etatAffichage !== 'a-deverrouiller';
+    document.getElementById('bouton-oublier').hidden = etatAffichage === 'deconnecte';
   }
 
   function connecter(token) {
     etat.token = token;
-    try { localStorage.setItem(CLE_TOKEN, token); } catch (erreur) { /* stockage indisponible : tant pis, token garde en memoire seulement */ }
-    definirEtatToken(true);
+    try { sessionStorage.setItem(CLE_TOKEN_SESSION, token); } catch (erreur) { /* stockage indisponible : tant pis, il faudra redonner le code au prochain chargement */ }
+    definirEtatToken('connecte');
     chargerLabels();
     chargerIssues();
   }
 
-  document.getElementById('bouton-connecter').addEventListener('click', function () {
-    var valeur = document.getElementById('champ-token').value.trim();
-    if (!valeur) return;
-    connecter(valeur);
+  // Premiere connexion : chiffre le token avec le code choisi, l'enregistre,
+  // puis connecte tout de suite.
+  document.getElementById('bouton-enregistrer-token').addEventListener('click', function () {
+    var token = document.getElementById('champ-token').value.trim();
+    var code = document.getElementById('champ-code-nouveau').value;
+    if (!token || !code) { alert('Le token et un code de verrouillage sont tous les deux necessaires.'); return; }
+    var bouton = document.getElementById('bouton-enregistrer-token');
+    bouton.disabled = true;
+    chiffrerToken(token, code).then(function (blob) {
+      sauvegarderBlobChiffre(blob);
+      document.getElementById('champ-token').value = '';
+      document.getElementById('champ-code-nouveau').value = '';
+      connecter(token);
+    }).catch(function (erreur) {
+      alert('Chiffrement impossible : ' + erreur.message);
+    }).finally(function () { bouton.disabled = false; });
   });
 
-  document.getElementById('bouton-deconnecter').addEventListener('click', function () {
+  // Deverrouillage : redemande juste le code, jamais le token complet.
+  document.getElementById('bouton-deverrouiller').addEventListener('click', function () {
+    var code = document.getElementById('champ-code-deverrouillage').value;
+    if (!code) return;
+    var blob = lireBlobChiffre();
+    if (!blob) { definirEtatToken('deconnecte'); return; }
+    var bouton = document.getElementById('bouton-deverrouiller');
+    bouton.disabled = true;
+    dechiffrerToken(blob, code).then(function (token) {
+      document.getElementById('champ-code-deverrouillage').value = '';
+      connecter(token);
+    }).catch(function () {
+      alert('Code de verrouillage incorrect.');
+    }).finally(function () { bouton.disabled = false; });
+  });
+  document.getElementById('champ-code-deverrouillage').addEventListener('keydown', function (evenement) {
+    if (evenement.key === 'Enter') document.getElementById('bouton-deverrouiller').click();
+  });
+  document.getElementById('champ-code-nouveau').addEventListener('keydown', function (evenement) {
+    if (evenement.key === 'Enter') document.getElementById('bouton-enregistrer-token').click();
+  });
+
+  document.getElementById('bouton-oublier').addEventListener('click', function () {
     etat.token = null;
-    try { localStorage.removeItem(CLE_TOKEN); } catch (erreur) { /* ignore */ }
-    definirEtatToken(false);
+    effacerToutLeStockageToken();
     document.getElementById('champ-token').value = '';
+    document.getElementById('champ-code-nouveau').value = '';
+    document.getElementById('champ-code-deverrouillage').value = '';
+    definirEtatToken('deconnecte');
     document.getElementById('liste-issues').innerHTML = '<div class="etat-vide">Connecte-toi avec un token pour charger les issues.</div>';
     document.getElementById('colonne-detail').innerHTML = '<div class="etat-vide">Selectionne une issue dans la liste.</div>';
   });
@@ -803,13 +951,20 @@
   });
 
   // ---- Demarrage -------------------------------------------------------
+  // Trois cas : (1) deja deverrouille pendant cette session de navigateur
+  // (sessionStorage) -> reconnexion immediate, aucune saisie ; (2) un token
+  // chiffre existe (localStorage) mais pas encore deverrouille cette
+  // session -> demande juste le code ; (3) rien du tout -> premiere
+  // configuration (token + choix d'un code).
+  var tokenDeSession = null;
+  try { tokenDeSession = sessionStorage.getItem(CLE_TOKEN_SESSION); } catch (erreur) { /* stockage indisponible */ }
 
-  var tokenSauvegarde = null;
-  try { tokenSauvegarde = localStorage.getItem(CLE_TOKEN); } catch (erreur) { /* stockage indisponible */ }
-  if (tokenSauvegarde) {
-    connecter(tokenSauvegarde);
+  if (tokenDeSession) {
+    connecter(tokenDeSession);
+  } else if (lireBlobChiffre()) {
+    definirEtatToken('a-deverrouiller');
   } else {
-    definirEtatToken(false);
+    definirEtatToken('deconnecte');
   }
 })();
 </script>
