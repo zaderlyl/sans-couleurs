@@ -724,8 +724,17 @@ class ScenePrincipale extends Phaser.Scene {
         Carte.createLayer('derriere', JeuDeTuiles, 0, 0).setVisible(false);
       }
 
-      // Reference gardee sur ce calque : on va l'animer (secousse, depart)
+      // Reference gardee (this.CalqueGare sert de simple flag "cette carte a
+      // une gare" un peu partout, voir les gardes "if (this.CalqueGare ...)"
+      // plus bas) mais JAMAIS affiche : la mosaique statique posee dans
+      // Tiled ne s'alignait pas exactement au pixel pres avec le sprite
+      // anime (this.SpriteGare) qui se superpose dessus pendant les
+      // sequences, ce qui causait un leger decalage visible au moment de
+      // basculer de l'un a l'autre. this.SpriteGare (fige sur la frame 0 en
+      // dehors des sequences, voir plus bas) le remplace entierement, y
+      // compris au repos.
       this.CalqueGare = Carte.createLayer('gare', JeuDeTuiles, 0, 0);
+      if (this.CalqueGare) this.CalqueGare.setVisible(false);
       const CalqueSol = Carte.createLayer(NomCalqueSol, JeuDeTuiles, 0, 0); // 'sol'
 
       // Position/zone de la gare, calculees depuis le calque "gare" REEL de
@@ -868,7 +877,11 @@ class ScenePrincipale extends Phaser.Scene {
       this.SpriteGare = this.add.sprite(this.PositionGareX, this.PositionGareY, CleGare, 0);
       this.SpriteGare.setOrigin(OrigineContenuGareX, OrigineContenuGareY);
       this.SpriteGare.setDepth(5);
-      this.SpriteGare.setVisible(false);
+      // Visible par defaut (frame 0, non flippe) : c'est lui qui tient lieu
+      // de mosaique "au repos" en dehors des sequences (voir this.CalqueGare
+      // plus haut) — sauf si la carte n'a pas de calque "gare" exploitable
+      // (this.PositionGareX resterait alors undefined, voir CalculerBoiteTuiles).
+      this.SpriteGare.setVisible(this.PositionGareX !== undefined);
 
       // Icone d'interaction : suit le joueur au-dessus de sa tete tant qu'il
       // est dans ZoneGare. iconeAttente boucle (invite), iconePressee joue
@@ -1406,7 +1419,6 @@ class ScenePrincipale extends Phaser.Scene {
     this.Personnage.setVisible(false);
     this.Personnage.body.setVelocity(0, 0);
     this.Personnage.body.enable = false;
-    this.CalqueGare.setVisible(false);
     // Remise a plat de l'orientation/position du sprite : au cas ou ce
     // serait un 2e aller (apres un retour), il a ete laisse flippe et
     // repositionne a l'arrivee la fois precedente (voir plus bas).
@@ -1543,12 +1555,15 @@ class ScenePrincipale extends Phaser.Scene {
   // Le joueur est deja positionne pres de sa propre gare (this.PositionArriveeTrainX/Y,
   // voir create()) : on joue juste l'arrivee (arriveeGare, sprite flippe,
   // this.PositionGareXFlippe) sur SA mosaique "gare" a elle plutot que sur un
-  // calque "derriere" dedie (ce n'est pas necessaire ici : la mosaique
-  // statique normale de cette carte fait tres bien office de "dessous" une
-  // fois l'anim finie). Ecran deja noir au demarrage de cette carte (voir
-  // DemarrerSequenceGare, fadeOut avant le restart) : fadeOut(0) ici
-  // garantit qu'aucune frame ne s'affiche entre-temps meme si ce n'etait pas
-  // deja le cas (ex: carte ouverte directement via ?carte=... en test).
+  // calque "derriere" dedie. this.CalqueGare (la mosaique Tiled) n'est
+  // JAMAIS reaffiche, ici ou ailleurs (voir sa creation dans create()) : le
+  // sprite anime reste visible en permanence, fige sur la frame 0 une fois
+  // l'anim finie, pour eviter le leger decalage au pixel pres entre les deux
+  // qui etait visible au moment de rebasculer de l'un a l'autre. Ecran deja
+  // noir au demarrage de cette carte (voir DemarrerSequenceGare, fadeOut
+  // avant le restart) : fadeOut(0) ici garantit qu'aucune frame ne s'affiche
+  // entre-temps meme si ce n'etait pas deja le cas (ex: carte ouverte
+  // directement via ?carte=... en test).
   JouerArriveeEnTrain() {
     this.cameras.main.fadeOut(0, 0, 0, 0);
     this.EtatGare = 'enCours';
@@ -1556,7 +1571,6 @@ class ScenePrincipale extends Phaser.Scene {
     this.Personnage.setVisible(false);
     this.Personnage.body.setVelocity(0, 0);
     this.Personnage.body.enable = false;
-    this.CalqueGare.setVisible(false);
 
     this.SpriteGare.setFlipX(true);
     this.SpriteGare.setPosition(this.PositionGareXFlippe, this.PositionGareY);
@@ -1568,8 +1582,7 @@ class ScenePrincipale extends Phaser.Scene {
     this.SpriteGare.once('animationcomplete', () => {
       this.SpriteGare.setFlipX(false);
       this.SpriteGare.setPosition(this.PositionGareX, this.PositionGareY);
-      this.SpriteGare.setVisible(false);
-      this.CalqueGare.setVisible(true);
+      this.SpriteGare.setFrame(0); // reste visible, fige — voir le commentaire au-dessus
       this.Personnage.setVisible(true);
       this.Personnage.body.enable = true;
       // "attente" : cette gare redevient utilisable normalement, pour
