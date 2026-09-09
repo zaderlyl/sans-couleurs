@@ -56,16 +56,26 @@ const HauteurImagePersonnage = 16; // hauteur en pixels d'une frame
 // Echelle d'affichage du pixel art (tuiles de 16px, sinon minuscule a l'ecran)
 const ZoomCamera = 5;
 
-// --- Tremblement de camera pendant la marche (pseudo-realisme du deplacement) ---
-// Un leger balancement vertical, en boucle tant que le joueur marche au sol,
-// qui s'amplifie/s'attenue en fondu plutot que de s'enclencher/s'arreter
-// d'un coup (voir this.IntensiteMarche dans update() et son usage dans
-// MettreAJourCamera). Periode calquee sur la cadence des pas (voir
-// DelaiProchainPas, 260ms) : un cycle complet du balancement dure deux pas.
-const AmplitudeTremblementMarche = 0.6; // en pixels MONDE (avant zoom)
-const PeriodeTremblementMarche = 260 * 2; // ms — deux pas = un cycle complet
-const FrequenceTremblementMarche = (2 * Math.PI) / PeriodeTremblementMarche;
-const VitesseFonduTremblementMarche = 0.15; // vitesse de montee/descente de l'intensite, par frame
+// --- Pseudo-realisme du deplacement ---
+// this.IntensiteMarche (0 = immobile, 1 = pleine marche) monte/descend en
+// fondu plutot que de s'enclencher/s'arreter d'un coup (voir update()), et
+// sert de base a plusieurs petits effets synchronises sur la marche :
+// tangage du personnage, anticipation de la camera dans le sens du regard.
+const VitesseFonduMarche = 0.15; // vitesse de montee/descente de l'intensite, par frame
+
+// Tangage du personnage : leger balancement de rotation, comme une demarche
+// naturelle. Periode calquee sur la cadence des pas (voir DelaiProchainPas,
+// 260ms) : un cycle complet du tangage dure deux pas.
+const AmplitudeTangagePersonnage = 0.06; // radians (~3.4 degres) a pleine intensite
+const PeriodeTangagePersonnage = 260 * 2; // ms — deux pas = un cycle complet
+const FrequenceTangagePersonnage = (2 * Math.PI) / PeriodeTangagePersonnage;
+
+// Anticipation de la camera : legerement decalee dans le sens du regard du
+// personnage pendant la marche, pour montrer un peu plus loin devant que
+// derriere (voir MettreAJourCamera). Le lerp deja en place sur scrollX
+// (voir plus bas) suffit a lisser la transition, pas besoin d'un fondu
+// separe — this.IntensiteMarche s'en charge deja.
+const DecalageAnticipationCameraMax = 14; // pixels MONDE, decalage max
 
 // --- Herbe animee (animated_grass.png) ---
 // Les brins d'herbe sont des tuiles figees dans le calque "devant" (GID 33 a
@@ -1013,9 +1023,9 @@ class ScenePrincipale extends Phaser.Scene {
     this.EtaitAuSol = true;
     this.DelaiProchainPas = 0;
 
-    // Tremblement de camera pendant la marche (voir MettreAJourCamera et
-    // AmplitudeTremblementMarche) : 0 = immobile, 1 = pleine intensite,
-    // remonte/redescend en fondu via VitesseFonduTremblementMarche.
+    // Intensite de marche (0 = immobile, 1 = pleine marche), remonte/redescend
+    // en fondu via VitesseFonduMarche — voir son usage dans update() (tangage
+    // du personnage) et MettreAJourCamera (anticipation de la camera).
     this.IntensiteMarche = 0;
 
     // Suivi de camera entierement manuel (voir MettreAJourCamera dans
@@ -1126,7 +1136,7 @@ class ScenePrincipale extends Phaser.Scene {
   }
 
   update(Temps, TempsEcoule) {
-    if (this.LargeurMondeCarte) this.MettreAJourCamera(Temps);
+    if (this.LargeurMondeCarte) this.MettreAJourCamera();
 
     // Interaction gare : tant que rien n'a ete declenche (EtatGare
     // "attente"), l'icone suit le joueur et boucle son invite des qu'il entre
@@ -1317,24 +1327,35 @@ class ScenePrincipale extends Phaser.Scene {
         }
       }
 
-      // Bruit de pas : seulement en marchant au sol, cadence par un compte a
-      // rebours en ms (independant du framerate) plutot que toutes les frames.
+      // Bruit de pas + petit nuage de poussiere sous les pieds : seulement en
+      // marchant au sol, cadence par un compte a rebours en ms (independant
+      // du framerate) plutot que toutes les frames. Meme emetteur que
+      // l'atterrissage (voir this.EmetteurPoussiere), juste avec moins de
+      // particules — un nuage discret plutot qu'une explosion.
       if ((Gauche || Droite) && Corps.blocked.down) {
         this.DelaiProchainPas -= TempsEcoule;
         if (this.DelaiProchainPas <= 0) {
           JouerSonPas();
+          this.EmetteurPoussiere.explode(2, this.Personnage.x, this.Personnage.y + 8);
           this.DelaiProchainPas = 260;
         }
       } else {
         this.DelaiProchainPas = 0; // pret a jouer un pas des la reprise de la marche
       }
 
-      // Intensite du tremblement de camera (voir AmplitudeTremblementMarche
-      // et MettreAJourCamera) : meme condition que le bruit de pas (marche
-      // au sol), montee/descente en fondu pour ne pas s'enclencher/s'arreter
-      // d'un coup.
+      // Intensite de marche (voir sa declaration dans create()) : meme
+      // condition que le bruit de pas (marche au sol), montee/descente en
+      // fondu pour ne pas s'enclencher/s'arreter d'un coup.
       const IntensiteMarcheVoulue = (Gauche || Droite) && Corps.blocked.down ? 1 : 0;
-      this.IntensiteMarche = Phaser.Math.Linear(this.IntensiteMarche, IntensiteMarcheVoulue, VitesseFonduTremblementMarche);
+      this.IntensiteMarche = Phaser.Math.Linear(this.IntensiteMarche, IntensiteMarcheVoulue, VitesseFonduMarche);
+
+      // Tangage : leger balancement de rotation du personnage en marchant,
+      // comme une demarche naturelle. S'annule tout seul en fondu avec
+      // l'intensite (donc aussi a l'arret ou en l'air, sans avoir besoin de
+      // le remettre a zero explicitement ailleurs).
+      if (UtiliseSpritePersonnage) {
+        this.Personnage.rotation = Math.sin(Temps * FrequenceTangagePersonnage) * AmplitudeTangagePersonnage * this.IntensiteMarche;
+      }
 
       if (!Gauche && !Droite) {
         Corps.setVelocityX(0);
@@ -1881,7 +1902,7 @@ class ScenePrincipale extends Phaser.Scene {
   // Y : fixe sur CentreVerticalCadrage (le point du monde que l'on veut voir
   // au milieu de l'ecran) — augmente cette valeur pour "descendre" la vue
   // (faire monter l'horizon a l'ecran), diminue-la pour l'inverse.
-  MettreAJourCamera(Temps) {
+  MettreAJourCamera() {
     const CentreVerticalCadrage = 140;
     const Cam = this.cameras.main;
     const LargeurVueMonde = Cam.width / Cam.zoom;
@@ -1901,8 +1922,15 @@ class ScenePrincipale extends Phaser.Scene {
     // vide du monde (ecran noir garanti, alors que le reste du jeu tourne
     // normalement). On calcule donc d'abord la position voulue du worldView,
     // puis on la convertit en scrollX/scrollY avec la formule inverse.
+    // Anticipation : centre vise legerement decale dans le sens du regard du
+    // personnage pendant la marche (voir DecalageAnticipationCameraMax),
+    // pour montrer un peu plus loin devant que derriere. this.IntensiteMarche
+    // (0 a l'arret/en l'air, 1 en pleine marche) sert directement de fondu :
+    // pas besoin d'un lerp separe, celui deja en place sur scrollX plus bas
+    // suffit a lisser la transition.
+    const Anticipation = (this.Orientation === 'gauche' ? -1 : 1) * DecalageAnticipationCameraMax * (this.IntensiteMarche || 0);
     const VueXVoulue = Phaser.Math.Clamp(
-      this.Personnage.x - LargeurVueMonde / 2,
+      this.Personnage.x + Anticipation - LargeurVueMonde / 2,
       0,
       Math.max(0, this.LargeurMondeCarte - LargeurVueMonde)
     );
@@ -1914,13 +1942,7 @@ class ScenePrincipale extends Phaser.Scene {
       0,
       Math.max(0, this.HauteurMondeCarte - HauteurVueMonde)
     );
-    // Leger balancement pendant la marche (voir this.IntensiteMarche dans
-    // update()) : une oscillation continue en sinus, dont l'amplitude reelle
-    // suit l'intensite (0 immobile, 1 pleine marche) plutot que d'etre
-    // activee/coupee d'un coup. Ajoute directement au scrollY final : ne
-    // touche pas au cadrage vertical "au repos" ci-dessus.
-    const Tremblement = Math.sin(Temps * FrequenceTremblementMarche) * AmplitudeTremblementMarche * (this.IntensiteMarche || 0);
-    Cam.scrollY = VueYVoulue + (HauteurVueMonde - Cam.height) / 2 + Tremblement;
+    Cam.scrollY = VueYVoulue + (HauteurVueMonde - Cam.height) / 2;
   }
 
   // Lit chaque objet portant une propriete "ligneNPJ" sur "Calque d'Objets
