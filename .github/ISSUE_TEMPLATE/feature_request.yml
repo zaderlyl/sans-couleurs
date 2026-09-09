@@ -1,0 +1,33 @@
+name: Proposition de fonctionnalite
+description: Proposer une idee ou une amelioration pour le jeu
+title: "[Proposition] "
+labels:
+  - amelioration
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Quelle est l'idee ?
+      placeholder: Decris la fonctionnalite ou l'amelioration proposee.
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Pourquoi
+      description: Quel probleme ca resout, ou en quoi ca ameliore le jeu.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priorite
+    attributes:
+      label: Priorite
+      options:
+        - Faible
+        - Normale
+        - Haute
+    validations:
+      required: true

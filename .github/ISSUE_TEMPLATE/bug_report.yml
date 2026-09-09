@@ -1,0 +1,52 @@
+name: Signalement de bug
+description: Signaler un comportement inattendu ou casse dans le jeu
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Que se passe-t-il ?
+      placeholder: Decris le probleme le plus precisement possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Etapes pour reproduire
+      placeholder: |
+        1. Aller a...
+        2. Faire...
+        3. Constater...
+    validations:
+      required: false
+
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Comportement attendu
+      description: A quoi tu t'attendais a la place.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: gravite
+    attributes:
+      label: Gravite
+      options:
+        - Mineure
+        - Moyenne
+        - Bloquante
+    validations:
+      required: true
+
+  - type: input
+    id: environnement
+    attributes:
+      label: Navigateur / appareil
+      placeholder: "Ex : Chrome 128 sur macOS"
+    validations:
+      required: false

@@ -1,0 +1,8 @@
+# Desactive le lien "Open a blank issue" par defaut : chaque issue doit
+# passer par un des formulaires ci-dessous (bug_report.yml, feature_request.yml)
+# pour rester structuree et exploitable depuis le panel admin (docs/index.html).
+blank_issues_enabled: false
+contact_links:
+  - name: Panel admin des issues
+    url: https://zaderlyl.github.io/sans-couleurs/
+    about: Voir, filtrer et gerer toutes les issues depuis le panel personnalise.

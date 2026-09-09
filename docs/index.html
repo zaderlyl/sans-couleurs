@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel admin - Issues - Sans Couleurs</title>
+<style>
+  :root {
+    --fond: #f7f7f5;
+    --fond-carte: #ffffff;
+    --bordure: #dcdcd8;
+    --texte: #1a1a1a;
+    --texte-attenue: #6b6b68;
+    --accent: #1a1a1a;
+    --ouvert: #1f7a3f;
+    --ouvert-fond: #e6f4ea;
+    --ferme: #7a1f6a;
+    --ferme-fond: #f4e6f1;
+    --danger: #a11f1f;
+    --champ-fond: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--fond);
+    color: var(--texte);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+  }
+  a { color: inherit; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--bordure);
+    background: var(--fond-carte);
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 17px;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+  header .sous-titre {
+    font-size: 12px;
+    color: var(--texte-attenue);
+    margin-top: 2px;
+  }
+
+  .zone-token {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .zone-token input[type="password"], .zone-token input[type="text"] {
+    padding: 6px 8px;
+    border: 1px solid var(--bordure);
+    border-radius: 4px;
+    font-size: 12px;
+    width: 220px;
+    background: var(--champ-fond);
+    color: var(--texte);
+  }
+  .pastille-etat {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+  }
+  .pastille-etat.ok { background: var(--ouvert); }
+
+  button {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 7px 14px;
+    border-radius: 5px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+  }
+  button.secondaire {
+    background: transparent;
+    color: var(--texte);
+    border-color: var(--bordure);
+  }
+  button.danger {
+    background: var(--danger);
+    border-color: var(--danger);
+  }
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.15); }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(320px, 420px) 1fr;
+    gap: 0;
+    height: calc(100vh - 65px);
+  }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; height: auto; }
+  }
+
+  .colonne-liste {
+    border-right: 1px solid var(--bordure);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .barre-outils {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--bordure);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ligne-filtres {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  select, input[type="search"] {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 6px 8px;
+    border: 1px solid var(--bordure);
+    border-radius: 5px;
+    background: var(--champ-fond);
+    color: var(--texte);
+  }
+  input[type="search"] { flex: 1; min-width: 120px; }
+
+  .liste-issues {
+    overflow-y: auto;
+    flex: 1;
+  }
+  .carte-issue {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--bordure);
+    cursor: pointer;
+  }
+  .carte-issue:hover { background: #f0f0ee; }
+  .carte-issue.selectionnee { background: #ececea; }
+  .carte-issue .ligne-haut {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--texte-attenue);
+    margin-bottom: 4px;
+  }
+  .carte-issue .titre {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.35;
+  }
+  .badges { display: flex; flex-wrap: wrap; gap: 5px; }
+  .badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--bordure);
+    color: var(--texte);
+    background: #fff;
+  }
+  .badge-etat {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .badge-etat.open { color: var(--ouvert); background: var(--ouvert-fond); }
+  .badge-etat.closed { color: var(--ferme); background: var(--ferme-fond); }
+
+  .colonne-detail {
+    overflow-y: auto;
+    padding: 24px 32px;
+  }
+  .etat-vide {
+    color: var(--texte-attenue);
+    font-size: 13px;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .entete-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .entete-detail h2 {
+    font-size: 19px;
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+  }
+  .meta-detail {
+    font-size: 12px;
+    color: var(--texte-attenue);
+    margin-bottom: 16px;
+  }
+  .actions-detail {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .bloc {
+    border: 1px solid var(--bordure);
+    border-radius: 8px;
+    background: var(--fond-carte);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .bloc h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--texte-attenue);
+    margin: 0 0 10px 0;
+  }
+  .corps-texte {
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .corps-texte code {
+    background: #eee;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .liste-labels-editable {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .label-toggle {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--bordure);
+    background: #fff;
+    cursor: pointer;
+  }
+  .label-toggle.actif {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .commentaire {
+    border-top: 1px solid var(--bordure);
+    padding: 12px 0;
+  }
+  .commentaire:first-child { border-top: none; padding-top: 0; }
+  .commentaire .meta-commentaire {
+    font-size: 11px;
+    color: var(--texte-attenue);
+    margin-bottom: 6px;
+  }
+
+  textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 10px;
+    border: 1px solid var(--bordure);
+    border-radius: 6px;
+    resize: vertical;
+    min-height: 80px;
+    background: var(--champ-fond);
+    color: var(--texte);
+  }
+  input[type="text"].champ-large {
+    width: 100%;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1px solid var(--bordure);
+    border-radius: 6px;
+    background: var(--champ-fond);
+    color: var(--texte);
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+  .overlay[hidden] { display: none; }
+  .fenetre {
+    background: var(--fond-carte);
+    border-radius: 10px;
+    padding: 24px;
+    width: 520px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+  }
+  .fenetre h2 { margin-top: 0; font-size: 16px; }
+  .fenetre .champ { margin-bottom: 14px; }
+  .fenetre label {
+    display: block;
+    font-size: 12px;
+    color: var(--texte-attenue);
+    margin-bottom: 5px;
+  }
+  .fenetre .actions-fenetre {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .message-etat {
+    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+  }
+  .message-etat.erreur { background: #fbeaea; color: var(--danger); }
+  .message-etat.info { background: #eef2fb; color: #24417a; }
+
+  footer {
+    padding: 14px 24px;
+    font-size: 11px;
+    color: var(--texte-attenue);
+    border-top: 1px solid var(--bordure);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Panel admin - Issues</h1>
+    <div class="sous-titre" id="ligne-repo">depot : ...</div>
+  </div>
+  <div class="zone-token">
+    <span class="pastille-etat" id="pastille-token"></span>
+    <span id="etat-token-texte">Non connecte</span>
+    <input type="password" id="champ-token" placeholder="Token GitHub (repo scope)">
+    <button id="bouton-connecter" class="secondaire">Connecter</button>
+    <button id="bouton-deconnecter" class="secondaire" hidden>Oublier le token</button>
+  </div>
+</header>
+
+<main>
+  <section class="colonne-liste">
+    <div class="barre-outils">
+      <div class="ligne-filtres">
+        <select id="filtre-etat">
+          <option value="all">Toutes</option>
+          <option value="open" selected>Ouvertes</option>
+          <option value="closed">Fermees</option>
+        </select>
+        <select id="filtre-label">
+          <option value="">Tous les labels</option>
+        </select>
+        <button id="bouton-nouvelle" style="margin-left:auto;">Nouvelle issue</button>
+      </div>
+      <input type="search" id="champ-recherche" placeholder="Rechercher dans le titre...">
+    </div>
+    <div class="liste-issues" id="liste-issues">
+      <div class="etat-vide">Connecte-toi avec un token pour charger les issues.</div>
+    </div>
+  </section>
+
+  <section class="colonne-detail" id="colonne-detail">
+    <div class="etat-vide">Selectionne une issue dans la liste.</div>
+  </section>
+</main>
+
+<footer>
+  Le token n'est jamais envoye ailleurs qu'a api.github.com ; il reste uniquement dans le stockage local de ce navigateur.
+</footer>
+
+<div class="overlay" id="overlay-nouvelle" hidden>
+  <div class="fenetre">
+    <h2>Nouvelle issue</h2>
+    <div id="zone-message-nouvelle"></div>
+    <div class="champ">
+      <label for="nouvelle-titre">Titre</label>
+      <input type="text" class="champ-large" id="nouvelle-titre">
+    </div>
+    <div class="champ">
+      <label for="nouvelle-corps">Description</label>
+      <textarea id="nouvelle-corps" rows="6"></textarea>
+    </div>
+    <div class="champ">
+      <label>Labels</label>
+      <div class="liste-labels-editable" id="nouvelle-labels"></div>
+    </div>
+    <div class="actions-fenetre">
+      <button class="secondaire" id="bouton-annuler-nouvelle">Annuler</button>
+      <button id="bouton-creer-issue">Creer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var PROPRIETAIRE = 'zaderlyl';
+  var DEPOT = 'sans-couleurs';
+  var API = 'https://api.github.com/repos/' + PROPRIETAIRE + '/' + DEPOT;
+  var CLE_TOKEN = 'sans_couleurs_admin_token';
+
+  document.getElementById('ligne-repo').textContent = 'depot : ' + PROPRIETAIRE + '/' + DEPOT;
+
+  var etat = {
+    token: null,
+    issues: [],
+    labelsDisponibles: [],
+    issueSelectionnee: null,
+    labelsChoisisNouvelle: [],
+    labelsChoisisDetail: [],
+  };
+
+  // ---- Utilitaires ----------------------------------------------------
+
+  function echapperHtml(texte) {
+    var div = document.createElement('div');
+    div.textContent = texte == null ? '' : texte;
+    return div.innerHTML;
+  }
+
+  // Rendu tres leger façon markdown : pas de dependance externe, juste de
+  // quoi lire des descriptions/commentaires normalement (gras, code, liens,
+  // sauts de ligne). Pas d'analyse complete du markdown GitHub.
+  function rendreTexte(texte) {
+    var echappe = echapperHtml(texte || '(vide)');
+    echappe = echappe.replace(/`([^`]+)`/g, '<code>$1</code>');
+    echappe = echappe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    echappe = echappe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return echappe;
+  }
+
+  function formaterDate(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) +
+      ' a ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function afficherMessage(conteneur, texte, type) {
+    conteneur.innerHTML = texte
+      ? '<div class="message-etat ' + (type || 'erreur') + '">' + echapperHtml(texte) + '</div>'
+      : '';
+  }
+
+  // ---- Appels API -------------------------------------------------------
+
+  function appelApi(chemin, options) {
+    options = options || {};
+    var entetes = { 'Accept': 'application/vnd.github+json' };
+    if (etat.token) entetes.Authorization = 'Bearer ' + etat.token;
+    if (options.body) entetes['Content-Type'] = 'application/json';
+    return fetch(API + chemin, {
+      method: options.method || 'GET',
+      headers: entetes,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    }).then(function (reponse) {
+      if (!reponse.ok) {
+        return reponse.json().catch(function () { return {}; }).then(function (corps) {
+          throw new Error((corps && corps.message) || ('Erreur HTTP ' + reponse.status));
+        });
+      }
+      if (reponse.status === 204) return null;
+      return reponse.json();
+    });
+  }
+
+  // ---- Token --------------------------------------------------------
+
+  function definirEtatToken(connecte) {
+    document.getElementById('pastille-token').classList.toggle('ok', connecte);
+    document.getElementById('etat-token-texte').textContent = connecte ? 'Connecte' : 'Non connecte';
+    document.getElementById('bouton-connecter').hidden = connecte;
+    document.getElementById('champ-token').hidden = connecte;
+    document.getElementById('bouton-deconnecter').hidden = !connecte;
+  }
+
+  function connecter(token) {
+    etat.token = token;
+    try { localStorage.setItem(CLE_TOKEN, token); } catch (erreur) { /* stockage indisponible : tant pis, token garde en memoire seulement */ }
+    definirEtatToken(true);
+    chargerLabels();
+    chargerIssues();
+  }
+
+  document.getElementById('bouton-connecter').addEventListener('click', function () {
+    var valeur = document.getElementById('champ-token').value.trim();
+    if (!valeur) return;
+    connecter(valeur);
+  });
+
+  document.getElementById('bouton-deconnecter').addEventListener('click', function () {
+    etat.token = null;
+    try { localStorage.removeItem(CLE_TOKEN); } catch (erreur) { /* ignore */ }
+    definirEtatToken(false);
+    document.getElementById('champ-token').value = '';
+    document.getElementById('liste-issues').innerHTML = '<div class="etat-vide">Connecte-toi avec un token pour charger les issues.</div>';
+    document.getElementById('colonne-detail').innerHTML = '<div class="etat-vide">Selectionne une issue dans la liste.</div>';
+  });
+
+  // ---- Labels -------------------------------------------------------
+
+  function chargerLabels() {
+    appelApi('/labels?per_page=100').then(function (labels) {
+      etat.labelsDisponibles = labels;
+      var selectFiltre = document.getElementById('filtre-label');
+      selectFiltre.innerHTML = '<option value="">Tous les labels</option>' +
+        labels.map(function (l) { return '<option value="' + echapperHtml(l.name) + '">' + echapperHtml(l.name) + '</option>'; }).join('');
+    }).catch(function (erreur) {
+      console.error('Chargement des labels impossible :', erreur);
+    });
+  }
+
+  // ---- Liste des issues -----------------------------------------------
+
+  function chargerIssues() {
+    var conteneur = document.getElementById('liste-issues');
+    conteneur.innerHTML = '<div class="etat-vide">Chargement...</div>';
+    appelApi('/issues?state=all&per_page=100&sort=updated')
+      .then(function (issues) {
+        // L'endpoint /issues renvoie aussi les pull requests : on les exclut.
+        etat.issues = issues.filter(function (i) { return !i.pull_request; });
+        dessinerListeIssues();
+      })
+      .catch(function (erreur) {
+        conteneur.innerHTML = '';
+        afficherMessage(conteneur, 'Impossible de charger les issues : ' + erreur.message, 'erreur');
+      });
+  }
+
+  function issuesFiltrees() {
+    var filtreEtat = document.getElementById('filtre-etat').value;
+    var filtreLabel = document.getElementById('filtre-label').value;
+    var recherche = document.getElementById('champ-recherche').value.trim().toLowerCase();
+
+    return etat.issues.filter(function (issue) {
+      if (filtreEtat !== 'all' && issue.state !== filtreEtat) return false;
+      if (filtreLabel && !issue.labels.some(function (l) { return l.name === filtreLabel; })) return false;
+      if (recherche && issue.title.toLowerCase().indexOf(recherche) === -1) return false;
+      return true;
+    });
+  }
+
+  function dessinerListeIssues() {
+    var conteneur = document.getElementById('liste-issues');
+    var issues = issuesFiltrees();
+
+    if (issues.length === 0) {
+      conteneur.innerHTML = '<div class="etat-vide">Aucune issue ne correspond.</div>';
+      return;
+    }
+
+    conteneur.innerHTML = issues.map(function (issue) {
+      var badgesLabels = issue.labels.map(function (l) {
+        return '<span class="badge">' + echapperHtml(l.name) + '</span>';
+      }).join('');
+      var selectionnee = etat.issueSelectionnee && etat.issueSelectionnee.number === issue.number;
+      return (
+        '<div class="carte-issue' + (selectionnee ? ' selectionnee' : '') + '" data-numero="' + issue.number + '">' +
+          '<div class="ligne-haut">' +
+            '<span>#' + issue.number + '</span>' +
+            '<span>' + formaterDate(issue.updated_at) + '</span>' +
+          '</div>' +
+          '<div class="titre">' + echapperHtml(issue.title) + '</div>' +
+          '<div class="badges">' +
+            '<span class="badge-etat ' + issue.state + '">' + (issue.state === 'open' ? 'ouverte' : 'fermee') + '</span>' +
+            badgesLabels +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+
+    Array.prototype.forEach.call(conteneur.querySelectorAll('.carte-issue'), function (carte) {
+      carte.addEventListener('click', function () {
+        var numero = Number(carte.getAttribute('data-numero'));
+        var issue = etat.issues.filter(function (i) { return i.number === numero; })[0];
+        selectionnerIssue(issue);
+      });
+    });
+  }
+
+  ['filtre-etat', 'filtre-label'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', dessinerListeIssues);
+  });
+  document.getElementById('champ-recherche').addEventListener('input', dessinerListeIssues);
+
+  // ---- Detail d'une issue -----------------------------------------------
+
+  function selectionnerIssue(issue) {
+    etat.issueSelectionnee = issue;
+    etat.labelsChoisisDetail = issue.labels.map(function (l) { return l.name; });
+    dessinerListeIssues();
+    dessinerDetail();
+    chargerCommentaires(issue.number);
+  }
+
+  function dessinerDetail() {
+    var issue = etat.issueSelectionnee;
+    var conteneur = document.getElementById('colonne-detail');
+    if (!issue) {
+      conteneur.innerHTML = '<div class="etat-vide">Selectionne une issue dans la liste.</div>';
+      return;
+    }
+
+    var labelsHtml = etat.labelsDisponibles.map(function (l) {
+      var actif = etat.labelsChoisisDetail.indexOf(l.name) !== -1;
+      return '<span class="label-toggle' + (actif ? ' actif' : '') + '" data-label="' + echapperHtml(l.name) + '">' + echapperHtml(l.name) + '</span>';
+    }).join('');
+
+    conteneur.innerHTML =
+      '<div id="zone-message-detail"></div>' +
+      '<div class="entete-detail">' +
+        '<div>' +
+          '<h2>' + echapperHtml(issue.title) + ' <span style="color:var(--texte-attenue);font-weight:400;">#' + issue.number + '</span></h2>' +
+          '<div class="meta-detail">ouverte par ' + echapperHtml(issue.user ? issue.user.login : 'inconnu') + ' le ' + formaterDate(issue.created_at) + '</div>' +
+        '</div>' +
+        '<span class="badge-etat ' + issue.state + '">' + (issue.state === 'open' ? 'ouverte' : 'fermee') + '</span>' +
+      '</div>' +
+      '<div class="actions-detail">' +
+        '<button id="bouton-basculer-etat" class="' + (issue.state === 'open' ? 'danger' : 'secondaire') + '">' +
+          (issue.state === 'open' ? 'Fermer' : 'Reouvrir') +
+        '</button>' +
+        '<a href="' + issue.html_url + '" target="_blank" rel="noopener"><button class="secondaire">Voir sur GitHub</button></a>' +
+      '</div>' +
+      '<div class="bloc">' +
+        '<h3>Description</h3>' +
+        '<div class="corps-texte">' + rendreTexte(issue.body) + '</div>' +
+      '</div>' +
+      '<div class="bloc">' +
+        '<h3>Labels</h3>' +
+        '<div class="liste-labels-editable" id="labels-detail">' + labelsHtml + '</div>' +
+      '</div>' +
+      '<div class="bloc" id="bloc-commentaires">' +
+        '<h3>Commentaires</h3>' +
+        '<div id="liste-commentaires">Chargement...</div>' +
+        '<div style="margin-top:14px;">' +
+          '<textarea id="nouveau-commentaire" placeholder="Ecrire un commentaire..."></textarea>' +
+          '<div style="margin-top:8px;text-align:right;">' +
+            '<button id="bouton-commenter">Commenter</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('bouton-basculer-etat').addEventListener('click', basculerEtatIssue);
+
+    Array.prototype.forEach.call(document.querySelectorAll('#labels-detail .label-toggle'), function (bouton) {
+      bouton.addEventListener('click', function () {
+        var nom = bouton.getAttribute('data-label');
+        var index = etat.labelsChoisisDetail.indexOf(nom);
+        if (index === -1) etat.labelsChoisisDetail.push(nom); else etat.labelsChoisisDetail.splice(index, 1);
+        bouton.classList.toggle('actif');
+        enregistrerLabelsDetail();
+      });
+    });
+
+    document.getElementById('bouton-commenter').addEventListener('click', envoyerCommentaire);
+  }
+
+  function basculerEtatIssue() {
+    var issue = etat.issueSelectionnee;
+    var nouvelEtat = issue.state === 'open' ? 'closed' : 'open';
+    var zoneMessage = document.getElementById('zone-message-detail');
+    appelApi('/issues/' + issue.number, { method: 'PATCH', body: { state: nouvelEtat } })
+      .then(function (miseAJour) {
+        issue.state = miseAJour.state;
+        var indexListe = etat.issues.findIndex(function (i) { return i.number === issue.number; });
+        if (indexListe !== -1) etat.issues[indexListe] = miseAJour;
+        dessinerDetail();
+        dessinerListeIssues();
+      })
+      .catch(function (erreur) { afficherMessage(zoneMessage, erreur.message, 'erreur'); });
+  }
+
+  function enregistrerLabelsDetail() {
+    var issue = etat.issueSelectionnee;
+    appelApi('/issues/' + issue.number, { method: 'PATCH', body: { labels: etat.labelsChoisisDetail } })
+      .then(function (miseAJour) {
+        issue.labels = miseAJour.labels;
+        etat.labelsChoisisDetail = miseAJour.labels.map(function (l) { return l.name; });
+        var indexListe = etat.issues.findIndex(function (i) { return i.number === issue.number; });
+        if (indexListe !== -1) etat.issues[indexListe] = miseAJour;
+        dessinerDetail();
+        chargerCommentaires(issue.number); // dessinerDetail() reinitialise le bloc commentaires : on le recharge derriere
+        dessinerListeIssues();
+      })
+      .catch(function (erreur) {
+        afficherMessage(document.getElementById('zone-message-detail'), 'Labels non enregistres : ' + erreur.message, 'erreur');
+      });
+  }
+
+  function chargerCommentaires(numero) {
+    var conteneur = document.getElementById('liste-commentaires');
+    appelApi('/issues/' + numero + '/comments?per_page=100')
+      .then(function (commentaires) {
+        if (!document.getElementById('liste-commentaires')) return; // l'utilisateur a change d'issue entre-temps
+        if (commentaires.length === 0) {
+          conteneur.innerHTML = '<div style="color:var(--texte-attenue);font-size:12px;">Aucun commentaire.</div>';
+          return;
+        }
+        conteneur.innerHTML = commentaires.map(function (c) {
+          return (
+            '<div class="commentaire">' +
+              '<div class="meta-commentaire">' + echapperHtml(c.user ? c.user.login : 'inconnu') + ' - ' + formaterDate(c.created_at) + '</div>' +
+              '<div class="corps-texte">' + rendreTexte(c.body) + '</div>' +
+            '</div>'
+          );
+        }).join('');
+      })
+      .catch(function (erreur) {
+        if (conteneur) conteneur.innerHTML = '<div class="message-etat erreur">Commentaires non charges : ' + echapperHtml(erreur.message) + '</div>';
+      });
+  }
+
+  function envoyerCommentaire() {
+    var issue = etat.issueSelectionnee;
+    var champ = document.getElementById('nouveau-commentaire');
+    var texte = champ.value.trim();
+    if (!texte) return;
+    var bouton = document.getElementById('bouton-commenter');
+    bouton.disabled = true;
+    appelApi('/issues/' + issue.number + '/comments', { method: 'POST', body: { body: texte } })
+      .then(function () {
+        champ.value = '';
+        chargerCommentaires(issue.number);
+      })
+      .catch(function (erreur) {
+        afficherMessage(document.getElementById('zone-message-detail'), 'Commentaire non envoye : ' + erreur.message, 'erreur');
+      })
+      .finally(function () { bouton.disabled = false; });
+  }
+
+  // ---- Nouvelle issue -----------------------------------------------
+
+  var overlayNouvelle = document.getElementById('overlay-nouvelle');
+
+  document.getElementById('bouton-nouvelle').addEventListener('click', function () {
+    if (!etat.token) { alert('Connecte-toi d\'abord avec un token.'); return; }
+    document.getElementById('nouvelle-titre').value = '';
+    document.getElementById('nouvelle-corps').value = '';
+    etat.labelsChoisisNouvelle = [];
+    document.getElementById('zone-message-nouvelle').innerHTML = '';
+    document.getElementById('nouvelle-labels').innerHTML = etat.labelsDisponibles.map(function (l) {
+      return '<span class="label-toggle" data-label="' + echapperHtml(l.name) + '">' + echapperHtml(l.name) + '</span>';
+    }).join('');
+    Array.prototype.forEach.call(document.querySelectorAll('#nouvelle-labels .label-toggle'), function (bouton) {
+      bouton.addEventListener('click', function () {
+        var nom = bouton.getAttribute('data-label');
+        var index = etat.labelsChoisisNouvelle.indexOf(nom);
+        if (index === -1) etat.labelsChoisisNouvelle.push(nom); else etat.labelsChoisisNouvelle.splice(index, 1);
+        bouton.classList.toggle('actif');
+      });
+    });
+    overlayNouvelle.hidden = false;
+  });
+
+  document.getElementById('bouton-annuler-nouvelle').addEventListener('click', function () {
+    overlayNouvelle.hidden = true;
+  });
+
+  document.getElementById('bouton-creer-issue').addEventListener('click', function () {
+    var titre = document.getElementById('nouvelle-titre').value.trim();
+    var zoneMessage = document.getElementById('zone-message-nouvelle');
+    if (!titre) { afficherMessage(zoneMessage, 'Le titre est obligatoire.', 'erreur'); return; }
+    var corps = document.getElementById('nouvelle-corps').value;
+    var bouton = document.getElementById('bouton-creer-issue');
+    bouton.disabled = true;
+    appelApi('/issues', { method: 'POST', body: { title: titre, body: corps, labels: etat.labelsChoisisNouvelle } })
+      .then(function (issueCreee) {
+        overlayNouvelle.hidden = true;
+        etat.issues.unshift(issueCreee);
+        dessinerListeIssues();
+        selectionnerIssue(issueCreee);
+      })
+      .catch(function (erreur) { afficherMessage(zoneMessage, erreur.message, 'erreur'); })
+      .finally(function () { bouton.disabled = false; });
+  });
+
+  // ---- Demarrage -------------------------------------------------------
+
+  var tokenSauvegarde = null;
+  try { tokenSauvegarde = localStorage.getItem(CLE_TOKEN); } catch (erreur) { /* stockage indisponible */ }
+  if (tokenSauvegarde) {
+    connecter(tokenSauvegarde);
+  } else {
+    definirEtatToken(false);
+  }
+})();
+</script>
+</body>
+</html>
