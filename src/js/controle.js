@@ -1,11 +1,8 @@
-// controle.js — entrees clavier du joueur.
-// InstallerControles(this) est appele depuis create() ; LireDeplacement(this)
-// est appele a chaque frame par MettreAJourDeplacement (player.js) et par
-// MettreAJourHerbe (game.js).
+// controle.js — entrees clavier.
+// InstallerControles(this) : une fois, depuis create().
+// LireDeplacement(this)    : chaque frame (player.js, et MettreAJourHerbe dans game.js).
 
-// Fleches directionnelles + WASD en alternative, plus la touche E
-// d'interaction (gare, tele, PNJ). Pose Scene.Fleches / Scene.ToucheA /
-// Scene.ToucheD / Scene.ToucheInteraction.
+// Fleches + WASD pour se deplacer, E pour interagir (gare, tele, PNJ).
 function InstallerControles(Scene) {
   Scene.Fleches = Scene.input.keyboard.createCursorKeys();
   Scene.ToucheA = Scene.input.keyboard.addKey('A');
@@ -13,9 +10,8 @@ function InstallerControles(Scene) {
   Scene.ToucheInteraction = Scene.input.keyboard.addKey('E');
 }
 
-// Etat courant du deplacement horizontal : { Gauche, Droite } (booleens).
-// Une seule source de verite pour "le joueur veut aller a gauche/droite",
-// reutilisee partout plutot que de repeter la lecture des touches.
+// Intention de deplacement du joueur, { Gauche, Droite }. Source unique,
+// pour ne pas relire les touches a plusieurs endroits.
 function LireDeplacement(Scene) {
   return {
     Gauche: Scene.Fleches.left.isDown || Scene.ToucheA.isDown,
