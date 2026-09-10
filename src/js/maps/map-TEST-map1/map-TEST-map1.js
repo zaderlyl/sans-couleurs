@@ -10,5 +10,5 @@ EnregistrerCarte({
   numero: 'TEST',
   nom: 'map1',
   // pas de carte suivante
-  features: [TextesDeZone, Tele, Herbe, Tunnel, DialoguePNJ],
+  features: [Gare, TextesDeZone, Tele, Herbe, Tunnel, DialoguePNJ],
 });

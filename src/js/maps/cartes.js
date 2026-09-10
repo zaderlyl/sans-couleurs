@@ -16,6 +16,9 @@ const NomTuilesDansTiled = 'Tileset';               // doit matcher le nom du ti
 const NomCalqueSol = 'sol';                          // porte la collision
 const NomCoucheObjets = "Calque d'Objets 1";         // spawn, PNJ, textes de zone
 
+// Taille d'une tuile Tiled (px). Sert a convertir colonne/rangee <-> pixels.
+const TailleTuile = 16;
+
 
 // --- Registre des cartes ---------------------------------------------
 
@@ -25,7 +28,7 @@ const RegistreCartes = {};
 // Config : { cle, numero, nom, depart?, suivante?, features? }
 // features : tableau d'objets feature (voir src/js/features/), chacun avec
 // des methodes optionnelles precharger(Scene) / installer(Scene, Ctx) /
-// miseAJour(Scene, Temps, TempsEcoule).
+// apresChargement(Scene) / miseAJour(Scene, Temps, TempsEcoule).
 function EnregistrerCarte(Config) {
   RegistreCartes[Config.cle] = Config;
 }
@@ -69,6 +72,14 @@ function InstallerFeaturesCarte(Scene, Ctx) {
     } catch (Erreur) {
       console.error(`Feature "${Feature.nom}" — erreur a l'installation :`, Erreur);
     }
+  }
+}
+
+// Fin de create() : la scene est entierement prete (joueur, camera,
+// controles). Sert p.ex. a la gare pour jouer l'animation d'arrivee en train.
+function ApresChargementFeaturesCarte(Scene) {
+  for (const Feature of FeaturesCarteActive(Scene)) {
+    if (typeof Feature.apresChargement === 'function') Feature.apresChargement(Scene);
   }
 }
 

@@ -29,10 +29,9 @@ function PrechargerAssets(Scene) {
     // pour que chaque carte ait sa propre entree apres un scene.restart(...).
     Scene.load.tilemapTiledJSON(Scene.NomCarteActuelle, UrlAntiCache(`assets/maps/${Scene.NomCarteActuelle}.json`));
 
-    ChargerFeuille(Scene, CleGare, CheminGare, TailleImageGare);
     ChargerFeuille(Scene, CleIconeInteraction, CheminIconeInteraction, TailleIconeInteraction);
 
-    // Assets des features de la carte active (tele, PNJ, herbe...).
+    // Assets des features de la carte active (gare, tele, PNJ, herbe...).
     PrechargerFeaturesCarte(Scene);
   }
 

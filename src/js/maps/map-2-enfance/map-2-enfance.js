@@ -5,5 +5,5 @@ EnregistrerCarte({
   numero: 2,
   nom: 'enfance',
   // pas de carte suivante pour l'instant
-  features: [TextesDeZone, Herbe, Tunnel, DialoguePNJ],
+  features: [Gare, TextesDeZone, Herbe, Tunnel, DialoguePNJ],
 });

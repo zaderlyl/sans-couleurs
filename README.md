@@ -68,17 +68,20 @@ http://localhost:8765/?carte=map-2-enfance
 │   │   ├── config.js           Reglages generaux (modes, camera, sons, couleurs, styles)
 │   │   ├── playerConfig.js     Reglages du personnage (spritesheet, vitesse, tangage)
 │   │   ├── sons.js             Sons synthetises (ambiance, pas, atterrissage)
+│   │   ├── util.js             Petits utilitaires partages (Secouer)
 │   │   ├── camera.js           MettreAJourCamera() — suivi de camera chaque frame
+│   │   ├── icone-interaction.js  L'icone "E" partagee (gare / tele / PNJ)
 │   │   ├── maps/
 │   │   │   ├── cartes.js       Registre des cartes + helpers Tiled communs
 │   │   │   └── map-*/map-*.js  Une carte chacun : config + tableau `features`
-│   │   ├── features/           Une grosse feature par fichier (tele, textes de
-│   │   │   └── *.js              zone...) : { precharger, installer, miseAJour }
-│   │   ├── loading.js          Prechargement des assets (phase preload)
+│   │   ├── features/           Une feature par fichier (gare/train, tele, herbe,
+│   │   │   └── *.js              tunnel, textes de zone, dialogue PNJ)
+│   │   ├── loading.js          Prechargement des assets partages (phase preload)
 │   │   ├── controle.js         Entrees clavier
 │   │   ├── player.js           Creation du personnage + deplacement par frame
 │   │   └── index.js            Config Phaser + demarrage (charge en dernier)
-│   └── game.js                 Le reste : gare/train, classe ScenePrincipale
+│   └── game.js                 Squelette de la scene : monte les calques, le
+│                                joueur, la camera, et branche les features
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
 │   ├── tilesets/                Images de tuiles referencees par les cartes
