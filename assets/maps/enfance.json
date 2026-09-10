@@ -143,6 +143,63 @@
                  "width":0,
                  "x":257.491,
                  "y":95.8374
+                }, 
+                {
+                 "height":47.3909,
+                 "id":2,
+                 "name":"",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"texte",
+                         "type":"string",
+                         "value":"Heu... Salut ?"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":119.879,
+                 "x":291.859290194206,
+                 "y":223.04125805476
+                }, 
+                {
+                 "height":0,
+                 "id":4,
+                 "name":"",
+                 "opacity":1,
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"frame",
+                         "type":"string",
+                         "value":"0"
+                        }, 
+                        {
+                         "name":"ligneNPJ",
+                         "type":"string",
+                         "value":"De quelles couleurs sont les ours ?"
+                        }, 
+                        {
+                         "name":"mots",
+                         "type":"string",
+                         "value":"blanc, froid"
+                        }, 
+                        {
+                         "name":"phrase",
+                         "type":"string",
+                         "value":"Il sont {} , et {} ."
+                        }, 
+                        {
+                         "name":"sprite",
+                         "type":"string",
+                         "value":"other_child"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":235.152689481574,
+                 "y":159.633843907639
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -213,7 +270,7 @@
          "y":0
         }],
  "nextlayerid":11,
- "nextobjectid":2,
+ "nextobjectid":5,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.0",

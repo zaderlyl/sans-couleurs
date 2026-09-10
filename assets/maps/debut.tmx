@@ -3,8 +3,8 @@
  <editorsettings>
   <export target="debut.json" format="json"/>
  </editorsettings>
- <tileset firstgid="1" name="Tileset" tilewidth="16" tileheight="16" tilecount="175" columns="35">
-  <image source="../tilesets/Tileset.png" width="560" height="80"/>
+ <tileset firstgid="1" name="Tileset" tilewidth="16" tileheight="16" tilecount="350" columns="35">
+  <image source="../tilesets/Tileset.png" width="560" height="160"/>
  </tileset>
  <layer id="7" name="bg" width="100" height="20">
   <data encoding="csv">
@@ -108,36 +108,6 @@
   </properties>
   <object id="1" name="spawn" x="51.1556" y="111.214">
    <point/>
-  </object>
-  <object id="2" x="83.0047" y="96.1198" width="95.9519" height="47.3909">
-   <properties>
-    <property name="texte" value="..."/>
-   </properties>
-  </object>
-  <object id="4" x="366.712" y="141.948">
-   <properties>
-    <property name="frame" value="0"/>
-    <property name="ligneNPJ" value="Tu connais un poéme ?"/>
-    <property name="mots" value="Maitre, arbre, bec, fromage"/>
-    <property name="phrase" value="{} corbeau sur son {} perché, tenais dans son {} un {}."/>
-    <property name="sprite" value="other_child"/>
-   </properties>
-   <point/>
-  </object>
-  <object id="5" x="208.307" y="95.2404" width="119.879" height="47.3909">
-   <properties>
-    <property name="texte" value="Heu... Salut ?"/>
-   </properties>
-  </object>
-  <object id="6" x="372.449" y="94.4653" width="128.027" height="47.3909">
-   <properties>
-    <property name="texte" value="Je.... me souvien de rien..."/>
-   </properties>
-  </object>
-  <object id="7" x="533.117" y="96.1119" width="106.891" height="47.3909">
-   <properties>
-    <property name="texte" value="Je reconnais cette endroit"/>
-   </properties>
   </object>
  </objectgroup>
  <layer id="1" name="tunnel" width="100" height="20">
