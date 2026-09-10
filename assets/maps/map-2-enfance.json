@@ -200,6 +200,123 @@
                  "width":0,
                  "x":235.152689481574,
                  "y":159.633843907639
+                }, 
+                {
+                 "height":0,
+                 "id":5,
+                 "name":"",
+                 "opacity":1,
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"frame",
+                         "type":"string",
+                         "value":"1"
+                        }, 
+                        {
+                         "name":"ligneNPJ",
+                         "type":"string",
+                         "value":"Tu aimes les carottes ?"
+                        }, 
+                        {
+                         "name":"mots",
+                         "type":"string",
+                         "value":"rouge, aimable"
+                        }, 
+                        {
+                         "name":"phrase",
+                         "type":"string",
+                         "value":"Oui, elle sont {} et rendent {}."
+                        }, 
+                        {
+                         "name":"sprite",
+                         "type":"string",
+                         "value":"other_child"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":434.678463828111,
+                 "y":160.09406220707
+                }, 
+                {
+                 "height":0,
+                 "id":6,
+                 "name":"",
+                 "opacity":1,
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"frame",
+                         "type":"string",
+                         "value":"2"
+                        }, 
+                        {
+                         "name":"ligneNPJ",
+                         "type":"string",
+                         "value":"Ma peluche, c'est Rose, et toi ?"
+                        }, 
+                        {
+                         "name":"mots",
+                         "type":"string",
+                         "value":"doudou"
+                        }, 
+                        {
+                         "name":"phrase",
+                         "type":"string",
+                         "value":"Je n'est pas de {}...."
+                        }, 
+                        {
+                         "name":"sprite",
+                         "type":"string",
+                         "value":"other_child"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":534.144692359703,
+                 "y":159.4249314971
+                }, 
+                {
+                 "height":0,
+                 "id":7,
+                 "name":"",
+                 "opacity":1,
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"frame",
+                         "type":"string",
+                         "value":"3"
+                        }, 
+                        {
+                         "name":"ligneNPJ",
+                         "type":"string",
+                         "value":"Pourquoi tu manges la terre ?"
+                        }, 
+                        {
+                         "name":"mots",
+                         "type":"string",
+                         "value":"aime"
+                        }, 
+                        {
+                         "name":"phrase",
+                         "type":"string",
+                         "value":"J' {} ça"
+                        }, 
+                        {
+                         "name":"sprite",
+                         "type":"string",
+                         "value":"other_child"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":656.204405537169,
+                 "y":159.780790719191
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -270,7 +387,7 @@
          "y":0
         }],
  "nextlayerid":11,
- "nextobjectid":5,
+ "nextobjectid":8,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.0",

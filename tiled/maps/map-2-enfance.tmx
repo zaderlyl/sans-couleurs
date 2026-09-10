@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.0" orientation="orthogonal" renderorder="right-down" width="100" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="11" nextobjectid="5">
+<map version="1.10" tiledversion="1.12.0" orientation="orthogonal" renderorder="right-down" width="100" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="11" nextobjectid="8">
  <editorsettings>
   <export target="../../assets/maps/map-2-enfance.json" format="json"/>
  </editorsettings>
@@ -117,6 +117,36 @@
     <property name="ligneNPJ" value="De quelles couleurs sont les ours ?"/>
     <property name="mots" value="blanc, froid"/>
     <property name="phrase" value="Il sont {} , et {} ."/>
+    <property name="sprite" value="other_child"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="5" x="434.678" y="160.094">
+   <properties>
+    <property name="frame" value="1"/>
+    <property name="ligneNPJ" value="Tu aimes les carottes ?"/>
+    <property name="mots" value="rouge, aimable"/>
+    <property name="phrase" value="Oui, elle sont {} et rendent {}."/>
+    <property name="sprite" value="other_child"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="6" x="534.145" y="159.425">
+   <properties>
+    <property name="frame" value="2"/>
+    <property name="ligneNPJ" value="Ma peluche, c'est Rose, et toi ?"/>
+    <property name="mots" value="doudou"/>
+    <property name="phrase" value="Je n'est pas de {}...."/>
+    <property name="sprite" value="other_child"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="7" x="656.204" y="159.781">
+   <properties>
+    <property name="frame" value="3"/>
+    <property name="ligneNPJ" value="Pourquoi tu manges la terre ?"/>
+    <property name="mots" value="aime"/>
+    <property name="phrase" value="J' {} ça"/>
     <property name="sprite" value="other_child"/>
    </properties>
    <point/>
