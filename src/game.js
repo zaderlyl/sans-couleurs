@@ -1,21 +1,33 @@
-// "Sans Couleurs" — prototype d'ouverture
-// Un personnage blanc, seul, avance sur une ligne droite dans un decor bicolore.
+// "Sans Couleurs" — coeur du jeu (scene Phaser unique).
+// Un personnage blanc, seul, avance dans un decor bicolore, discute avec des
+// PNJ et prend un train pour changer de niveau.
+//
+// ── Decoupage du code (src/) ─────────────────────────────────────────────
+// Tous les fichiers sont des <script> classiques charges dans l'ordre par
+// index.html — meme portee globale, pas de module ni d'etape de build. Ordre :
+//   js/playerConfig.js  reglages du personnage (spritesheet, vitesse, tangage)
+//   js/loading.js       PrechargerAssets() — phase preload()
+//   js/controle.js      InstallerControles() / LireDeplacement() — clavier
+//   js/player.js        CreerPersonnage() / MettreAJourDeplacement()
+//   game.js  (ce fichier) le reste : audio, gare/train, herbe, tunnel, PNJ,
+//                          textes de zone, camera, et la classe ScenePrincipale
+//   js/index.js         config Phaser + demarrage (charge en dernier)
+// Ce fichier sera decoupe davantage au fil des passes suivantes.
 //
 // ── Structure des assets ─────────────────────────────────────────────────
-//   assets/tilesets/<nom>.png          -> image de tileset referencee par une map
-//   assets/maps/<nom>.json             -> map exportee depuis Tiled (File > Export As > JSON)
+//   assets/tilesets/<nom>.png           -> image de tileset referencee par une map
+//   assets/maps/<nom>.json              -> map exportee depuis Tiled (File > Export As > JSON)
 //   assets/sprites/characters/<nom>.png -> feuilles de sprites des personnages
 //   assets/sprites/environment/<nom>.png-> herbe animee, train (gare)
 //   assets/sprites/props/<nom>.png      -> objets animes (ecrans tele...)
-//   assets/ui/<nom>.png                -> elements d'interface (icone d'interaction)
-//   assets/fonts/<nom>.otf             -> polices (voir le @font-face d'index.html)
+//   assets/ui/<nom>.png                 -> elements d'interface (icone d'interaction)
+//   assets/fonts/<nom>.otf              -> polices (voir le @font-face d'index.html)
 //   Les sources d'edition (.tmx Tiled, images de travail) vivent dans tiled/,
 //   hors du dossier assets/ qui ne contient que ce qui est charge au runtime.
 //
-// Pour brancher chaque partie, passe le flag correspondant a true ci-dessous
-// et ajuste les constantes juste en dessous (chemins, noms, tailles de frame).
-// Tant que les flags sont a false, le mode "prototype" actuel continue de
-// tourner (ligne droite bicolore + rectangle blanc), donc rien ne casse.
+// Les deux flags ci-dessous branchent le mode Tiled + le sprite du
+// personnage ; a false, l'ancien mode "prototype" (ligne bicolore + rectangle
+// blanc) tourne encore.
 
 const UtiliseCarteTiled = true;
 const UtiliseSpritePersonnage = true;
@@ -44,38 +56,13 @@ const NomCalqueSol = 'sol'; // le calque qui porte la collision — DOIT corresp
 // de calque "derriere") : create() verifie leur presence avant de les
 // utiliser plutot que de supposer qu'ils existent tous.
 
-// --- Spritesheet du personnage ---
-const ClePersonnage = 'personnage'; // nom interne, libre
-const CheminPersonnage = 'assets/sprites/characters/player.png'; // chemin vers ta feuille de sprites
-const LargeurImagePersonnage = 16; // largeur en pixels d'une frame (player.png = 96x16 -> 6 frames de 16)
-const HauteurImagePersonnage = 16; // hauteur en pixels d'une frame
-// Repartition des 6 frames (indices 0 a 5) — voir animations plus bas :
-//   1 (index 0) : inutilisee pour l'instant
-//   2 (index 1) : reprise a l'atterrissage (pas de saut : seule la chute
-//                 en marchant hors d'une plateforme declenche l'etat "en l'air")
-//   3 (index 2) : inutilisee pour l'instant (ancien frame de saut)
-//   4 (index 3) : immobile (standby), et pendant la chute
-//   5 et 6 (index 4-5) : cycle de marche
-// Un seul jeu de frames pour les deux sens : gauche/droite s'obtient par
-// setFlipX, applique uniformement a tous les etats (plus de frames idle
-// distinctes par sens comme avant).
+// Le personnage : sa spritesheet, sa vitesse et le ressenti de deplacement
+// (fondu de marche, tangage, cadence des pas) sont regles dans
+// src/js/playerConfig.js ; sa creation et sa logique par frame sont dans
+// src/js/player.js.
 
 // Echelle d'affichage du pixel art (tuiles de 16px, sinon minuscule a l'ecran)
 const ZoomCamera = 5;
-
-// --- Pseudo-realisme du deplacement ---
-// this.IntensiteMarche (0 = immobile, 1 = pleine marche) monte/descend en
-// fondu plutot que de s'enclencher/s'arreter d'un coup (voir update()), et
-// sert de base a plusieurs petits effets synchronises sur la marche :
-// tangage du personnage, anticipation de la camera dans le sens du regard.
-const VitesseFonduMarche = 0.15; // vitesse de montee/descente de l'intensite, par frame
-
-// Tangage du personnage : leger balancement de rotation, comme une demarche
-// naturelle. Periode calquee sur la cadence des pas (voir DelaiProchainPas,
-// 260ms) : un cycle complet du tangage dure deux pas.
-const AmplitudeTangagePersonnage = 0.06; // radians (~3.4 degres) a pleine intensite
-const PeriodeTangagePersonnage = 260 * 2; // ms — deux pas = un cycle complet
-const FrequenceTangagePersonnage = (2 * Math.PI) / PeriodeTangagePersonnage;
 
 // Anticipation de la camera : legerement decalee dans le sens du regard du
 // personnage pendant la marche, pour montrer un peu plus loin devant que
@@ -616,13 +603,6 @@ function JouerSonLignePlate() {
   return Volume;
 }
 
-// Le serveur de dev (python -m http.server) n'envoie aucun en-tete
-// anti-cache : sans ca, le navigateur garde une ancienne version d'un asset
-// meme apres modification du fichier sur le disque. On rajoute un parametre
-// unique a chaque chargement de page pour forcer un fichier frais a chaque
-// fois pendant le developpement.
-const ParametreAntiCache = `?v=${Date.now()}`;
-
 class ScenePrincipale extends Phaser.Scene {
   // Appele a chaque demarrage/redemarrage de la scene (le tout premier lancement
   // ET chaque this.scene.restart(...), voir DemarrerSequenceGare) — AVANT
@@ -637,62 +617,8 @@ class ScenePrincipale extends Phaser.Scene {
   }
 
   preload() {
-    // Chargement des assets Tiled : seulement si le flag est actif, pour ne
-    // pas provoquer d'erreur "fichier introuvable" tant qu'ils n'existent pas.
-    if (UtiliseCarteTiled) {
-      // L'image brute du tileset : la texture que Tiled decoupe en tuiles
-      this.load.image(CleTuiles, CheminTuiles + ParametreAntiCache);
-      // La map elle-meme : positions des tuiles, calques, objets, etc. Cle de
-      // cache = nom de la carte (this.NomCarteActuelle, voir init()) plutot
-      // qu'une cle fixe, pour que chaque carte ait sa propre entree en cache
-      // et ne pas rejouer une ancienne carte apres this.scene.restart(...).
-      this.load.tilemapTiledJSON(this.NomCarteActuelle, `assets/maps/${this.NomCarteActuelle}.json` + ParametreAntiCache);
-
-      // Spritesheet d'animation de la gare
-      this.load.spritesheet(CleGare, CheminGare + ParametreAntiCache, {
-        frameWidth: TailleImageGare,
-        frameHeight: TailleImageGare,
-      });
-
-      // Spritesheet de l'herbe (4 variantes de brin, 16x16 chacune)
-      this.load.spritesheet(CleHerbe, CheminHerbe + ParametreAntiCache, {
-        frameWidth: TailleImageHerbe,
-        frameHeight: TailleImageHerbe,
-      });
-
-      // Spritesheet de l'icone d'interaction (invite + E qui eclate)
-      this.load.spritesheet(CleIconeInteraction, CheminIconeInteraction + ParametreAntiCache, {
-        frameWidth: TailleIconeInteraction,
-        frameHeight: TailleIconeInteraction,
-      });
-
-      // Spritesheet de l'ecran de tele (cardiogramme en boucle)
-      this.load.spritesheet(CleTele, CheminTele + ParametreAntiCache, {
-        frameWidth: TailleImageTele,
-        frameHeight: TailleImageTele,
-      });
-      // Ecran "mort" de la tele, affiche au 5e appui
-      this.load.spritesheet(CleTeleMort, CheminTeleMort + ParametreAntiCache, {
-        frameWidth: TailleImageTele,
-        frameHeight: TailleImageTele,
-      });
-      // PNJ de dialogue (voir CreerPNJs) : tous les personnages connus,
-      // qu'ils soient utilises ou non sur cette carte precise.
-      SpritesPNJConnus.forEach(({ Cle, Chemin, LargeurFrame, HauteurFrame }) => {
-        this.load.spritesheet(Cle, Chemin + ParametreAntiCache, {
-          frameWidth: LargeurFrame,
-          frameHeight: HauteurFrame,
-        });
-      });
-    }
-
-    if (UtiliseSpritePersonnage) {
-      // spritesheet : Phaser decoupe l'image en frames de taille fixe
-      this.load.spritesheet(ClePersonnage, CheminPersonnage + ParametreAntiCache, {
-        frameWidth: LargeurImagePersonnage,
-        frameHeight: HauteurImagePersonnage,
-      });
-    }
+    // Tout le prechargement est dans src/js/loading.js.
+    PrechargerAssets(this);
   }
 
   create() {
@@ -1034,64 +960,10 @@ class ScenePrincipale extends Phaser.Scene {
     // peine de garder ce conflit pour rien.
 
     // ── Personnage ──────────────────────────────────────────────────────
-    if (UtiliseSpritePersonnage) {
-      // physics.add.sprite cree directement un GameObject anime + son corps physique
-      this.Personnage = this.physics.add.sprite(PositionDepartX, PositionDepartY, ClePersonnage);
-
-      // player.png fait 96x16 -> 6 frames de 16x16 (voir la repartition pres
-      // de LargeurImagePersonnage). Cycle de marche = frames 4 et 5,
-      // inversees horizontalement pour la gauche via setFlipX.
-      this.anims.create({
-        key: 'marche',
-        frames: this.anims.generateFrameNumbers(ClePersonnage, { start: 4, end: 5 }),
-        frameRate: 8,
-        repeat: -1,
-      });
-
-      // Pose immobile (frame 3, standby) et orientation par defaut au
-      // demarrage — un seul jeu de frames, gauche/droite s'obtient par flip.
-      this.Orientation = 'droite';
-      this.Personnage.setFlipX(false);
-      this.Personnage.setFrame(3);
-    } else {
-      // Placeholder : simple rectangle blanc, pas encore de sprite reel
-      this.Personnage = this.add.rectangle(PositionDepartX, PositionDepartY, 22, 44, CouleurPersonnage);
-      this.physics.add.existing(this.Personnage); // false/omis = corps dynamique (soumis a la gravite)
-    }
-    this.Personnage.body.setCollideWorldBounds(true);
-
+    // Creation + emetteur de poussiere + etat de deplacement : voir
+    // CreerPersonnage dans src/js/player.js.
+    CreerPersonnage(this, PositionDepartX, PositionDepartY);
     this.physics.add.collider(this.Personnage, Sol);
-
-    // Petite texture generee (4x4, cercle gris) pour les particules de
-    // poussiere — pas besoin d'un fichier image pour un effet aussi simple.
-    const DessinPoussiere = this.make.graphics({ x: 0, y: 0, add: false });
-    DessinPoussiere.fillStyle(0x999999, 1);
-    DessinPoussiere.fillCircle(2, 2, 2);
-    DessinPoussiere.generateTexture('particulePoussiere', 4, 4);
-    DessinPoussiere.destroy();
-
-    // emitting:false : l'emetteur ne crache rien tout seul, on declenche des
-    // "explosions" ponctuelles a la demande (atterrissage, voir update()).
-    this.EmetteurPoussiere = this.add.particles(0, 0, 'particulePoussiere', {
-      speed: { min: 20, max: 60 },
-      angle: { min: 200, max: 340 }, // eventail vers le haut (0=droite, 90=bas)
-      lifespan: 300,
-      scale: { start: 1, end: 0 },
-      alpha: { start: 0.8, end: 0 },
-      quantity: 6,
-      emitting: false,
-    });
-    this.EmetteurPoussiere.setDepth(4);
-
-    // Pour detecter l'atterrissage (front montant de body.blocked.down) et
-    // cadencer le bruit de pas independamment du framerate.
-    this.EtaitAuSol = true;
-    this.DelaiProchainPas = 0;
-
-    // Intensite de marche (0 = immobile, 1 = pleine marche), remonte/redescend
-    // en fondu via VitesseFonduMarche — voir son usage dans update() (tangage
-    // du personnage) et MettreAJourCamera (anticipation de la camera).
-    this.IntensiteMarche = 0;
 
     // Suivi de camera entierement manuel (voir MettreAJourCamera dans
     // update()), plutot que startFollow(...) : constate a l'usage que
@@ -1126,11 +998,8 @@ class ScenePrincipale extends Phaser.Scene {
       }
     }
 
-    // Entrees clavier : fleches + WASD/espace en alternative
-    this.Fleches = this.input.keyboard.createCursorKeys();
-    this.ToucheA = this.input.keyboard.addKey('A');
-    this.ToucheD = this.input.keyboard.addKey('D');
-    this.ToucheInteraction = this.input.keyboard.addKey('E');
+    // Entrees clavier : voir InstallerControles dans src/js/controle.js.
+    InstallerControles(this);
 
     // Etat de la sequence gare : attente -> enCours -> termine.
     // this.CalqueGare n'existe qu'en mode Tiled (voir plus haut) ; en mode
@@ -1366,95 +1235,11 @@ class ScenePrincipale extends Phaser.Scene {
     // Aucun controle pendant le voyage en train (voir DemarrerSequenceGare)
     // ni pendant un dialogue PNJ (voir OuvrirDialoguePNJ) : le corps physique
     // est desactive, mais sans ce garde-fou les touches tenues enfoncees
-    // continueraient quand meme a jouer bruits de pas/sauts sur un
-    // personnage invisible ou fige.
+    // continueraient quand meme a jouer bruits de pas sur un personnage
+    // invisible ou fige. Tout le deplacement est dans MettreAJourDeplacement
+    // (src/js/player.js).
     if (this.EtatGare !== 'enCours' && !this.DialogueOuvert) {
-      const Corps = this.Personnage.body;
-      const Vitesse = 70;
-
-      const Gauche = this.Fleches.left.isDown || this.ToucheA.isDown;
-      const Droite = this.Fleches.right.isDown || this.ToucheD.isDown;
-
-      if (Gauche) {
-        Corps.setVelocityX(-Vitesse);
-        this.Orientation = 'gauche';
-        if (UtiliseSpritePersonnage) {
-          this.Personnage.setFlipX(true); // retourne le sprite vers la gauche
-          this.Personnage.anims.play('marche', true);
-        }
-      } else if (Droite) {
-        Corps.setVelocityX(Vitesse);
-        this.Orientation = 'droite';
-        if (UtiliseSpritePersonnage) {
-          this.Personnage.setFlipX(false);
-          this.Personnage.anims.play('marche', true);
-        }
-      }
-
-      // Bruit de pas + petit nuage de poussiere sous les pieds : seulement en
-      // marchant au sol, cadence par un compte a rebours en ms (independant
-      // du framerate) plutot que toutes les frames. Meme emetteur que
-      // l'atterrissage (voir this.EmetteurPoussiere), juste avec moins de
-      // particules — un nuage discret plutot qu'une explosion.
-      if ((Gauche || Droite) && Corps.blocked.down) {
-        this.DelaiProchainPas -= TempsEcoule;
-        if (this.DelaiProchainPas <= 0) {
-          JouerSonPas();
-          this.EmetteurPoussiere.explode(2, this.Personnage.x, this.Personnage.y + 8);
-          this.DelaiProchainPas = 260;
-        }
-      } else {
-        this.DelaiProchainPas = 0; // pret a jouer un pas des la reprise de la marche
-      }
-
-      // Intensite de marche (voir sa declaration dans create()) : meme
-      // condition que le bruit de pas (marche au sol), montee/descente en
-      // fondu pour ne pas s'enclencher/s'arreter d'un coup.
-      const IntensiteMarcheVoulue = (Gauche || Droite) && Corps.blocked.down ? 1 : 0;
-      this.IntensiteMarche = Phaser.Math.Linear(this.IntensiteMarche, IntensiteMarcheVoulue, VitesseFonduMarche);
-
-      // Tangage : leger balancement de rotation du personnage en marchant,
-      // comme une demarche naturelle. S'annule tout seul en fondu avec
-      // l'intensite (donc aussi a l'arret ou en l'air, sans avoir besoin de
-      // le remettre a zero explicitement ailleurs).
-      if (UtiliseSpritePersonnage) {
-        this.Personnage.rotation = Math.sin(Temps * FrequenceTangagePersonnage) * AmplitudeTangagePersonnage * this.IntensiteMarche;
-      }
-
-      if (!Gauche && !Droite) {
-        Corps.setVelocityX(0);
-        if (UtiliseSpritePersonnage) {
-          // Immobile (frame 3) : flip selon la derniere direction regardee,
-          // meme mecanisme que la marche (plus de frames idle distinctes par
-          // sens comme avant).
-          this.Personnage.anims.stop();
-          this.Personnage.setFlipX(this.Orientation === 'gauche');
-          this.Personnage.setFrame(3);
-        }
-      }
-
-      // Pas de saut : le personnage ne quitte le sol que s'il marche hors
-      // d'une plateforme (la gravite fait le reste). En l'air, en priorite
-      // sur la marche/idle ci-dessus qui aurait pu s'appliquer si des
-      // touches de direction sont tenues en meme temps — frame 4 (index 3,
-      // standby) pendant la chute.
-      if (UtiliseSpritePersonnage && !Corps.blocked.down) {
-        this.Personnage.anims.stop();
-        this.Personnage.setFrame(3);
-      }
-
-      // Atterrissage : front montant de Corps.blocked.down (faux la frame
-      // d'avant, vrai maintenant) = le joueur vient de toucher le sol.
-      if (!this.EtaitAuSol && Corps.blocked.down) {
-        JouerSonAtterrissage();
-        this.EmetteurPoussiere.explode(6, this.Personnage.x, this.Personnage.y + 8);
-        // Reprend le frame 2 (index 1), un instant avant de repasser en
-        // marche/idle a la frame suivante.
-        if (UtiliseSpritePersonnage) {
-          this.Personnage.setFrame(1);
-        }
-      }
-      this.EtaitAuSol = Corps.blocked.down;
+      MettreAJourDeplacement(this, Temps, TempsEcoule);
     }
   }
 
@@ -2361,8 +2146,7 @@ class ScenePrincipale extends Phaser.Scene {
   // joueur reste sur sa tuile (meme s'il s'arrete de bouger) — il ne revient
   // debout que lorsque le joueur quitte la tuile.
   MettreAJourHerbe() {
-    const SeDeplaceADroite = this.Fleches.right.isDown || this.ToucheD.isDown;
-    const SeDeplaceAGauche = this.Fleches.left.isDown || this.ToucheA.isDown;
+    const { Gauche: SeDeplaceAGauche, Droite: SeDeplaceADroite } = LireDeplacement(this);
 
     for (const Brin of this.BrinsHerbe) {
       const Distance = Math.abs(Brin.PositionX - this.Personnage.x);
@@ -2398,43 +2182,6 @@ class ScenePrincipale extends Phaser.Scene {
   }
 }
 
-const Configuration = {
-  type: Phaser.AUTO,
-  parent: 'game-container',
-  backgroundColor: '#000000',
-  pixelArt: true, // pas de flou d'interpolation sur les textures en pixel art
-  scale: {
-    // RESIZE + largeur/hauteur en % : le canvas occupe tout son parent
-    // (ici #game-container, cale sur 100% de la fenetre par le CSS) et se
-    // redimensionne automatiquement. On evite de lire window.innerWidth ici
-    // directement : au moment ou ce script s'execute, la fenetre peut ne pas
-    // encore avoir sa taille definitive.
-    mode: Phaser.Scale.RESIZE,
-    width: '100%',
-    height: '100%',
-  },
-  physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { y: 900 },
-      debug: false, // passe a true pour visualiser les corps physiques (utile en debug de map Tiled)
-    },
-  },
-  scene: ScenePrincipale,
-};
-
-// Attend que la police custom des textes de zone soit chargee avant de
-// demarrer le jeu, sinon le tout premier rendu utiliserait la police de
-// repli (monospace) le temps qu'elle arrive (@font-face defini dans
-// index.html). Course avec un delai maximum (DelaiMaxChargementPolice) :
-// sur un reseau lent, document.fonts.load() peut ne jamais se resoudre du
-// tout (ni succes ni echec, donc ni .then() ni .catch() ne se declenchent
-// jamais) — sans ce filet, le jeu resterait bloque sur un ecran noir
-// indefiniment plutot que de demarrer avec la police de repli.
-const DelaiMaxChargementPolice = new Promise((Resoudre) => setTimeout(Resoudre, 2000));
-Promise.race([
-  document.fonts.load(`16px '${NomPoliceTexteDeZone}'`).catch(() => {}),
-  DelaiMaxChargementPolice,
-]).finally(() => {
-  new Phaser.Game(Configuration);
-});
+// La configuration Phaser et le demarrage du jeu sont dans src/js/index.js
+// (charge en dernier, une fois ScenePrincipale et NomPoliceTexteDeZone
+// definis).

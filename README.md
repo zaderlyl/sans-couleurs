@@ -19,8 +19,9 @@ niveau au suivant.
 ## Apercu
 
 Le jeu tourne entierement dans le navigateur, sans etape de build ni
-dependance a installer : un fichier `index.html`, le code dans `src/game.js`,
-et des assets exportes depuis [Tiled](https://www.mapeditor.org/). Les cartes,
+dependance a installer : un fichier `index.html`, le code dans `src/`
+(plusieurs fichiers `.js` charges dans l'ordre, sans bundler) et des assets
+exportes depuis [Tiled](https://www.mapeditor.org/). Les cartes,
 les textes, les personnages non-joueurs et leurs dialogues sont tous
 definis depuis Tiled plutot que codes en dur, pour pouvoir faire evoluer le
 contenu du jeu sans toucher au code.
@@ -60,10 +61,16 @@ http://localhost:8765/?carte=enfance
 
 ```
 .
-├── index.html                  Page d'entree du jeu
-├── src/
-│   └── game.js                 Toute la logique du jeu (scene, physique,
-│                                camera, dialogues, gare/train...)
+├── index.html                  Page d'entree : charge les fichiers de src/ dans l'ordre
+├── src/                        Code du jeu (scripts classiques, portee globale partagee)
+│   ├── js/
+│   │   ├── playerConfig.js     Reglages du personnage (spritesheet, vitesse, tangage)
+│   │   ├── loading.js          Prechargement des assets (phase preload)
+│   │   ├── controle.js         Entrees clavier
+│   │   ├── player.js           Creation du personnage + deplacement par frame
+│   │   └── index.js            Config Phaser + demarrage (charge en dernier)
+│   └── game.js                 Le reste : audio, gare/train, herbe, tunnel,
+│                                PNJ, textes de zone, camera, classe ScenePrincipale
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (.json)
 │   ├── tilesets/                Images de tuiles referencees par les cartes

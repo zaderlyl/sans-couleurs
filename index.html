@@ -33,17 +33,34 @@
 <div id="game-container"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
 <script>
-  // Anti-cache : contrairement aux assets charges depuis src/game.js (voir
-  // ParametreAntiCache la-bas), ce tag <script> n'a lui-meme aucun moyen
-  // d'echapper au cache du navigateur avec un simple attribut src statique
-  // — un game.js modifie sur le disque pouvait donc continuer a tourner
-  // depuis une ancienne version mise en cache, sans aucun signe visible
-  // (pas d'erreur : juste un comportement perime). Injecte donc le script
-  // avec un parametre "?v=" different a chaque chargement de page, exactement
-  // comme pour les autres fichiers.
-  const ScriptJeu = document.createElement('script');
-  ScriptJeu.src = 'src/game.js?v=' + Date.now();
-  document.body.appendChild(ScriptJeu);
+  // Le code est decoupe en plusieurs fichiers (voir l'en-tete de
+  // src/game.js), charges ICI dans un ordre precis : chacun definit des
+  // constantes/fonctions/la classe que les suivants utilisent. index.js est
+  // en dernier : c'est lui qui demarre le jeu.
+  //
+  // Anti-cache : contrairement aux assets charges par Phaser (voir
+  // ParametreAntiCache dans loading.js), ces tags <script> n'ont aucun moyen
+  // d'echapper au cache du navigateur avec un attribut src statique — un
+  // fichier modifie sur le disque pouvait donc continuer a tourner depuis une
+  // ancienne version en cache, sans aucun signe visible (pas d'erreur : juste
+  // un comportement perime). On les injecte donc avec un "?v=" different a
+  // chaque chargement de page. script.async = false garantit l'execution dans
+  // l'ordre d'insertion malgre l'injection dynamique.
+  const FichiersJeu = [
+    'src/js/playerConfig.js',
+    'src/js/loading.js',
+    'src/js/controle.js',
+    'src/js/player.js',
+    'src/game.js',
+    'src/js/index.js',
+  ];
+  const Version = '?v=' + Date.now();
+  for (const Fichier of FichiersJeu) {
+    const Balise = document.createElement('script');
+    Balise.src = Fichier + Version;
+    Balise.async = false;
+    document.body.appendChild(Balise);
+  }
 </script>
 </body>
 </html>
