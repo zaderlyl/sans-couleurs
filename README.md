@@ -61,10 +61,14 @@ http://localhost:8765/?carte=map-2-enfance
 
 ```
 .
+├── LICENSE                     Licence MIT
 ├── index.html                  Page d'entree : charge les fichiers de src/ dans l'ordre
 ├── src/                        Code du jeu (scripts classiques, portee globale partagee)
 │   ├── js/
+│   │   ├── config.js           Reglages generaux (modes, camera, sons, couleurs, styles)
 │   │   ├── playerConfig.js     Reglages du personnage (spritesheet, vitesse, tangage)
+│   │   ├── sons.js             Sons synthetises (ambiance, pas, atterrissage)
+│   │   ├── camera.js           MettreAJourCamera() — suivi de camera chaque frame
 │   │   ├── maps/
 │   │   │   ├── cartes.js       Registre des cartes + helpers Tiled communs
 │   │   │   └── map-*/map-*.js  Une carte chacun : config + tableau `features`
@@ -74,8 +78,8 @@ http://localhost:8765/?carte=map-2-enfance
 │   │   ├── controle.js         Entrees clavier
 │   │   ├── player.js           Creation du personnage + deplacement par frame
 │   │   └── index.js            Config Phaser + demarrage (charge en dernier)
-│   └── game.js                 Le reste : audio, gare/train, herbe, tunnel,
-│                                PNJ, camera, classe ScenePrincipale
+│   └── game.js                 Le reste : gare/train, herbe, tunnel, PNJ,
+│                                classe ScenePrincipale
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
 │   ├── tilesets/                Images de tuiles referencees par les cartes
@@ -146,11 +150,8 @@ GitHub pour s'y connecter.
 
 ## Licence
 
-Copyright (c) 2026 Lilian Cornet. Tous droits reserves.
+Ce projet est publie sous licence [MIT](LICENSE) : chacun peut l'utiliser, le
+modifier et le redistribuer, y compris a des fins commerciales, a condition
+de conserver la mention de copyright et le texte de la licence.
 
-Ce depot ne comporte pas de fichier de licence : le code source, les
-histoires, les personnages et les assets restent la propriete exclusive
-de l'auteur. Le code est visible publiquement sur GitHub, mais sa
-reutilisation, sa modification, sa redistribution ou son exploitation
-commerciale ne sont autorisees sous aucune forme sans l'accord explicite
-et ecrit de l'auteur.
+Copyright (c) 2026 Lilian Cornet.

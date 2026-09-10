@@ -5,16 +5,20 @@
 // ── Decoupage du code (src/) ─────────────────────────────────────────────
 // Tous les fichiers sont des <script> classiques charges dans l'ordre par
 // index.html — meme portee globale, pas de module ni d'etape de build. Ordre :
+//   js/config.js                reglages generaux (modes, camera, sons,
+//                               couleurs, styles de texte)
 //   js/playerConfig.js          reglages du personnage
+//   js/sons.js                  sons synthetises (ambiance, pas, atterrissage)
 //   js/maps/cartes.js           registre des cartes + helpers Tiled communs
+//   js/camera.js                MettreAJourCamera() — suivi de camera
 //   js/features/*.js            une grosse feature chacun (tele, textes de
 //                               zone...), objet { precharger, installer, miseAJour }
 //   js/maps/map-*/map-*.js      une carte chacun : config + tableau `features`
 //   js/loading.js               PrechargerAssets() — phase preload()
 //   js/controle.js              InstallerControles() / LireDeplacement()
 //   js/player.js                CreerPersonnage() / MettreAJourDeplacement()
-//   game.js  (ce fichier)       le reste : audio, gare/train, herbe, tunnel,
-//                               PNJ, camera, ScenePrincipale
+//   game.js  (ce fichier)       le reste : gare/train, herbe, tunnel, PNJ,
+//                               ScenePrincipale
 //   js/index.js                 config Phaser + demarrage (charge en dernier)
 // Ce fichier sera decoupe davantage au fil des passes suivantes.
 //
@@ -29,33 +33,13 @@
 //   Les sources d'edition (.tmx Tiled, images de travail) vivent dans tiled/,
 //   hors du dossier assets/ qui ne contient que ce qui est charge au runtime.
 //
-// Les deux flags ci-dessous branchent le mode Tiled + le sprite du
-// personnage ; a false, l'ancien mode "prototype" (ligne bicolore + rectangle
-// blanc) tourne encore.
-
-const UtiliseCarteTiled = true;
-const UtiliseSpritePersonnage = true;
-
-// Cartes : registre, tileset partage, noms de calques et helpers Tiled sont
-// dans src/js/maps/cartes.js ; chaque carte a son dossier src/js/maps/map-*/.
+// Reglages generaux (modes, camera, sons, couleurs, styles de texte) :
+// src/js/config.js. Personnage : src/js/playerConfig.js + src/js/player.js.
+// Cartes / helpers Tiled : src/js/maps/cartes.js (+ un dossier par carte).
+// Sons : src/js/sons.js. Suivi camera : src/js/camera.js.
 // Les calques bg, bg2, devant... sont purement visuels ; toutes les cartes
 // n'ont pas les memes (ex: seule map-TEST-map1 a "derriere"), donc create()
 // verifie leur presence avant de s'en servir.
-
-// Le personnage : sa spritesheet, sa vitesse et le ressenti de deplacement
-// (fondu de marche, tangage, cadence des pas) sont regles dans
-// src/js/playerConfig.js ; sa creation et sa logique par frame sont dans
-// src/js/player.js.
-
-// Echelle d'affichage du pixel art (tuiles de 16px, sinon minuscule a l'ecran)
-const ZoomCamera = 5;
-
-// Anticipation de la camera : legerement decalee dans le sens du regard du
-// personnage pendant la marche, pour montrer un peu plus loin devant que
-// derriere (voir MettreAJourCamera). Le lerp deja en place sur scrollX
-// (voir plus bas) suffit a lisser la transition, pas besoin d'un fondu
-// separe — this.IntensiteMarche s'en charge deja.
-const DecalageAnticipationCameraMax = 14; // pixels MONDE, decalage max
 
 // --- Herbe animee (animated_grass.png) ---
 // Les brins d'herbe sont des tuiles figees dans le calque "devant" (GID 33 a
@@ -207,148 +191,9 @@ const SpritesPNJConnus = [
   { Cle: 'other_child', Chemin: 'assets/sprites/characters/other_child.png', LargeurFrame: 16, HauteurFrame: 16 },
 ];
 
-// L'ecran de tele n'existe que sur map-TEST-map1 : constantes, sons et
-// logique sont dans src/js/maps/map-TEST-map1/map-TEST-map1.js.
-
-// --- Style commun des textes du monde ---
-// Reutilise par la feature "textes de zone" (src/js/features/textes-de-zone.js)
-// ET par le mini-jeu de dialogue PNJ : ce sont des objets poses dans le monde
-// au-dessus des personnages, pas une interface figee a l'ecran.
-// Pixel art oblige : petite police (x ZoomCamera a l'affichage) + contour
-// noir + resolution interne plus haute (sinon flou/crenele une fois agrandi).
-// NomPoliceTexteDeZone : le nom choisi dans le @font-face d'index.html.
-// (Ces reglages iront dans un config.js commun plus tard.)
-const NomPoliceTexteDeZone = 'DeltaruneExtended';
-const StyleTexteDeZone = {
-  fontFamily: `'${NomPoliceTexteDeZone}', monospace`, // repli tant que la police n'est pas chargee
-  fontSize: '6px',
-  color: '#ffffff',
-  stroke: '#000000',
-  strokeThickness: 2,
-  align: 'center',
-  wordWrap: { width: 120 },
-  // Sans ca, le texte (anti-aliase par nature, contrairement aux sprites en
-  // pixel art) serait rendu tout petit puis agrandi x5 par ZoomCamera avec le
-  // filtrage NEAREST du jeu (pixelArt: true) — flou ET crenele a la fois.
-  // resolution : rendu interne a plus haute densite avant mise a l'echelle
-  // (voir aussi le texture.setFilter(LINEAR) applique a la creation).
-  resolution: ZoomCamera,
-};
-
-// Les mots a glisser du dialogue PNJ ont leur propre style : un fond derriere
-// chaque mot, comme une petite etiquette (repere visuel de l'espace pris par
-// chaque mot, et aide a les distinguer une fois espaces en liste).
-const StyleMotDialogue = {
-  fontFamily: `'${NomPoliceTexteDeZone}', monospace`,
-  fontSize: '6px',
-  color: '#ffffff',
-  stroke: '#000000',
-  strokeThickness: 1,
-  backgroundColor: 'rgba(0, 0, 0, 0.55)',
-  padding: { x: 2, y: 1 },
-  resolution: ZoomCamera,
-};
-
-// --- Reglages du mode prototype (utilises seulement si UtiliseCarteTiled = false) ---
-const LargeurMondeParDefaut = 4000;
-const HauteurMondeParDefaut = 540;
-const HauteurSol = 460;
-
-// Duotone du monde : le personnage (blanc) tranche sur ces deux teintes.
-const CouleurSol = 0x2c3e50; // bleu-ardoise sourd
-const CouleurAccent = 0x5a1a2e; // lie-de-vin sourd
-const CouleurPersonnage = 0xffffff;
-
-let SonAmbianceDemarre = false; // evite de relancer le son plusieurs fois
-
-// Un seul AudioContext partage par tous les sons du jeu (ambiance, pas, saut,
-// atterrissage...), cree au premier appel plutot qu'un par son.
-let ContexteAudioPartage = null;
-function ObtenirContexteAudio() {
-  if (!ContexteAudioPartage) {
-    ContexteAudioPartage = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  return ContexteAudioPartage;
-}
-
-function DemarrerSonAmbiance() {
-  if (SonAmbianceDemarre) return; // garde-fou : une seule instance du drone
-  SonAmbianceDemarre = true;
-
-  const Contexte = ObtenirContexteAudio();
-
-  const Oscillateur = Contexte.createOscillator(); // generateur d'onde (le "instrument")
-  Oscillateur.type = 'sine'; // onde sinusoidale : son pur, sans harmoniques agressives
-  Oscillateur.frequency.value = 52; // frequence grave, en Hz (drone sourd)
-
-  const Volume = Contexte.createGain(); // controle le volume de ce qui passe a travers
-  Volume.gain.value = 0.07; // volume bas, discret
-
-  Oscillateur.connect(Volume); // l'oscillateur alimente le controle de volume...
-  Volume.connect(Contexte.destination); // ...qui alimente les haut-parleurs
-  Oscillateur.start(); // demarre le son (boucle indefiniment par nature)
-
-  // pulsation lente, pour un poids sourd : un second oscillateur tres basse
-  // frequence qui module le volume du premier au lieu de produire un son audible
-  const OscillateurLent = Contexte.createOscillator();
-  OscillateurLent.type = 'sine';
-  OscillateurLent.frequency.value = 0.12; // ~1 pulsation toutes les 8 secondes
-
-  const VolumeOscillateurLent = Contexte.createGain();
-  VolumeOscillateurLent.gain.value = 0.04; // amplitude de la pulsation (variation de volume)
-
-  OscillateurLent.connect(VolumeOscillateurLent);
-  VolumeOscillateurLent.connect(Volume.gain); // sa sortie vient faire varier Volume.gain en continu
-  OscillateurLent.start();
-}
-
-// Pas — bref grain de bruit filtre, tres court et discret.
-function JouerSonPas() {
-  const Contexte = ObtenirContexteAudio();
-  const Duree = 0.05;
-
-  const Tampon = Contexte.createBuffer(1, Contexte.sampleRate * Duree, Contexte.sampleRate);
-  const Donnees = Tampon.getChannelData(0);
-  for (let i = 0; i < Donnees.length; i++) Donnees[i] = Math.random() * 2 - 1;
-
-  const Bruit = Contexte.createBufferSource();
-  Bruit.buffer = Tampon;
-
-  const Filtre = Contexte.createBiquadFilter();
-  Filtre.type = 'bandpass';
-  Filtre.frequency.value = 1200;
-  Filtre.Q.value = 1;
-
-  const Volume = Contexte.createGain();
-  Volume.gain.setValueAtTime(0.1, Contexte.currentTime);
-  Volume.gain.exponentialRampToValueAtTime(0.001, Contexte.currentTime + Duree);
-
-  Bruit.connect(Filtre);
-  Filtre.connect(Volume);
-  Volume.connect(Contexte.destination);
-  Bruit.start();
-}
-
-// Atterrissage — petit "thud" grave et court.
-function JouerSonAtterrissage() {
-  const Contexte = ObtenirContexteAudio();
-  const Oscillateur = Contexte.createOscillator();
-  Oscillateur.type = 'sine';
-  Oscillateur.frequency.setValueAtTime(140, Contexte.currentTime);
-  Oscillateur.frequency.exponentialRampToValueAtTime(60, Contexte.currentTime + 0.09);
-
-  const Volume = Contexte.createGain();
-  Volume.gain.setValueAtTime(0.2, Contexte.currentTime);
-  Volume.gain.exponentialRampToValueAtTime(0.001, Contexte.currentTime + 0.1);
-
-  Oscillateur.connect(Volume);
-  Volume.connect(Contexte.destination);
-  Oscillateur.start();
-  Oscillateur.stop(Contexte.currentTime + 0.11);
-}
-
-// Les sons de la tele (VolumeSonSelonDistanceTele, JouerSonCardiogramme,
-// JouerSonLignePlate) sont dans src/js/features/tele.js.
+// Sons du jeu (ambiance, pas, atterrissage + AudioContext partage) :
+// src/js/sons.js. Sons de la tele : src/js/features/tele.js.
+// Styles de texte, couleurs, reglages du mode prototype : src/js/config.js.
 
 class ScenePrincipale extends Phaser.Scene {
   // Appele a chaque demarrage/redemarrage de la scene (le tout premier lancement
@@ -765,7 +610,7 @@ class ScenePrincipale extends Phaser.Scene {
   }
 
   update(Temps, TempsEcoule) {
-    if (this.LargeurMondeCarte) this.MettreAJourCamera();
+    if (this.LargeurMondeCarte) MettreAJourCamera(this);
 
     // Interaction gare : tant que rien n'a ete declenche (EtatGare
     // "attente"), l'icone suit le joueur et boucle son invite des qu'il entre
@@ -1184,60 +1029,7 @@ class ScenePrincipale extends Phaser.Scene {
     });
   }
 
-  // Pilote scrollX/scrollY nous-memes, chaque frame, plutot que de laisser
-  // startFollow s'en charger (voir le commentaire dans create() —
-  // recalculer a partir de la taille ACTUELLE de la camera a chaque frame
-  // rend ce suivi insensible a un redimensionnement de fenetre, contrairement
-  // au follow natif de Phaser qui s'est avere le refaire tout seul de
-  // travers dans ce cas).
-  // X : suivi doux normal (Linear vers la position du joueur), ou saut
-  // instantane pendant le voyage en train (this.CameraDoitSauterEnX, voir
-  // DemarrerSequenceGare/DemarrerRetourGare).
-  // Y : fixe sur CentreVerticalCadrage (le point du monde que l'on veut voir
-  // au milieu de l'ecran) — augmente cette valeur pour "descendre" la vue
-  // (faire monter l'horizon a l'ecran), diminue-la pour l'inverse.
-  MettreAJourCamera() {
-    const CentreVerticalCadrage = 140;
-    const Cam = this.cameras.main;
-    const LargeurVueMonde = Cam.width / Cam.zoom;
-    const HauteurVueMonde = Cam.height / Cam.zoom;
-
-    // Important : scrollX/scrollY de Phaser ne sont PAS directement le coin
-    // haut-gauche de la zone du monde visible (worldView) des que le zoom
-    // n'est pas egal a 1. En interne, Phaser calcule :
-    //   worldView.x = scrollX + (Cam.width  - LargeurVueMonde) / 2
-    //   worldView.y = scrollY + (Cam.height - HauteurVueMonde) / 2
-    // (le zoom s'applique autour du centre de la camera, avec la largeur/
-    // hauteur PLEINE de la camera, pas la largeur/hauteur deja divisee par
-    // le zoom). Si on assigne directement la position voulue du worldView a
-    // scrollX/scrollY (comme avant), la camera se retrouve decalee de
-    // (Cam.width - LargeurVueMonde) / 2 par rapport a ce qu'on voulait — avec
-    // un zoom eleve, cet ecart est enorme et pointe la camera vers une zone
-    // vide du monde (ecran noir garanti, alors que le reste du jeu tourne
-    // normalement). On calcule donc d'abord la position voulue du worldView,
-    // puis on la convertit en scrollX/scrollY avec la formule inverse.
-    // Anticipation : centre vise legerement decale dans le sens du regard du
-    // personnage pendant la marche (voir DecalageAnticipationCameraMax),
-    // pour montrer un peu plus loin devant que derriere. this.IntensiteMarche
-    // (0 a l'arret/en l'air, 1 en pleine marche) sert directement de fondu :
-    // pas besoin d'un lerp separe, celui deja en place sur scrollX plus bas
-    // suffit a lisser la transition.
-    const Anticipation = (this.Orientation === 'gauche' ? -1 : 1) * DecalageAnticipationCameraMax * (this.IntensiteMarche || 0);
-    const VueXVoulue = Phaser.Math.Clamp(
-      this.Personnage.x + Anticipation - LargeurVueMonde / 2,
-      0,
-      Math.max(0, this.LargeurMondeCarte - LargeurVueMonde)
-    );
-    const ScrollXVoulu = VueXVoulue + (LargeurVueMonde - Cam.width) / 2;
-    Cam.scrollX = this.CameraDoitSauterEnX ? ScrollXVoulu : Phaser.Math.Linear(Cam.scrollX, ScrollXVoulu, 0.1);
-
-    const VueYVoulue = Phaser.Math.Clamp(
-      CentreVerticalCadrage - HauteurVueMonde / 2,
-      0,
-      Math.max(0, this.HauteurMondeCarte - HauteurVueMonde)
-    );
-    Cam.scrollY = VueYVoulue + (HauteurVueMonde - Cam.height) / 2;
-  }
+  // MettreAJourCamera(this) : suivi de camera, dans src/js/camera.js.
 
   // Lit chaque objet portant une propriete "ligneNPJ" sur "Calque d'Objets
   // 1" (voir le commentaire pres de SpritesPNJConnus pour le format exact)
