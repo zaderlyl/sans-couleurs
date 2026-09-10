@@ -9,6 +9,9 @@
 // 3 frames chacune : [statique, penche a droite, penche a gauche].
 
 
+import { ChargerFeuille } from '../loading.js';
+import { LireDeplacement } from '../controle.js';
+
 const CleHerbe = 'herbeAnimee';
 const CheminHerbe = 'assets/sprites/environment/animated_grass.png';
 const TailleImageHerbe = 16;
@@ -17,7 +20,7 @@ const NombreVariantesHerbe = 4;   // les 4 plus petits GID d'affilee sur "devant
 const RayonReactionHerbe = 20;    // px monde : distance a laquelle l'herbe reagit au joueur
 
 
-const Herbe = {
+export const Herbe = {
   nom: 'herbe',
 
   precharger(Scene) {

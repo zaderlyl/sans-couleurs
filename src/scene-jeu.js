@@ -1,46 +1,30 @@
-// "Sans Couleurs" — coeur du jeu (scene Phaser unique).
-// Un personnage blanc, seul, avance dans un decor bicolore, discute avec des
-// PNJ et prend un train pour changer de niveau.
+// scene-jeu.js — la scene Phaser du jeu (une seule).
 //
-// ── Decoupage du code (src/) ─────────────────────────────────────────────
-// Tous les fichiers sont des <script> classiques charges dans l'ordre par
-// index.html — meme portee globale, pas de module ni d'etape de build.
+// Ce fichier n'est qu'un SQUELETTE : il monte la tilemap de base (bg / bg2 /
+// sol), le personnage, la camera et les entrees, puis laisse les features de
+// la carte active faire le reste (voir la config de chaque carte dans
+// js/maps/map-*/, et Installer/MettreAJour/ApresChargementFeaturesCarte).
 //
-// Ce fichier n'est plus qu'un SQUELETTE : la classe ScenePrincipale monte la
-// tilemap de base (bg / bg2 / sol), le personnage, la camera, les entrees, et
-// laisse les features de la carte active faire le reste (voir la config de
-// chaque carte dans js/maps/map-*/, et InstallerFeaturesCarte).
-//
-// ── Structure des assets ─────────────────────────────────────────────────
-//   assets/tilesets/<nom>.png           -> image de tileset referencee par une map
-//   assets/maps/<nom>.json              -> map exportee depuis Tiled (File > Export As > JSON)
-//   assets/sprites/characters/<nom>.png -> feuilles de sprites des personnages
-//   assets/sprites/environment/<nom>.png-> herbe animee, train (gare)
-//   assets/sprites/props/<nom>.png      -> objets animes (ecrans tele...)
-//   assets/ui/<nom>.png                 -> elements d'interface (icone d'interaction)
-//   assets/fonts/<nom>.otf              -> polices (voir le @font-face d'index.html)
-//   Les sources d'edition (.tmx Tiled, images de travail) vivent dans tiled/,
-//   hors du dossier assets/ qui ne contient que ce qui est charge au runtime.
-//
-// Reglages generaux (modes, camera, sons, couleurs, styles de texte) :
-// src/js/config.js. Personnage : src/js/playerConfig.js + src/js/player.js.
-// Cartes / helpers Tiled : src/js/maps/cartes.js (+ un dossier par carte).
-// Sons : src/js/sons.js. Suivi camera : src/js/camera.js.
-// Les calques bg, bg2, devant... sont purement visuels ; toutes les cartes
-// n'ont pas les memes (ex: seule map-TEST-map1 a "derriere"), donc create()
-// verifie leur presence avant de s'en servir.
+// Modules ES : les `import` ci-dessous SONT la liste des dependances.
+// Reglages generaux -> js/config.js ; personnage -> js/playerConfig.js +
+// js/player.js ; cartes + helpers Tiled -> js/maps/cartes.js.
 
-// Tout ce qui n'est pas dans ce fichier :
-//   - reglages generaux (modes, camera, sons, couleurs, styles) : config.js
-//   - personnage : playerConfig.js + player.js
-//   - cartes + helpers Tiled (CalculerBoite*, CalqueEstFlippe, Valeur*Tiled,
-//     TailleTuile) : maps/cartes.js
-//   - sons : sons.js ; camera : camera.js ; utilitaires (Secouer) : util.js
-//   - icone d'interaction "E" (partagee) : icone-interaction.js
-//   - features (gare/train, herbe, tunnel, tele, textes de zone, dialogue
-//     PNJ) : features/*.js
+import { PrechargerAssets } from './js/loading.js';
+import {
+  CleCarteDeDepart, NomTuilesDansTiled, CleTuiles, NomCalqueSol,
+  InstallerFeaturesCarte, ApresChargementFeaturesCarte, MettreAJourFeaturesCarte,
+} from './js/maps/cartes.js';
+import {
+  UtiliseCarteTiled, ZoomCamera,
+  LargeurMondeParDefaut, HauteurMondeParDefaut, HauteurSol, CouleurSol, CouleurAccent,
+} from './js/config.js';
+import { CreerAnimsIconeInteraction } from './js/icone-interaction.js';
+import { MettreAJourCamera } from './js/camera.js';
+import { CreerPersonnage, MettreAJourDeplacement } from './js/player.js';
+import { InstallerControles } from './js/controle.js';
+import { DemarrerSonAmbiance } from './js/sons.js';
 
-class ScenePrincipale extends Phaser.Scene {
+export class SceneJeu extends Phaser.Scene {
   // Appele avant preload(), au 1er lancement ET a chaque scene.restart(...)
   // (voir la feature gare). "data" est absent au 1er lancement -> carte de
   // depart, ou ?carte=<cle> en test (CleCarteDeDepart) ; il contient

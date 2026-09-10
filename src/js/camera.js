@@ -7,10 +7,11 @@
 // En recalculant depuis la taille ACTUELLE de la camera chaque frame, ce
 // suivi est insensible aux redimensionnements.
 //
-// Reglages : ZoomCamera / CentreVerticalCadrageCamera / VitesseSuiviCameraX /
-// DecalageAnticipationCameraMax dans config.js.
+// Reglages dans config.js.
 
-function MettreAJourCamera(Scene) {
+import { CentreVerticalCadrageCamera, VitesseSuiviCameraX, DecalageAnticipationCameraMax } from './config.js';
+
+export function MettreAJourCamera(Scene) {
   const Cam = Scene.cameras.main;
   const LargeurVueMonde = Cam.width / Cam.zoom;
   const HauteurVueMonde = Cam.height / Cam.zoom;

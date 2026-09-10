@@ -5,7 +5,19 @@
 //   (sauf pendant un voyage en train ou un dialogue PNJ — l'appelant filtre)
 //
 // Reglages (vitesse, frames, tangage, poussiere) : playerConfig.js.
-// `Scene` est l'instance de ScenePrincipale.
+// `Scene` est l'instance de SceneJeu.
+
+import {
+  ClePersonnage, FramePersoAtterrissage, FramePersoImmobile, FramePersoMarcheDebut, FramePersoMarcheFin,
+  VitesseMarchePersonnage, IntervalleParPasMs, VitesseFonduMarche,
+  AmplitudeTangagePersonnage, FrequenceTangagePersonnage,
+  CouleurPoussiere, ProfondeurPoussiere, DecalagePoussiereY, NbPoussiereParPas, NbPoussiereAtterrissage,
+  ConfigEmetteurPoussiere,
+} from './playerConfig.js';
+import { UtiliseSpritePersonnage, CouleurPersonnage } from './config.js';
+import { LireDeplacement } from './controle.js';
+import { JouerSonPas, JouerSonAtterrissage } from './sons.js';
+import { CreerAnim } from './util.js';
 
 
 // --- Creation --------------------------------------------------------
@@ -13,11 +25,11 @@
 // Cree Scene.Personnage + son emetteur de poussiere, et pose l'etat de
 // deplacement. Le collider avec le sol est branche par l'appelant (lui seul
 // connait le calque). Renvoie le personnage.
-function CreerPersonnage(Scene, PositionDepartX, PositionDepartY) {
+export function CreerPersonnage(Scene, PositionDepartX, PositionDepartY) {
   if (UtiliseSpritePersonnage) {
     Scene.Personnage = Scene.physics.add.sprite(PositionDepartX, PositionDepartY, ClePersonnage);
 
-    Scene.anims.create({
+    CreerAnim(Scene, {
       key: 'marche',
       frames: Scene.anims.generateFrameNumbers(ClePersonnage, { start: FramePersoMarcheDebut, end: FramePersoMarcheFin }),
       frameRate: 8,
@@ -60,7 +72,7 @@ function CreerEmetteurPoussiere(Scene) {
 
 // --- Deplacement (une frame) ----------------------------------------
 
-function MettreAJourDeplacement(Scene, Temps, TempsEcoule) {
+export function MettreAJourDeplacement(Scene, Temps, TempsEcoule) {
   const Entrees = LireDeplacement(Scene);
   const AuSol = Scene.Personnage.body.blocked.down;
 

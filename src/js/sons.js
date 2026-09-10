@@ -6,10 +6,12 @@
 // - JouerSonPas() / JouerSonAtterrissage() : appeles depuis player.js.
 // - ObtenirContexteAudio() : l'AudioContext partage (feature tele comprise).
 
+import { VolumeSonAmbiance, FrequenceSonAmbiance, VolumeSonPas, VolumeSonAtterrissage } from './config.js';
+
 
 // Un seul AudioContext pour tout le jeu, cree au premier besoin.
 let ContexteAudioPartage = null;
-function ObtenirContexteAudio() {
+export function ObtenirContexteAudio() {
   if (!ContexteAudioPartage) {
     ContexteAudioPartage = new (window.AudioContext || window.webkitAudioContext)();
   }
@@ -20,7 +22,7 @@ function ObtenirContexteAudio() {
 // --- Ambiance : drone grave continu, avec une pulsation lente ---
 let SonAmbianceDemarre = false; // garde-fou : une seule instance du drone
 
-function DemarrerSonAmbiance() {
+export function DemarrerSonAmbiance() {
   if (SonAmbianceDemarre) return;
   SonAmbianceDemarre = true;
 
@@ -53,7 +55,7 @@ function DemarrerSonAmbiance() {
 
 
 // --- Pas : bref grain de bruit filtre, tres court et discret ---
-function JouerSonPas() {
+export function JouerSonPas() {
   const Contexte = ObtenirContexteAudio();
   const Duree = 0.05;
 
@@ -81,7 +83,7 @@ function JouerSonPas() {
 
 
 // --- Atterrissage : petit "thud" grave et court ---
-function JouerSonAtterrissage() {
+export function JouerSonAtterrissage() {
   const Contexte = ObtenirContexteAudio();
   const Oscillateur = Contexte.createOscillator();
   Oscillateur.type = 'sine';

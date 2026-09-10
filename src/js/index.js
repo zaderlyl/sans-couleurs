@@ -1,5 +1,10 @@
-// index.js — configuration Phaser et demarrage. Charge en dernier : tout le
-// reste (constantes, fonctions, classe ScenePrincipale) est deja defini.
+// index.js — point d'entree. Configure Phaser et demarre le jeu.
+// Charge par <script type="module"> dans index.html ; le navigateur suit
+// ensuite tout seul le graphe d'`import`.
+
+import { SceneJeu } from '../scene-jeu.js';
+import { NomPoliceTexteDeZone } from './config.js';
+import './maps/toutes-les-cartes.js'; // enregistre les cartes (effet de bord)
 
 const Configuration = {
   type: Phaser.AUTO,
@@ -21,7 +26,7 @@ const Configuration = {
       debug: false, // true pour visualiser les corps physiques
     },
   },
-  scene: ScenePrincipale,
+  scene: SceneJeu,
 };
 
 // On attend la police des textes de zone avant de demarrer, sinon le premier

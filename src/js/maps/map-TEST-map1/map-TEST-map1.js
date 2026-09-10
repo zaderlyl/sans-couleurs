@@ -5,6 +5,14 @@
 // qui doit s'afficher derriere (la tele n'a pas de depth forcee, elle doit
 // etre creee avant l'herbe).
 
+import { EnregistrerCarte } from '../cartes.js';
+import { Gare } from '../../features/gare.js';
+import { TextesDeZone } from '../../features/textes-de-zone.js';
+import { Herbe } from '../../features/herbe.js';
+import { Tunnel } from '../../features/tunnel.js';
+import { DialoguePNJ } from '../../features/dialogue-pnj.js';
+import { Tele } from '../../features/tele.js';
+
 EnregistrerCarte({
   cle: 'map-TEST-map1',
   numero: 'TEST',

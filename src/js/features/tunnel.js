@@ -8,11 +8,13 @@
 // posees sur ce calque (voir CalculerBoitePixels dans cartes.js).
 
 
+import { CalculerBoitePixels } from '../maps/cartes.js';
+
 const TunnelAlphaMin = 0.15;      // jamais totalement invisible : on voit qu'il est la
 const TunnelVitesseFondu = 0.08;  // vitesse de transition vers l'alpha cible, par frame
 
 
-const Tunnel = {
+export const Tunnel = {
   nom: 'tunnel',
 
   installer(Scene, Ctx) {

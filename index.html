@@ -4,10 +4,9 @@
 <meta charset="UTF-8">
 <title>Sans Couleurs</title>
 <style>
-  /* Police pour les textes de zone (voir TextesDeZone dans src/game.js) —
-     fichier fourni dans assets/fonts/. Le nom "DeltaruneExtended" est un choix
-     libre (ne depend pas du nom interne du fichier), reutilise tel quel comme
-     fontFamily cote Phaser. */
+  /* Police pour les textes de zone (voir la feature textes-de-zone). Le nom
+     "DeltaruneExtended" est un choix libre (independant du nom du fichier),
+     reutilise tel quel comme fontFamily cote Phaser. */
   @font-face {
     font-family: 'DeltaruneExtended';
     src: url('assets/fonts/undertale-deltarune-extended-fixed.otf') format('opentype');
@@ -31,51 +30,14 @@
 </head>
 <body>
 <div id="game-container"></div>
+
+<!-- Phaser depuis le CDN : reste un script global classique. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
-<script>
-  // Le code est decoupe en plusieurs fichiers (voir l'en-tete de
-  // src/game.js), charges ICI dans un ordre precis : chacun definit des
-  // constantes/fonctions/la classe que les suivants utilisent. index.js est
-  // en dernier : c'est lui qui demarre le jeu.
-  //
-  // Anti-cache : contrairement aux assets charges par Phaser (voir
-  // ParametreAntiCache dans loading.js), ces tags <script> n'ont aucun moyen
-  // d'echapper au cache du navigateur avec un attribut src statique — un
-  // fichier modifie sur le disque pouvait donc continuer a tourner depuis une
-  // ancienne version en cache, sans aucun signe visible (pas d'erreur : juste
-  // un comportement perime). On les injecte donc avec un "?v=" different a
-  // chaque chargement de page. script.async = false garantit l'execution dans
-  // l'ordre d'insertion malgre l'injection dynamique.
-  const FichiersJeu = [
-    'src/js/config.js',
-    'src/js/playerConfig.js',
-    'src/js/sons.js',
-    'src/js/util.js',
-    'src/js/maps/cartes.js',
-    'src/js/camera.js',
-    'src/js/icone-interaction.js',
-    'src/js/features/gare.js',
-    'src/js/features/textes-de-zone.js',
-    'src/js/features/tele.js',
-    'src/js/features/herbe.js',
-    'src/js/features/tunnel.js',
-    'src/js/features/dialogue-pnj.js',
-    'src/js/maps/map-TEST-map1/map-TEST-map1.js',
-    'src/js/maps/map-1-debut/map-1-debut.js',
-    'src/js/maps/map-2-enfance/map-2-enfance.js',
-    'src/js/loading.js',
-    'src/js/controle.js',
-    'src/js/player.js',
-    'src/game.js',
-    'src/js/index.js',
-  ];
-  const Version = '?v=' + Date.now();
-  for (const Fichier of FichiersJeu) {
-    const Balise = document.createElement('script');
-    Balise.src = Fichier + Version;
-    Balise.async = false;
-    document.body.appendChild(Balise);
-  }
-</script>
+
+<!-- Le code du jeu est en modules ES : un seul point d'entree, le navigateur
+     suit ensuite le graphe d'import tout seul (voir src/js/index.js). Pendant
+     le dev, servir avec un serveur qui ne met pas en cache (VS Code Live
+     Server) ou recharger en force (Cmd/Ctrl + Maj + R). -->
+<script type="module" src="src/js/index.js"></script>
 </body>
 </html>

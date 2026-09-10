@@ -1,9 +1,16 @@
 // loading.js — phase preload() : dit a Phaser quels fichiers charger.
-// ScenePrincipale.preload() appelle juste PrechargerAssets(this).
+// SceneJeu.preload() appelle juste PrechargerAssets(this).
 //
-// Les assets partages (tileset, gare, icone d'interaction, personnage) sont
-// ici ; ceux propres a une feature sont declares par cette feature (hook
-// precharger, voir PrechargerFeaturesCarte).
+// Les assets partages (tileset, icone d'interaction, personnage) sont ici ;
+// ceux propres a une feature sont declares par cette feature (hook precharger,
+// voir PrechargerFeaturesCarte).
+
+import { UtiliseCarteTiled, UtiliseSpritePersonnage } from './config.js';
+import { CleTuiles, CheminTuiles, PrechargerFeaturesCarte } from './maps/cartes.js';
+import { CleIconeInteraction, CheminIconeInteraction, TailleIconeInteraction } from './icone-interaction.js';
+import {
+  ClePersonnage, CheminPersonnage, LargeurImagePersonnage, HauteurImagePersonnage,
+} from './playerConfig.js';
 
 // Anti-cache dev : le serveur local (python -m http.server) ne renvoie aucun
 // en-tete de cache, donc un asset modifie sur le disque peut rester servi
@@ -15,11 +22,11 @@ const ParametreAntiCache = `?v=${Date.now()}`;
 function UrlAntiCache(Chemin) {
   return Chemin + ParametreAntiCache;
 }
-function ChargerFeuille(Scene, Cle, Chemin, Largeur, Hauteur = Largeur) {
+export function ChargerFeuille(Scene, Cle, Chemin, Largeur, Hauteur = Largeur) {
   Scene.load.spritesheet(Cle, UrlAntiCache(Chemin), { frameWidth: Largeur, frameHeight: Hauteur });
 }
 
-function PrechargerAssets(Scene) {
+export function PrechargerAssets(Scene) {
   // Assets Tiled : seulement si le mode carte est actif, pour ne pas tenter
   // de charger des fichiers absents.
   if (UtiliseCarteTiled) {

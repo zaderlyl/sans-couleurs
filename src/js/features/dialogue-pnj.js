@@ -24,12 +24,18 @@
 
 // Spritesheets de PNJ que Phaser doit precharger. Ajouter une entree par
 // nouveau personnage, puis referencer sa Cle via la propriete "sprite".
+
+import { ChargerFeuille } from '../loading.js';
+import { CleIconeInteraction, TailleIconeInteraction } from '../icone-interaction.js';
+import { NomCoucheObjets, ValeurNombreTiled } from '../maps/cartes.js';
+import { StyleTexteDeZone, StyleMotDialogue } from '../config.js';
+
 const SpritesPNJConnus = [
   { Cle: 'other_child', Chemin: 'assets/sprites/characters/other_child.png', LargeurFrame: 16, HauteurFrame: 16 },
 ];
 
 
-const DialoguePNJ = {
+export const DialoguePNJ = {
   nom: 'dialogue-pnj',
 
   precharger(Scene) {

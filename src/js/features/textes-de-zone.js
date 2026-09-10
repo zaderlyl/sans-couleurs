@@ -8,6 +8,10 @@
 
 
 // --- Rythme de l'effet machine a ecrire (ms) ---
+
+import { NomCoucheObjets, ValeurBooleenneTiled } from '../maps/cartes.js';
+import { StyleTexteDeZone } from '../config.js';
+
 const DelaiParPoint = 500;       // entre chaque point de l'intro
 const PauseApresPoints = 400;    // apres les 3 points, avant l'ecriture
 const DelaiParLettre = 70;       // entre chaque lettre
@@ -19,7 +23,7 @@ const DureeDisparitionTexte = 1000;
 const IntensiteFlouDisparition = 6;
 
 
-const TextesDeZone = {
+export const TextesDeZone = {
   nom: 'textes-de-zone',
 
   installer(Scene, Ctx) {

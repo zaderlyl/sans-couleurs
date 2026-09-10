@@ -20,19 +20,19 @@ niveau au suivant.
 
 Le jeu tourne entierement dans le navigateur, sans etape de build ni
 dependance a installer : un fichier `index.html`, le code dans `src/`
-(plusieurs fichiers `.js` charges dans l'ordre, sans bundler) et des assets
-exportes depuis [Tiled](https://www.mapeditor.org/). Les cartes,
-les textes, les personnages non-joueurs et leurs dialogues sont tous
-definis depuis Tiled plutot que codes en dur, pour pouvoir faire evoluer le
-contenu du jeu sans toucher au code.
+(modules ES, un seul point d'entree) et des assets exportes depuis
+[Tiled](https://www.mapeditor.org/). Les cartes, les textes, les personnages
+non-joueurs et leurs dialogues sont tous definis depuis Tiled plutot que
+codes en dur, pour pouvoir faire evoluer le contenu du jeu sans toucher au
+code.
 
 ## Stack technique
 
 - [Phaser 3](https://phaser.io/) (charge depuis un CDN, aucune installation
   necessaire) pour le moteur de jeu (rendu WebGL, physique, animations,
   audio).
-- JavaScript vanilla, sans framework ni etape de build (pas de webpack, pas
-  de bundler).
+- JavaScript vanilla en modules ES (`import` / `export`), sans framework ni
+  etape de build (pas de webpack, pas de bundler).
 - [Tiled](https://www.mapeditor.org/) pour l'edition des cartes, exportees
   en JSON.
 - Un panel d'administration statique (voir plus bas) pour la gestion des
@@ -40,15 +40,18 @@ contenu du jeu sans toucher au code.
 
 ## Lancer le projet en local
 
-Le jeu doit etre servi par un serveur HTTP local (le navigateur bloque le
-chargement des assets en ouvrant `index.html` directement en `file://`).
-Par exemple, avec Python :
+Le jeu doit etre servi par un serveur HTTP local (le navigateur bloque les
+modules ES et le chargement des assets en `file://`). L'ideal en dev est
+l'extension **Live Server** de VS Code : elle ne met rien en cache et
+recharge la page a chaque sauvegarde. Sinon, avec Python :
 
 ```bash
 python3 -m http.server 8765
 ```
 
-Puis ouvrir `http://localhost:8765` dans un navigateur.
+Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
+`http.server`), recharger en force apres modification d'un fichier `.js`
+(Cmd/Ctrl + Maj + R).
 
 Un parametre d'URL permet de charger directement une carte donnee pendant
 les tests, sans repasser par tout le trajet en train depuis le debut :
@@ -62,26 +65,27 @@ http://localhost:8765/?carte=map-2-enfance
 ```
 .
 ├── LICENSE                     Licence MIT
-├── index.html                  Page d'entree : charge les fichiers de src/ dans l'ordre
-├── src/                        Code du jeu (scripts classiques, portee globale partagee)
-│   ├── js/
-│   │   ├── config.js           Reglages generaux (modes, camera, sons, couleurs, styles)
-│   │   ├── playerConfig.js     Reglages du personnage (spritesheet, vitesse, tangage)
-│   │   ├── sons.js             Sons synthetises (ambiance, pas, atterrissage)
-│   │   ├── util.js             Petits utilitaires partages (Secouer)
-│   │   ├── camera.js           MettreAJourCamera() — suivi de camera chaque frame
-│   │   ├── icone-interaction.js  L'icone "E" partagee (gare / tele / PNJ)
-│   │   ├── maps/
-│   │   │   ├── cartes.js       Registre des cartes + helpers Tiled communs
-│   │   │   └── map-*/map-*.js  Une carte chacun : config + tableau `features`
-│   │   ├── features/           Une feature par fichier (gare/train, tele, herbe,
-│   │   │   └── *.js              tunnel, textes de zone, dialogue PNJ)
-│   │   ├── loading.js          Prechargement des assets partages (phase preload)
-│   │   ├── controle.js         Entrees clavier
-│   │   ├── player.js           Creation du personnage + deplacement par frame
-│   │   └── index.js            Config Phaser + demarrage (charge en dernier)
-│   └── game.js                 Squelette de la scene : monte les calques, le
-│                                joueur, la camera, et branche les features
+├── index.html                  Page d'entree : <script type="module" src="src/js/index.js">
+├── src/                        Code du jeu (modules ES, les `import` = les dependances)
+│   ├── scene-jeu.js            Squelette de la scene : monte les calques, le
+│   │                            joueur, la camera, et branche les features
+│   └── js/
+│       ├── index.js            Point d'entree : config Phaser + demarrage
+│       ├── config.js           Reglages generaux (modes, camera, sons, couleurs, styles)
+│       ├── playerConfig.js     Reglages du personnage (spritesheet, vitesse, tangage)
+│       ├── player.js           Creation du personnage + deplacement par frame
+│       ├── controle.js         Entrees clavier
+│       ├── camera.js           MettreAJourCamera() — suivi de camera chaque frame
+│       ├── sons.js             Sons synthetises (ambiance, pas, atterrissage)
+│       ├── util.js             Utilitaires partages (Secouer, CreerAnim)
+│       ├── icone-interaction.js  L'icone "E" partagee (gare / tele / PNJ)
+│       ├── loading.js          Prechargement des assets partages (phase preload)
+│       ├── maps/
+│       │   ├── cartes.js       Registre des cartes + helpers Tiled communs
+│       │   ├── toutes-les-cartes.js  Importe chaque carte pour l'enregistrer
+│       │   └── map-*/map-*.js  Une carte chacun : config + tableau `features`
+│       └── features/           Une feature par fichier (gare/train, tele, herbe,
+│           └── *.js              tunnel, textes de zone, dialogue PNJ)
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
 │   ├── tilesets/                Images de tuiles referencees par les cartes

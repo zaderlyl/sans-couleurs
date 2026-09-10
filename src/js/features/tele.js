@@ -7,6 +7,11 @@
 // cases (2,7)-(3,8).
 
 
+import { ChargerFeuille } from '../loading.js';
+import { CleIconeInteraction, TailleIconeInteraction } from '../icone-interaction.js';
+import { ObtenirContexteAudio } from '../sons.js';
+import { Secouer, CreerAnim } from '../util.js';
+
 // --- Ecran (tele.png) ---
 // Grille 6x3 de 32x32 ; 13 frames dessinees = un battement du cardiogramme.
 const CleTele = 'ecranTele';
@@ -37,7 +42,7 @@ const DistanceSonTeleMin = 40;
 const DistanceSonTeleMax = 250;
 
 
-const Tele = {
+export const Tele = {
   nom: 'tele',
 
   // preload() : les feuilles de la tele, chargees seulement pour les cartes
@@ -51,13 +56,13 @@ const Tele = {
   // garde le meme ordre d'affichage (au-dessus du decor, sous l'herbe et le
   // personnage — pas de depth forcee, c'est l'ordre de creation).
   installer(Scene) {
-    Scene.anims.create({
+    CreerAnim(Scene, {
       key: 'cardiogramme',
       frames: Scene.anims.generateFrameNumbers(CleTele, { start: 0, end: NombreImagesTele - 1 }),
       frameRate: 10, // 13 frames / 10 = ~46 bpm avant tout appui
       repeat: -1,
     });
-    Scene.anims.create({
+    CreerAnim(Scene, {
       key: 'ecranMort',
       frames: Scene.anims.generateFrameNumbers(CleTeleMort, { start: 0, end: NombreImagesTeleMort - 1 }),
       frameRate: 8,
@@ -126,7 +131,7 @@ const Tele = {
 
     if (Scene.CompteurAppuisTele < VitessesCardiogramme.length) {
       Scene.SpriteTele.play({ key: 'cardiogramme', frameRate: VitessesCardiogramme[Scene.CompteurAppuisTele], repeat: -1 });
-      Scene.Secouer(Scene.SpriteTele, 200, 1, () => {});
+      Secouer(Scene, Scene.SpriteTele, 200, 1, () => {});
     } else {
       DeclencherLignePlateTele(Scene);
     }

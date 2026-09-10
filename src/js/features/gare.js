@@ -15,6 +15,12 @@
 
 // --- Spritesheet (gare.png) ---
 // Grille 8x8 = 64 frames de 256x256, fond transparent.
+
+import { ChargerFeuille } from '../loading.js';
+import { CreerIconeInteraction } from '../icone-interaction.js';
+import { CalculerBoiteTuiles, CalqueEstFlippe, TailleTuile, CleCarteSuivante } from '../maps/cartes.js';
+import { Secouer, CreerAnim } from '../util.js';
+
 const CleGare = 'animationGare';
 const CheminGare = 'assets/sprites/environment/gare.png';
 const TailleImageGare = 256;
@@ -42,7 +48,7 @@ const DecalageCentreGareFlippe = LargeurContenuGare / 2 - AncrageImageGareX; // 
 const HauteurIconeGareY = 80; // hauteur fixe de l'icone E au-dessus du sol
 
 
-const Gare = {
+export const Gare = {
   nom: 'gare',
 
   precharger(Scene) {
@@ -173,14 +179,14 @@ function CalculerPositionsSortie(Scene, Carte, JeuDeTuiles) {
 
 function CreerAnimsGare(Scene) {
   // clignoteGare : frames 2 et 3, 2 fois, lentement.
-  Scene.anims.create({
+  CreerAnim(Scene, {
     key: 'clignoteGare',
     frames: [{ key: CleGare, frame: 2 }, { key: CleGare, frame: 3 }],
     frameRate: 2,
     repeat: 1,
   });
   // resteGare : frames 5 a 63, une fois (le train demarre).
-  Scene.anims.create({
+  CreerAnim(Scene, {
     key: 'resteGare',
     frames: Scene.anims.generateFrameNumbers(CleGare, { start: 5, end: NombreImagesGare - 1 }),
     frameRate: 10,
@@ -189,7 +195,7 @@ function CreerAnimsGare(Scene) {
   // arriveeGare : les memes a l'envers (le train arrive en douceur).
   const FramesArrivee = [];
   for (let i = NombreImagesGare - 1; i >= 5; i--) FramesArrivee.push({ key: CleGare, frame: i });
-  Scene.anims.create({ key: 'arriveeGare', frames: FramesArrivee, frameRate: 10, repeat: 0 });
+  CreerAnim(Scene, { key: 'arriveeGare', frames: FramesArrivee, frameRate: 10, repeat: 0 });
 }
 
 
