@@ -1,5 +1,9 @@
 // loading.js — phase preload() : dit a Phaser quels fichiers charger.
 // ScenePrincipale.preload() appelle juste PrechargerAssets(this).
+//
+// Les assets partages (tileset, gare, icone d'interaction, personnage) sont
+// ici ; ceux propres a une feature sont declares par cette feature (hook
+// precharger, voir PrechargerFeaturesCarte).
 
 // Anti-cache dev : le serveur local (python -m http.server) ne renvoie aucun
 // en-tete de cache, donc un asset modifie sur le disque peut rester servi
@@ -7,7 +11,7 @@
 // une version fraiche.
 const ParametreAntiCache = `?v=${Date.now()}`;
 
-// Helpers reutilises par les hooks "precharger" des cartes (voir cartes.js).
+// Helpers reutilises par les hooks "precharger" des features.
 function UrlAntiCache(Chemin) {
   return Chemin + ParametreAntiCache;
 }
@@ -28,10 +32,7 @@ function PrechargerAssets(Scene) {
     ChargerFeuille(Scene, CleGare, CheminGare, TailleImageGare);
     ChargerFeuille(Scene, CleIconeInteraction, CheminIconeInteraction, TailleIconeInteraction);
 
-    // Tous les PNJ connus (voir CreerPNJs), utilises ou non sur cette carte.
-    SpritesPNJConnus.forEach((p) => ChargerFeuille(Scene, p.Cle, p.Chemin, p.LargeurFrame, p.HauteurFrame));
-
-    // Assets declares par les features de la carte active (ex: la tele).
+    // Assets des features de la carte active (tele, PNJ, herbe...).
     PrechargerFeaturesCarte(Scene);
   }
 

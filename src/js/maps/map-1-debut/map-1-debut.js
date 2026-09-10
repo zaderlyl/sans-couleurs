@@ -6,5 +6,5 @@ EnregistrerCarte({
   nom: 'debut',
   depart: true,               // ouverte au lancement, sauf ?carte=<autre>
   suivante: 'map-2-enfance',   // le train mene a enfance
-  features: [TextesDeZone, Herbe, Tunnel],
+  features: [TextesDeZone, Herbe, Tunnel, DialoguePNJ],
 });
