@@ -1,9 +1,10 @@
 // cartes.js — gestion des cartes, partie commune.
 //
 // Chaque carte vit dans src/js/maps/map-<n>-<nom>/ et s'y enregistre via
-// EnregistrerCarte(...). game.js lit le registre au demarrage puis appelle,
-// aux bons moments, les hooks de la carte active (precharger / auChargement /
-// aLaMiseAJour). Charge avant les fichiers de carte et avant game.js.
+// EnregistrerCarte(...). Sa config liste les "features" qu'elle utilise
+// (objets definis dans src/js/features/), et game.js appelle
+// precharger / installer / miseAJour de chacune au bon moment.
+// Charge avant les features, les fichiers de carte, et game.js.
 
 
 // --- Tileset partage (toutes les cartes utilisent le meme) ---
@@ -21,10 +22,18 @@ const NomCoucheObjets = "Calque d'Objets 1";         // spawn, PNJ, textes de zo
 const RegistreCartes = {};
 
 // Appelee par chaque map-*/*.js au chargement de la page.
-// Config : { cle, numero, nom, depart?, suivante?,
-//            precharger?(Scene), auChargement?(Scene), aLaMiseAJour?(Scene, Temps, TempsEcoule) }
+// Config : { cle, numero, nom, depart?, suivante?, features? }
+// features : tableau d'objets feature (voir src/js/features/), chacun avec
+// des methodes optionnelles precharger(Scene) / installer(Scene, Ctx) /
+// miseAJour(Scene, Temps, TempsEcoule).
 function EnregistrerCarte(Config) {
   RegistreCartes[Config.cle] = Config;
+}
+
+// Les features de la carte active (tableau, vide si aucune).
+function FeaturesCarteActive(Scene) {
+  const Carte = RegistreCartes[Scene.NomCarteActuelle];
+  return (Carte && Carte.features) || [];
 }
 
 // Carte a ouvrir au lancement : ?carte=<cle> en priorite (tests), sinon la
@@ -42,11 +51,31 @@ function CleCarteSuivante(Cle) {
   return Carte && Carte.suivante ? Carte.suivante : null;
 }
 
-// Appelle un hook optionnel de la carte active, s'il est defini.
-function DeclencherHookCarte(Scene, NomHook, ...Args) {
-  const Carte = RegistreCartes[Scene.NomCarteActuelle];
-  if (Carte && typeof Carte[NomHook] === 'function') {
-    Carte[NomHook](Scene, ...Args);
+// preload() : laisse chaque feature de la carte declarer ses assets.
+function PrechargerFeaturesCarte(Scene) {
+  for (const Feature of FeaturesCarteActive(Scene)) {
+    if (typeof Feature.precharger === 'function') Feature.precharger(Scene);
+  }
+}
+
+// create() : installe chaque feature (dans l'ordre du tableau). Ctx porte la
+// tilemap et le tileset deja prets : { Carte, JeuDeTuiles }. Une feature qui
+// plante est signalee mais n'empeche pas les autres de s'installer.
+function InstallerFeaturesCarte(Scene, Ctx) {
+  for (const Feature of FeaturesCarteActive(Scene)) {
+    if (typeof Feature.installer !== 'function') continue;
+    try {
+      Feature.installer(Scene, Ctx);
+    } catch (Erreur) {
+      console.error(`Feature "${Feature.nom}" — erreur a l'installation :`, Erreur);
+    }
+  }
+}
+
+// update() : met a jour chaque feature de la carte active.
+function MettreAJourFeaturesCarte(Scene, Temps, TempsEcoule) {
+  for (const Feature of FeaturesCarteActive(Scene)) {
+    if (typeof Feature.miseAJour === 'function') Feature.miseAJour(Scene, Temps, TempsEcoule);
   }
 }
 

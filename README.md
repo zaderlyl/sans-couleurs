@@ -67,13 +67,15 @@ http://localhost:8765/?carte=map-2-enfance
 │   │   ├── playerConfig.js     Reglages du personnage (spritesheet, vitesse, tangage)
 │   │   ├── maps/
 │   │   │   ├── cartes.js       Registre des cartes + helpers Tiled communs
-│   │   │   └── map-*/map-*.js  Une carte chacun : config + logique propre
+│   │   │   └── map-*/map-*.js  Une carte chacun : config + tableau `features`
+│   │   ├── features/           Une grosse feature par fichier (tele, textes de
+│   │   │   └── *.js              zone...) : { precharger, installer, miseAJour }
 │   │   ├── loading.js          Prechargement des assets (phase preload)
 │   │   ├── controle.js         Entrees clavier
 │   │   ├── player.js           Creation du personnage + deplacement par frame
 │   │   └── index.js            Config Phaser + demarrage (charge en dernier)
 │   └── game.js                 Le reste : audio, gare/train, herbe, tunnel,
-│                                PNJ, textes de zone, camera, classe ScenePrincipale
+│                                PNJ, camera, classe ScenePrincipale
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
 │   ├── tilesets/                Images de tuiles referencees par les cartes
@@ -101,10 +103,12 @@ elle passe dans `assets/tilesets/` au moment ou on la branche.
 
 Chaque carte a un dossier `src/js/maps/map-<n>-<nom>/` (le numero suit
 l'ordre de creation ; `map1`, la carte de test, garde `TEST`) ou elle
-s'enregistre via `EnregistrerCarte(...)` : sa config et sa logique propre
-(ex: l'ecran de tele, present seulement sur `map-TEST-map1`). Cote fichiers
-Tiled : la source `.tmx` dans `tiled/maps/`, l'export `.json` charge par le
-jeu dans `assets/maps/` (memes noms : `map-1-debut.json`, etc.).
+s'enregistre via `EnregistrerCarte(...)`. Sa config liste les `features`
+qu'elle utilise (objets de `src/js/features/`) — on voit d'un coup d'oeil ce
+qu'une carte contient, et une feature comme l'ecran de tele ne tourne que
+sur les cartes qui la listent. Cote fichiers Tiled : la source `.tmx` dans
+`tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`
+(memes noms : `map-1-debut.json`, etc.).
 
 Les niveaux s'enchainent via la gare : arrive au bout d'une carte, le joueur
 prend un train qui charge la carte suivante (champ `suivante` de la config,

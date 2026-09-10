@@ -7,13 +7,14 @@
 // index.html — meme portee globale, pas de module ni d'etape de build. Ordre :
 //   js/playerConfig.js          reglages du personnage
 //   js/maps/cartes.js           registre des cartes + helpers Tiled communs
-//   js/maps/map-*/map-*.js      une carte chacun : config + logique propre
-//                               (ex: la tele n'existe que sur map-TEST-map1)
+//   js/features/*.js            une grosse feature chacun (tele, textes de
+//                               zone...), objet { precharger, installer, miseAJour }
+//   js/maps/map-*/map-*.js      une carte chacun : config + tableau `features`
 //   js/loading.js               PrechargerAssets() — phase preload()
 //   js/controle.js              InstallerControles() / LireDeplacement()
 //   js/player.js                CreerPersonnage() / MettreAJourDeplacement()
 //   game.js  (ce fichier)       le reste : audio, gare/train, herbe, tunnel,
-//                               PNJ, textes de zone, camera, ScenePrincipale
+//                               PNJ, camera, ScenePrincipale
 //   js/index.js                 config Phaser + demarrage (charge en dernier)
 // Ce fichier sera decoupe davantage au fil des passes suivantes.
 //
@@ -209,34 +210,14 @@ const SpritesPNJConnus = [
 // L'ecran de tele n'existe que sur map-TEST-map1 : constantes, sons et
 // logique sont dans src/js/maps/map-TEST-map1/map-TEST-map1.js.
 
-// --- Textes de zone ---
-// Phrases affichees a un endroit fixe du monde (pas un texte d'interface qui
-// suivrait le joueur) : des qu'il entre dans la zone declenchee, le texte
-// correspondant apparait a sa position ; des qu'il en sort, il disparait (et
-// reapparait a chaque fois qu'il revient).
-//
-// Definis entierement depuis Tiled plutot qu'en dur ici (voir
-// CreerTextesDeZone) : pour en ajouter un, dans Tiled, sur "Calque d'Objets
-// 1" (le meme calque que "spawn") —
-//   1. Outil rectangle : dessine un rectangle a l'endroit voulu (c'est la
-//      zone qui declenche le texte, comme ZoneGare/ZoneTele dans le code).
-//   2. Dans ses proprietes personnalisees, ajoute une propriete "texte" (type
-//      string) avec le texte a afficher.
-//   3. Optionnel : ajoute aussi une propriete "points" (type bool, cochee)
-//      pour faire preceder ce texte-la des points d'attente ( "." -> ". ." ->
-//      ". . ." ). Absente ou decochee (le cas par defaut) : le texte s'ecrit
-//      directement, sans cette intro.
-// Le texte apparait centre juste au-dessus du rectangle. Pas besoin de
-// toucher au code, ni de recalculer la moindre position en pixels — et ca
-// marche independamment sur chaque carte. (Le calque objets Tiled utilise,
-// NomCoucheObjets, est defini dans src/js/maps/cartes.js.)
-
-// Style visuel des textes de zone : pixel art oblige, une petite taille de
-// police (multipliee par ZoomCamera a l'affichage) plutot qu'une police fine
-// qui deteindrait mal a ce niveau de zoom. Contour noir pour rester lisible
-// quel que soit le fond derriere.
-// Nom choisi dans le @font-face d'index.html (assets/fonts/) — pas forcement
-// le nom interne du fichier.
+// --- Style commun des textes du monde ---
+// Reutilise par la feature "textes de zone" (src/js/features/textes-de-zone.js)
+// ET par le mini-jeu de dialogue PNJ : ce sont des objets poses dans le monde
+// au-dessus des personnages, pas une interface figee a l'ecran.
+// Pixel art oblige : petite police (x ZoomCamera a l'affichage) + contour
+// noir + resolution interne plus haute (sinon flou/crenele une fois agrandi).
+// NomPoliceTexteDeZone : le nom choisi dans le @font-face d'index.html.
+// (Ces reglages iront dans un config.js commun plus tard.)
 const NomPoliceTexteDeZone = 'DeltaruneExtended';
 const StyleTexteDeZone = {
   fontFamily: `'${NomPoliceTexteDeZone}', monospace`, // repli tant que la police n'est pas chargee
@@ -254,17 +235,9 @@ const StyleTexteDeZone = {
   resolution: ZoomCamera,
 };
 
-// Le mini-jeu de dialogue PNJ (voir OuvrirDialoguePNJ) reutilise directement
-// StyleTexteDeZone pour les lignes (PNJ, joueur) : ce sont des objets du
-// monde, positionnes au-dessus des personnages, pas une interface figee a
-// l'ecran — donc le meme traitement pixel-art (police, filtrage LINEAR,
-// resolution) s'applique tel quel.
-//
-// Les mots a glisser ont leur propre style : un fond (+ un peu de marge
-// interne) derriere chaque mot, comme une petite etiquette — ca sert de
-// repere visuel pour "l'espace" que prend chaque mot, meme avant de le
-// regarder de pres, et ca aide a les distinguer une fois espaces en liste
-// (voir AfficherPageDialogue).
+// Les mots a glisser du dialogue PNJ ont leur propre style : un fond derriere
+// chaque mot, comme une petite etiquette (repere visuel de l'espace pris par
+// chaque mot, et aide a les distinguer une fois espaces en liste).
 const StyleMotDialogue = {
   fontFamily: `'${NomPoliceTexteDeZone}', monospace`,
   fontSize: '6px',
@@ -275,23 +248,6 @@ const StyleMotDialogue = {
   padding: { x: 2, y: 1 },
   resolution: ZoomCamera,
 };
-
-// Rythme de l'effet "machine a ecrire" des textes de zone (voir
-// MettreAJourTextesDeZone) : d'abord une petite attente suggeree par des
-// points qui apparaissent un a un ( "." -> ". ." -> ". . ." ), puis une
-// pause, puis le texte qui s'ecrit lettre par lettre.
-const DelaiParPoint = 500; // ms entre chaque point de la sequence d'attente
-const PauseApresPoints = 400; // ms d'attente une fois les 3 points affiches
-const DelaiParLettre = 70; // ms entre chaque lettre du texte qui s'ecrit
-
-// Une fois le texte entierement ecrit, il reste lisible ce temps-la (ms)
-// avant de commencer a s'estomper — puis fondu + flou progressif (comme une
-// bulle de pensee/un nuage qui se dissipe), sur cette duree (ms). Ne se
-// declenche qu'une seule fois par texte : une fois disparu, il ne rejouera
-// plus jamais, meme si le joueur revient dans la zone.
-const DureeAffichageFini = 1800;
-const DureeDisparitionTexte = 1000;
-const IntensiteFlouDisparition = 6;
 
 // --- Reglages du mode prototype (utilises seulement si UtiliseCarteTiled = false) ---
 const LargeurMondeParDefaut = 4000;
@@ -392,7 +348,7 @@ function JouerSonAtterrissage() {
 }
 
 // Les sons de la tele (VolumeSonSelonDistanceTele, JouerSonCardiogramme,
-// JouerSonLignePlate) sont dans map-TEST-map1.js, avec le reste de la tele.
+// JouerSonLignePlate) sont dans src/js/features/tele.js.
 
 class ScenePrincipale extends Phaser.Scene {
   // Appele a chaque demarrage/redemarrage de la scene (le tout premier lancement
@@ -435,9 +391,8 @@ class ScenePrincipale extends Phaser.Scene {
       // ── Mode Tiled ──────────────────────────────────────────────────
       // this.make.tilemap lit les donnees JSON chargees en preload()
       const Carte = this.make.tilemap({ key: this.NomCarteActuelle });
-      // Reference gardee pour CreerPNJs/CreerTextesDeZone, appelees plus bas
-      // une fois le joueur et la camera en place (voir le commentaire a cet
-      // endroit).
+      // Reference gardee pour CreerPNJs, appele plus bas une fois le joueur
+      // et la camera en place.
       this.CarteChargee = Carte;
       // Associe l'image de tileset chargee au tileset declare dans le JSON
       const JeuDeTuiles = Carte.addTilesetImage(NomTuilesDansTiled, CleTuiles);
@@ -559,10 +514,10 @@ class ScenePrincipale extends Phaser.Scene {
         this.ZoneRetour = { XMin: 0, XMax: 0, YMin: 0, YMax: 0 };
       }
 
-      // Elements propres a la carte active (ex: l'ecran de tele sur
-      // map-TEST-map1). Appele ICI, a la place ou la tele etait creee, pour
-      // garder le meme ordre d'affichage des sprites poses par le hook.
-      DeclencherHookCarte(this, 'auChargement');
+      // Features de la carte active (voir sa config + src/js/features/).
+      // Installees ICI, avant l'herbe et le personnage : les sprites poses
+      // par une feature (ex: la tele) gardent le meme ordre d'affichage.
+      InstallerFeaturesCarte(this, { Carte, JeuDeTuiles });
 
       // 'devant' n'est plus rendu comme un calque de tuiles figees : on lit
       // ses positions pour y poser des sprites d'herbe individuels a la place
@@ -654,10 +609,9 @@ class ScenePrincipale extends Phaser.Scene {
       this.IconeInteractionRetour.setDepth(20);
       this.IconeInteractionRetour.setVisible(false);
 
-      // PNJ de dialogue et textes de zone : crees plus bas (voir
-      // CreerPNJs/CreerTextesDeZone), une fois le joueur et la camera en
-      // place — pour qu'une erreur dans l'un de ces a-cotes ne puisse pas
-      // empecher le jeu de base (joueur, camera, controles) de fonctionner.
+      // Les PNJ de dialogue sont crees plus bas (voir CreerPNJs), une fois le
+      // joueur et la camera en place — pour qu'une erreur dans cet a-cote ne
+      // puisse pas empecher le jeu de base de fonctionner.
 
       // Aucune propriete "collides" definie pour l'instant dans Tiled : on
       // rend donc solide toute case non vide (-1) du calque de sol. Si tu
@@ -726,21 +680,16 @@ class ScenePrincipale extends Phaser.Scene {
     // arrive pour retrouver le suivi doux normal.
     this.CameraDoitSauterEnX = false;
 
-    // PNJ de dialogue et textes de zone : voir le commentaire pres de
-    // "CreerPNJs" plus haut — appeles ici, une fois le joueur et la camera
-    // deja en place, pour qu'une erreur dans l'un d'eux ne puisse pas
-    // empecher le jeu de base de fonctionner.
+    // PNJ de dialogue : appeles ici, une fois le joueur et la camera en
+    // place, dans un try/catch pour qu'une erreur dans cet a-cote ne casse
+    // pas le jeu de base. (Les textes de zone sont maintenant une feature,
+    // voir InstallerFeaturesCarte plus haut.)
     if (this.CarteChargee) {
       try {
         this.CreerPNJs(this.CarteChargee);
       } catch (Erreur) {
         console.error('Erreur en creant les PNJ de dialogue :', Erreur);
         this.PNJs = this.PNJs || [];
-      }
-      try {
-        this.CreerTextesDeZone(this.CarteChargee);
-      } catch (Erreur) {
-        console.error('Erreur en creant les textes de zone :', Erreur);
       }
     }
 
@@ -877,9 +826,8 @@ class ScenePrincipale extends Phaser.Scene {
       }
     }
 
-    // Interactions propres a la carte active (ex: l'ecran de tele sur
-    // map-TEST-map1). Meme place qu'avant dans update().
-    DeclencherHookCarte(this, 'aLaMiseAJour', Temps, TempsEcoule);
+    // Mise a jour des features de la carte active (tele, textes de zone...).
+    MettreAJourFeaturesCarte(this, Temps, TempsEcoule);
 
     // Interaction PNJ (mini-jeu de dialogue) : meme principe que la gare/la
     // tele — icone qui suit tant que le joueur est a portee, E pour lancer.
@@ -929,7 +877,6 @@ class ScenePrincipale extends Phaser.Scene {
       this.AvancerPageDialogue();
     }
 
-    if (this.TextesDeZoneSprites) this.MettreAJourTextesDeZone(TempsEcoule);
     if (this.BrinsHerbe) this.MettreAJourHerbe();
     if (this.CalqueTunnel) this.MettreAJourTunnel();
 
@@ -1234,181 +1181,6 @@ class ScenePrincipale extends Phaser.Scene {
         Brin.Arriere = Temporaire;
         Brin.AnimationFondu = null;
       },
-    });
-  }
-
-  // Lit les rectangles portant une propriete personnalisee "texte" sur
-  // "Calque d'Objets 1" (voir le commentaire pres de NomCoucheObjets) et cree
-  // un objet Text Phaser par entree trouvee — une seule fois, jamais
-  // repositionne ensuite (position fixe dans le monde) : seule sa visibilite
-  // changera, selon la position du joueur (voir MettreAJourTextesDeZone).
-  // Ne plante pas si la carte n'a aucun texte de zone (ex: aucun rectangle
-  // avec cette propriete) : simplement aucune entree trouvee.
-  CreerTextesDeZone(Carte) {
-    const CoucheObjets = Carte.getObjectLayer(NomCoucheObjets);
-    const Objets = CoucheObjets ? CoucheObjets.objects : [];
-
-    this.TextesDeZoneEntrees = Objets
-      .map((Objet) => {
-        const Propriete = (Objet.properties || []).find((P) => P.name === 'texte');
-        if (!Propriete || !Propriete.value) return null;
-        const ProprietePoints = (Objet.properties || []).find((P) => P.name === 'points');
-        return {
-          Zone: { XMin: Objet.x, XMax: Objet.x + Objet.width, YMin: Objet.y, YMax: Objet.y + Objet.height },
-          PositionX: Objet.x + Objet.width / 2,
-          PositionY: Objet.y,
-          Texte: Propriete.value,
-          // Intro par points d'attente : optionnelle, seulement si la
-          // propriete "points" est cochee dans Tiled (voir le commentaire
-          // pres de NomCoucheObjets). Absente par defaut : ecrit directement.
-          AvecPoints: ValeurBooleenneTiled(ProprietePoints && ProprietePoints.value),
-          // Machine a etats de l'effet machine a ecrire (voir
-          // MettreAJourTextesDeZone) : 'inactive' tant que le joueur n'est
-          // jamais entre dans la zone (ou vient d'en ressortir avant la fin
-          // de l'ecriture). 'termine' est definitif : une fois atteint, le
-          // texte a ete montre une fois pour toutes et ne rejouera plus.
-          Phase: 'inactive',
-          Minuteur: 0,
-          IndexPoints: 0,
-          IndexLettre: 0,
-        };
-      })
-      .filter(Boolean);
-
-    this.TextesDeZoneSprites = this.TextesDeZoneEntrees.map((Entree) => {
-      const Texte = this.add.text(Entree.PositionX, Entree.PositionY, '', StyleTexteDeZone);
-      Texte.setOrigin(0.5, 1);
-      Texte.setDepth(20);
-      Texte.setVisible(false);
-      // pixelArt: true (voir Configuration) met TOUTES les textures en
-      // filtrage NEAREST par defaut — parfait pour les sprites, mais rend
-      // un texte anti-aliase flou/crenele une fois agrandi par le zoom.
-      // On repasse ce texte precis en LINEAR (lissage normal).
-      Texte.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      // Effet de disparition (voir MettreAJourTextesDeZone) : flou qui
-      // augmente pendant que le texte s'estompe, comme un nuage/une bulle de
-      // pensee qui se dissipe. Intensite 0 au depart (invisible tant que la
-      // disparition n'a pas commence). try/catch : postFX peut ne pas etre
-      // disponible selon le contexte (ex: renderer pas encore pret) — sans
-      // ca, une exception ici stopperait net create() avant meme que le
-      // joueur et la camera soient crees plus bas, cassant tout le jeu pour
-      // un simple effet de flou cosmetique.
-      try {
-        Entree.FxBlur = Texte.postFX.addBlur(0, 0.5, 0.5, 0, 0xffffff, 4);
-      } catch (Erreur) {
-        console.warn('Flou de disparition indisponible pour ce texte de zone :', Erreur);
-        Entree.FxBlur = null;
-      }
-      return Texte;
-    });
-  }
-
-  // Textes de zone (voir CreerTextesDeZone) : des que le joueur entre dans
-  // une zone, sa phrase se joue en 3 temps — une petite attente suggeree par
-  // des points qui apparaissent un a un ( "." -> ". ." -> ". . ." ), une
-  // courte pause, puis le texte qui s'ecrit lettre par lettre (effet machine
-  // a ecrire). Des qu'il sort de la zone, tout se reinitialise : le texte
-  // rejouera la sequence complete depuis le debut a la prochaine entree.
-  MettreAJourTextesDeZone(TempsEcoule) {
-    this.TextesDeZoneEntrees.forEach((Entree, Index) => {
-      const Sprite = this.TextesDeZoneSprites[Index];
-
-      // Une fois le texte entierement ecrit, la suite (attente -> fondu flou
-      // -> termine) se joue toute seule jusqu'au bout, meme si le joueur
-      // ressort de la zone entre-temps — ce n'est plus une invite qui
-      // suit sa presence, mais un evenement qui se termine de lui-meme.
-      if (Entree.Phase === 'fini') {
-        Entree.Minuteur += TempsEcoule;
-        if (Entree.Minuteur < DureeAffichageFini) return;
-        Entree.Phase = 'disparition';
-        this.tweens.add({
-          targets: Sprite,
-          alpha: 0,
-          duration: DureeDisparitionTexte,
-          ease: 'Sine.easeIn',
-          onComplete: () => {
-            Entree.Phase = 'termine';
-            Sprite.setVisible(false);
-          },
-        });
-        if (Entree.FxBlur) {
-          this.tweens.add({
-            targets: Entree.FxBlur,
-            strength: IntensiteFlouDisparition,
-            duration: DureeDisparitionTexte,
-            ease: 'Sine.easeIn',
-          });
-        }
-        return;
-      }
-      // 'disparition' : le fondu ci-dessus est en cours (gere par les tweens
-      // eux-memes). 'termine' : deja joue une fois, ne rejouera plus jamais.
-      if (Entree.Phase === 'disparition' || Entree.Phase === 'termine') return;
-
-      const DansLaZone =
-        this.Personnage.x > Entree.Zone.XMin &&
-        this.Personnage.x < Entree.Zone.XMax &&
-        this.Personnage.y > Entree.Zone.YMin &&
-        this.Personnage.y < Entree.Zone.YMax;
-
-      if (!DansLaZone) {
-        if (Entree.Phase !== 'inactive') {
-          Entree.Phase = 'inactive';
-          Sprite.setVisible(false);
-        }
-        return;
-      }
-
-      if (Entree.Phase === 'inactive') {
-        // Vient d'entrer dans la zone : (re)demarre la sequence depuis le
-        // tout debut. AvecPoints (voir CreerTextesDeZone) decide si ca
-        // commence par l'intro de points d'attente ou directement par
-        // l'ecriture — le premier point/la premiere lettre apparait tout de
-        // suite, sans attendre le premier delai (sinon rien ne se passerait
-        // a l'instant meme ou le joueur entre).
-        Entree.Minuteur = 0;
-        if (Entree.AvecPoints) {
-          Entree.Phase = 'points';
-          Entree.IndexPoints = 1;
-          Entree.IndexLettre = 0;
-          Sprite.setText('.');
-        } else {
-          Entree.Phase = 'ecriture';
-          Entree.IndexLettre = 1;
-          Sprite.setText(Entree.Texte.slice(0, 1));
-          if (Entree.IndexLettre >= Entree.Texte.length) Entree.Phase = 'fini';
-        }
-        Sprite.setVisible(true);
-        return;
-      }
-
-      Entree.Minuteur += TempsEcoule;
-
-      if (Entree.Phase === 'points') {
-        if (Entree.Minuteur < DelaiParPoint) return;
-        Entree.Minuteur = 0;
-        Entree.IndexPoints++;
-        if (Entree.IndexPoints >= 3) {
-          Sprite.setText('. . .');
-          Entree.Phase = 'pause';
-        } else {
-          Sprite.setText(new Array(Entree.IndexPoints).fill('.').join(' '));
-        }
-      } else if (Entree.Phase === 'pause') {
-        if (Entree.Minuteur < PauseApresPoints) return;
-        Entree.Minuteur = 0;
-        Entree.IndexLettre = 0;
-        Sprite.setText('');
-        Entree.Phase = 'ecriture';
-      } else if (Entree.Phase === 'ecriture') {
-        if (Entree.Minuteur < DelaiParLettre) return;
-        Entree.Minuteur = 0;
-        Entree.IndexLettre++;
-        Sprite.setText(Entree.Texte.slice(0, Entree.IndexLettre));
-        if (Entree.IndexLettre >= Entree.Texte.length) {
-          Entree.Phase = 'fini';
-        }
-      }
     });
   }
 

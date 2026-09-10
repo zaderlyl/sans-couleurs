@@ -32,8 +32,8 @@ function PrechargerAssets(Scene) {
     // Tous les PNJ connus (voir CreerPNJs), utilises ou non sur cette carte.
     SpritesPNJConnus.forEach((p) => ChargerFeuille(Scene, p.Cle, p.Chemin, p.LargeurFrame, p.HauteurFrame));
 
-    // Assets propres a la carte active (ex: la tele sur map-TEST-map1).
-    DeclencherHookCarte(Scene, 'precharger');
+    // Assets declares par les features de la carte active (ex: la tele).
+    PrechargerFeaturesCarte(Scene);
   }
 
   if (UtiliseSpritePersonnage) {
