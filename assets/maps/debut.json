@@ -143,117 +143,6 @@
                  "width":0,
                  "x":51.1556,
                  "y":111.214
-                }, 
-                {
-                 "height":47.3909,
-                 "id":2,
-                 "name":"",
-                 "opacity":1,
-                 "properties":[
-                        {
-                         "name":"texte",
-                         "type":"string",
-                         "value":"..."
-                        }],
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":95.9519241893773,
-                 "x":83.0046549830913,
-                 "y":96.1198435050726
-                }, 
-                {
-                 "height":0,
-                 "id":4,
-                 "name":"",
-                 "opacity":1,
-                 "point":true,
-                 "properties":[
-                        {
-                         "name":"frame",
-                         "type":"string",
-                         "value":"0"
-                        }, 
-                        {
-                         "name":"ligneNPJ",
-                         "type":"string",
-                         "value":"Tu connais un po\u00e9me ?"
-                        }, 
-                        {
-                         "name":"mots",
-                         "type":"string",
-                         "value":"Maitre, arbre, bec, fromage"
-                        }, 
-                        {
-                         "name":"phrase",
-                         "type":"string",
-                         "value":"{} corbeau sur son {} perch\u00e9, tenais dans son {} un {}."
-                        }, 
-                        {
-                         "name":"sprite",
-                         "type":"string",
-                         "value":"other_child"
-                        }],
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":0,
-                 "x":366.712,
-                 "y":141.948
-                }, 
-                {
-                 "height":47.3909,
-                 "id":5,
-                 "name":"",
-                 "opacity":1,
-                 "properties":[
-                        {
-                         "name":"texte",
-                         "type":"string",
-                         "value":"Heu... Salut ?"
-                        }],
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":119.87920834625,
-                 "x":208.306764412149,
-                 "y":95.2403709966183
-                }, 
-                {
-                 "height":47.3909,
-                 "id":6,
-                 "name":"",
-                 "opacity":1,
-                 "properties":[
-                        {
-                         "name":"texte",
-                         "type":"string",
-                         "value":"Je.... me souvien de rien..."
-                        }],
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":128.026757714527,
-                 "x":372.448869524052,
-                 "y":94.4652891346085
-                }, 
-                {
-                 "height":47.3909,
-                 "id":7,
-                 "name":"",
-                 "opacity":1,
-                 "properties":[
-                        {
-                         "name":"texte",
-                         "type":"string",
-                         "value":"Je reconnais cette endroit"
-                        }],
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":106.891066577427,
-                 "x":533.116755436569,
-                 "y":96.1118820252689
                 }],
          "opacity":1,
          "properties":[
@@ -340,12 +229,12 @@
          "columns":35,
          "firstgid":1,
          "image":"..\/tilesets\/Tileset.png",
-         "imageheight":80,
+         "imageheight":160,
          "imagewidth":560,
          "margin":0,
          "name":"Tileset",
          "spacing":0,
-         "tilecount":175,
+         "tilecount":350,
          "tileheight":16,
          "tilewidth":16
         }],
