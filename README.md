@@ -78,7 +78,7 @@ http://localhost:8765/?carte=map-2-enfance
 │   │   ├── controle.js         Entrees clavier
 │   │   ├── player.js           Creation du personnage + deplacement par frame
 │   │   └── index.js            Config Phaser + demarrage (charge en dernier)
-│   └── game.js                 Le reste : gare/train, herbe, tunnel, PNJ,
+│   └── game.js                 Le reste : gare/train, dialogue PNJ,
 │                                classe ScenePrincipale
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
