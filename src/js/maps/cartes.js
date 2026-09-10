@@ -2,9 +2,9 @@
 //
 // Chaque carte vit dans src/js/maps/map-<n>-<nom>/ et s'y enregistre via
 // EnregistrerCarte(...). Sa config liste les "features" qu'elle utilise
-// (objets definis dans src/js/features/), et game.js appelle
+// (objets definis dans src/js/features/), et scene-jeu.js appelle
 // precharger / installer / miseAJour de chacune au bon moment.
-// Charge avant les features, les fichiers de carte, et game.js.
+// Importe par les fichiers de carte, les features et scene-jeu.js.
 
 
 // --- Tileset partage (toutes les cartes utilisent le meme) ---

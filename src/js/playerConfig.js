@@ -1,7 +1,7 @@
 // playerConfig.js — tous les reglages du personnage, au meme endroit.
 //
 // Charge en premier : aucune dependance. Lu par loading.js (prechargement),
-// player.js (creation + deplacement) et game.js (camera).
+// player.js (creation + deplacement) et camera.js.
 // Fichier <script> classique : les `const` sont visibles par nom ailleurs.
 
 
@@ -28,7 +28,7 @@ export const IntervalleParPasMs = 260;     // delai entre deux pas (son + poussi
 // --- Ressenti de marche ----------------------------------------------
 // IntensiteMarche va de 0 (immobile) a 1 (pleine marche) en fondu, pour ne
 // pas demarrer/couper net. Elle module le tangage (ici) et l'anticipation de
-// la camera (game.js).
+// la camera (camera.js).
 
 export const VitesseFonduMarche = 0.15; // progression de IntensiteMarche par frame
 

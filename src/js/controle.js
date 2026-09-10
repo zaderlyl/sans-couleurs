@@ -1,6 +1,6 @@
 // controle.js — entrees clavier.
 // InstallerControles(this) : une fois, depuis create().
-// LireDeplacement(this)    : chaque frame (player.js, et MettreAJourHerbe dans game.js).
+// LireDeplacement(this)    : chaque frame (player.js, et MettreAJourHerbe dans la feature herbe).
 
 // Fleches + WASD pour se deplacer, E pour interagir (gare, tele, PNJ).
 export function InstallerControles(Scene) {

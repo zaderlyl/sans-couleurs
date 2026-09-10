@@ -4,7 +4,7 @@
 // Feature branchee par les cartes qui la listent dans leur `features`
 // (voir EnregistrerCarte). Tout est defini depuis Tiled : un rectangle sur
 // le calque objets, avec une propriete "texte" (et "points" optionnelle pour
-// l'intro ". . ."). Le style commun StyleTexteDeZone est dans game.js.
+// l'intro ". . ."). Le style commun StyleTexteDeZone est dans config.js.
 
 
 // --- Rythme de l'effet machine a ecrire (ms) ---

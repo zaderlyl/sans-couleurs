@@ -12,7 +12,7 @@ export const CleIconeInteraction = 'iconeInteraction';
 export const CheminIconeInteraction = 'assets/ui/E_animated.png';
 export const TailleIconeInteraction = 16;
 
-// Anims communes, a creer une fois dans create() (voir game.js).
+// Anims communes, a creer une fois dans create() (voir scene-jeu.js).
 export function CreerAnimsIconeInteraction(Scene) {
   CreerAnim(Scene, {
     key: 'iconeAttente',

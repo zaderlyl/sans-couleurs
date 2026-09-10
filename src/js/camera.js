@@ -1,5 +1,5 @@
 // camera.js — suivi de camera, pilote a la main chaque frame.
-// game.js appelle MettreAJourCamera(this) au debut de update().
+// scene-jeu.js appelle MettreAJourCamera(this) au debut de update().
 //
 // Pourquoi manuel plutot que startFollow : dans cette version de Phaser, le
 // follow natif recalcule scrollY tout seul a chaque redimensionnement de la
