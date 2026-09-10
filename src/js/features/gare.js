@@ -18,7 +18,7 @@
 
 import { ChargerFeuille } from '../loading.js';
 import { CreerIconeInteraction } from '../icone-interaction.js';
-import { CalculerBoiteTuiles, CalqueEstFlippe, TailleTuile, CleCarteSuivante } from '../maps/cartes.js';
+import { CalculerBoiteTuiles, CalqueEstFlippe, TailleTuile, CleCarteSuivante, ConfigCarte } from '../maps/cartes.js';
 import { Secouer, CreerAnim } from '../util.js';
 
 const CleGare = 'animationGare';
@@ -85,6 +85,11 @@ export const Gare = {
     Scene.IconeInteractionRetour = CreerIconeInteraction(Scene, Scene.PositionIconeInteractionRetourX, HauteurIconeGareY);
 
     Scene.EtatGare = 'attente'; // attente -> enCours -> (retourAttente)
+
+    // Sortie en train : desactivable carte par carte (`sortieGare: false`).
+    // Sur le college, on arrive en train mais on ne peut pas repartir (pas
+    // encore). Absent = true, pour ne rien changer aux autres cartes.
+    Scene.SortieGareActive = ConfigCarte(Scene.NomCarteActuelle).sortieGare !== false;
   },
 
   // Appele en toute fin de create() : si on arrive en train, joue l'animation
@@ -101,7 +106,7 @@ export const Gare = {
     // Interaction gare : icone qui suit dans la zone, E pour lancer. La
     // sequence ne demarre qu'a la fin de l'anim "E qui eclate", mais on passe
     // EtatGare a 'enCours' DES l'appui (verrou immediat contre un 2e appui).
-    if (Scene.EtatGare === 'attente') {
+    if (Scene.EtatGare === 'attente' && Scene.SortieGareActive) {
       const Presse = GererZoneInteraction(Scene, Scene.ZoneGare, Scene.IconeInteraction, () => DemarrerSequenceGare(Scene));
       if (Presse) Scene.EtatGare = 'enCours';
     }

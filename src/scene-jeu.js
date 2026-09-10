@@ -32,7 +32,14 @@ export class SceneJeu extends Phaser.Scene {
   // this.ArriveeParTrain declenche l'animation d'arrivee (feature gare).
   init(Donnees) {
     this.NomCarteActuelle = (Donnees && Donnees.carte) || CleCarteDeDepart();
-    this.ArriveeParTrain = !!(Donnees && Donnees.arrivee);
+    // Arrivee en train : soit on vient d'une autre carte (Donnees.arrivee),
+    // soit, au tout premier lancement uniquement, on force l'arrivee pour
+    // tester une carte isolee -> ?carte=<cle>&arrivee=1
+    // (Phaser passe {} et non undefined au 1er lancement : on teste le contenu.)
+    const PremierLancement = !Donnees || Object.keys(Donnees).length === 0;
+    const ArriveeParUrl =
+      PremierLancement && new URLSearchParams(window.location.search).get('arrivee') === '1';
+    this.ArriveeParTrain = !!(Donnees && Donnees.arrivee) || ArriveeParUrl;
   }
 
   preload() {

@@ -54,6 +54,12 @@ export function CleCarteSuivante(Cle) {
   return Carte && Carte.suivante ? Carte.suivante : null;
 }
 
+// Config brute d'une carte (ou {} si inconnue) : pour qu'une feature lise une
+// option propre a la carte active (ex: la gare regarde `sortieGare`).
+export function ConfigCarte(Cle) {
+  return RegistreCartes[Cle] || {};
+}
+
 // preload() : laisse chaque feature de la carte declarer ses assets.
 export function PrechargerFeaturesCarte(Scene) {
   for (const Feature of FeaturesCarteActive(Scene)) {
