@@ -10,6 +10,7 @@ import { Gare } from '../../features/gare.js';
 import { TextesDeZone } from '../../features/textes-de-zone.js';
 import { Herbe } from '../../features/herbe.js';
 import { Tunnel } from '../../features/tunnel.js';
+import { Teleportation } from '../../features/teleportation.js';
 import { DialoguePNJ } from '../../features/dialogue-pnj.js';
 
 EnregistrerCarte({
@@ -18,5 +19,5 @@ EnregistrerCarte({
   nom: 'debut-college',
   // suivante: a definir quand l'enchainement des niveaux sera decide
   sortieGare: false, // on arrive en train, on ne repart pas (pas encore)
-  features: [Gare, TextesDeZone, Herbe, Tunnel, DialoguePNJ],
+  features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, DialoguePNJ],
 });
