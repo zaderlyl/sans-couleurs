@@ -1,8 +1,12 @@
 // map-3-debut-college — le college.
-// Calques standard (gare mais pas de "derriere" : le train change de carte).
+// Memes features que les autres cartes, SAUF Gare : l'animation du train
+// (arrivee / depart) n'est pas encore prete. A rajouter ici quand ce sera fait :
+//   import { Gare } from '../../features/gare.js';
+//   ... features: [Gare, TextesDeZone, ...]
+// Le reste (musique d'ambiance, camera, controles, personnage) tourne
+// globalement dans scene-jeu.js pour toute carte enregistree : rien a ajouter.
 
 import { EnregistrerCarte } from '../cartes.js';
-import { Gare } from '../../features/gare.js';
 import { TextesDeZone } from '../../features/textes-de-zone.js';
 import { Herbe } from '../../features/herbe.js';
 import { Tunnel } from '../../features/tunnel.js';
@@ -13,5 +17,5 @@ EnregistrerCarte({
   numero: 3,
   nom: 'debut-college',
   // suivante: a definir quand l'enchainement des niveaux sera decide
-  features: [Gare, TextesDeZone, Herbe, Tunnel, DialoguePNJ],
+  features: [TextesDeZone, Herbe, Tunnel, DialoguePNJ],
 });
