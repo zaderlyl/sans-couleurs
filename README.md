@@ -54,7 +54,7 @@ Un parametre d'URL permet de charger directement une carte donnee pendant
 les tests, sans repasser par tout le trajet en train depuis le debut :
 
 ```
-http://localhost:8765/?carte=enfance
+http://localhost:8765/?carte=map-2-enfance
 ```
 
 ## Structure du depot
@@ -65,6 +65,9 @@ http://localhost:8765/?carte=enfance
 ├── src/                        Code du jeu (scripts classiques, portee globale partagee)
 │   ├── js/
 │   │   ├── playerConfig.js     Reglages du personnage (spritesheet, vitesse, tangage)
+│   │   ├── maps/
+│   │   │   ├── cartes.js       Registre des cartes + helpers Tiled communs
+│   │   │   └── map-*/map-*.js  Une carte chacun : config + logique propre
 │   │   ├── loading.js          Prechargement des assets (phase preload)
 │   │   ├── controle.js         Entrees clavier
 │   │   ├── player.js           Creation du personnage + deplacement par frame
@@ -72,7 +75,7 @@ http://localhost:8765/?carte=enfance
 │   └── game.js                 Le reste : audio, gare/train, herbe, tunnel,
 │                                PNJ, textes de zone, camera, classe ScenePrincipale
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
-│   ├── maps/                    Cartes exportees depuis Tiled (.json)
+│   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
 │   ├── tilesets/                Images de tuiles referencees par les cartes
 │   ├── sprites/
 │   │   ├── characters/          Feuilles de sprites des personnages
@@ -96,11 +99,16 @@ elle passe dans `assets/tilesets/` au moment ou on la branche.
 
 ## Cartes et niveaux
 
-Chaque carte est un fichier Tiled independant : la source `.tmx` dans
-`tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`. Les
-niveaux s'enchainent via la gare : arrive au bout d'une carte, le joueur
-prend un train qui charge la carte suivante (voir la constante
-`CarteSuivante` dans `src/game.js`). La position et la zone d'interaction de la
+Chaque carte a un dossier `src/js/maps/map-<n>-<nom>/` (le numero suit
+l'ordre de creation ; `map1`, la carte de test, garde `TEST`) ou elle
+s'enregistre via `EnregistrerCarte(...)` : sa config et sa logique propre
+(ex: l'ecran de tele, present seulement sur `map-TEST-map1`). Cote fichiers
+Tiled : la source `.tmx` dans `tiled/maps/`, l'export `.json` charge par le
+jeu dans `assets/maps/` (memes noms : `map-1-debut.json`, etc.).
+
+Les niveaux s'enchainent via la gare : arrive au bout d'une carte, le joueur
+prend un train qui charge la carte suivante (champ `suivante` de la config,
+voir `src/js/maps/cartes.js`). La position et la zone d'interaction de la
 gare ne sont pas codees en dur : elles sont recalculees depuis le calque
 `gare` de chaque carte, donc une nouvelle carte n'a qu'a poser ce calque
 pour que la gare fonctionne automatiquement.

@@ -5,13 +5,16 @@
 // ── Decoupage du code (src/) ─────────────────────────────────────────────
 // Tous les fichiers sont des <script> classiques charges dans l'ordre par
 // index.html — meme portee globale, pas de module ni d'etape de build. Ordre :
-//   js/playerConfig.js  reglages du personnage (spritesheet, vitesse, tangage)
-//   js/loading.js       PrechargerAssets() — phase preload()
-//   js/controle.js      InstallerControles() / LireDeplacement() — clavier
-//   js/player.js        CreerPersonnage() / MettreAJourDeplacement()
-//   game.js  (ce fichier) le reste : audio, gare/train, herbe, tunnel, PNJ,
-//                          textes de zone, camera, et la classe ScenePrincipale
-//   js/index.js         config Phaser + demarrage (charge en dernier)
+//   js/playerConfig.js          reglages du personnage
+//   js/maps/cartes.js           registre des cartes + helpers Tiled communs
+//   js/maps/map-*/map-*.js      une carte chacun : config + logique propre
+//                               (ex: la tele n'existe que sur map-TEST-map1)
+//   js/loading.js               PrechargerAssets() — phase preload()
+//   js/controle.js              InstallerControles() / LireDeplacement()
+//   js/player.js                CreerPersonnage() / MettreAJourDeplacement()
+//   game.js  (ce fichier)       le reste : audio, gare/train, herbe, tunnel,
+//                               PNJ, textes de zone, camera, ScenePrincipale
+//   js/index.js                 config Phaser + demarrage (charge en dernier)
 // Ce fichier sera decoupe davantage au fil des passes suivantes.
 //
 // ── Structure des assets ─────────────────────────────────────────────────
@@ -32,29 +35,11 @@
 const UtiliseCarteTiled = true;
 const UtiliseSpritePersonnage = true;
 
-// --- Tileset / Map (Tiled) ---
-const CleTuiles = 'tuiles'; // nom interne, libre, utilise pour retrouver l'image chargee
-const CheminTuiles = 'assets/tilesets/Tileset.png'; // chemin vers l'image exportee
-const NomTuilesDansTiled = 'Tileset'; // DOIT correspondre exactement au nom du tileset DANS Tiled (panneau Tilesets)
-
-// Carte de depart : "debut" par defaut (nouveau debut du jeu). Parametre
-// d'URL ?carte=<nom> pour ouvrir directement une autre carte pendant les
-// tests (ex: ?carte=enfance), sans repasser par le trajet en train complet.
-const CleCarteChoisie = new URLSearchParams(window.location.search).get('carte') || 'debut';
-// Enchainement des cartes : quelle carte suivante charger quand le joueur
-// prend le train a la gare d'une carte donnee (voir DemarrerSequenceGare).
-// Une carte absente d'ici (ex: pas encore de suite a "enfance") garde
-// l'ancien comportement de secours : le train part, mais ne mene nulle part,
-// le joueur reapparait simplement la ou il etait.
-const CarteSuivante = {
-  debut: 'enfance',
-};
-const NomCalqueSol = 'sol'; // le calque qui porte la collision — DOIT correspondre au nom DANS Tiled
-// Les autres calques (bg, bg2, devant...) sont purement visuels, sans
-// collision — leurs noms sont utilises directement dans create(). Toutes les
-// cartes n'ont pas forcement les memes calques (ex: "debut" n'a pas encore
-// de calque "derriere") : create() verifie leur presence avant de les
-// utiliser plutot que de supposer qu'ils existent tous.
+// Cartes : registre, tileset partage, noms de calques et helpers Tiled sont
+// dans src/js/maps/cartes.js ; chaque carte a son dossier src/js/maps/map-*/.
+// Les calques bg, bg2, devant... sont purement visuels ; toutes les cartes
+// n'ont pas les memes (ex: seule map-TEST-map1 a "derriere"), donc create()
+// verifie leur presence avant de s'en servir.
 
 // Le personnage : sa spritesheet, sa vitesse et le ressenti de deplacement
 // (fondu de marche, tangage, cadence des pas) sont regles dans
@@ -104,91 +89,8 @@ const RayonReactionHerbe = 20; // distance (px monde) a partir de laquelle l'her
 const TunnelAlphaMin = 0.15; // jamais totalement invisible, pour qu'on voie encore qu'il est la
 const TunnelVitesseFondu = 0.08; // vitesse de transition vers l'alpha cible (par frame)
 
-// Boite englobante (en pixels) des tuiles non vides d'un calque — utilise
-// pour deriver des zones depuis le contenu reel de la carte active plutot
-// que de coder des coordonnees en dur qui ne vaudraient que pour une seule
-// carte (voir le tunnel, plus haut). Retourne null si le calque est vide.
-function CalculerBoitePixels(Carte, NomCalque) {
-  const Calque = Carte.getLayer(NomCalque);
-  if (!Calque) return null;
-
-  let XMin = Infinity;
-  let XMax = -Infinity;
-  for (const Ligne of Calque.data) {
-    for (const Tuile of Ligne) {
-      if (Tuile && Tuile.index !== -1) {
-        XMin = Math.min(XMin, Tuile.pixelX);
-        XMax = Math.max(XMax, Tuile.pixelX + Tuile.width);
-      }
-    }
-  }
-  return XMin <= XMax ? { XMin, XMax } : null;
-}
-
-// Meme principe que CalculerBoitePixels, mais en indices de tuiles (colonne/
-// rangee) plutot qu'en pixels — utilise pour calibrer la position de la gare
-// depuis le calque "gare" de la carte active (voir create()), plutot que de
-// coder ses coordonnees en dur pour une seule carte.
-// FlipVoulu (optionnel, true/false) : ne compte que les tuiles dont l'etat de
-// retournement horizontal (Tuile.flipX) correspond. Sert a isoler la mosaique
-// miroir du calque "derriere" quand ce calque sert aussi a d'autres reperes
-// visuels sans rapport (ex: le decor de la tele) — cette mosaique est
-// justement construite en reprenant les tuiles de "gare" et en les
-// retournant dans Tiled, ce qui la rend facilement identifiable independamment
-// de sa position (voir son usage dans create(), avec !this.GareFlippee comme
-// valeur attendue — la mosaique miroir a TOUJOURS l'etat de flip oppose a
-// celui de "gare" sur la meme carte, que "gare" soit elle-meme flippee ou non).
-function CalculerBoiteTuiles(Carte, NomCalque, FlipVoulu) {
-  const Calque = Carte.getLayer(NomCalque);
-  if (!Calque) return null;
-
-  let ColMin = Infinity;
-  let ColMax = -Infinity;
-  let RangeeMin = Infinity;
-  let RangeeMax = -Infinity;
-  for (const Ligne of Calque.data) {
-    for (const Tuile of Ligne) {
-      if (Tuile && Tuile.index !== -1 && (FlipVoulu === undefined || !!Tuile.flipX === FlipVoulu)) {
-        ColMin = Math.min(ColMin, Tuile.x);
-        ColMax = Math.max(ColMax, Tuile.x);
-        RangeeMin = Math.min(RangeeMin, Tuile.y);
-        RangeeMax = Math.max(RangeeMax, Tuile.y);
-      }
-    }
-  }
-  return ColMin <= ColMax ? { ColMin, ColMax, RangeeMin, RangeeMax } : null;
-}
-
-// Etat de retournement horizontal (Tuile.flipX) des tuiles d'un calque —
-// suppose une mosaique dessinee de façon uniforme (toutes ses tuiles dans le
-// meme sens), donc se contente de la premiere tuile non vide trouvee. Sert a
-// adapter le sens du sprite anime de la gare (this.SpriteGare) a celui que le
-// niveau design a choisi pour la mosaique statique de CETTE carte (ex:
-// "enfance" a dessine "gare" retournee par rapport a "debut"/"map1") plutot
-// que de toujours l'afficher dans un seul sens fixe.
-function CalqueEstFlippe(Carte, NomCalque) {
-  const Calque = Carte.getLayer(NomCalque);
-  if (!Calque) return false;
-  for (const Ligne of Calque.data) {
-    for (const Tuile of Ligne) {
-      if (Tuile && Tuile.index !== -1) return !!Tuile.flipX;
-    }
-  }
-  return false;
-}
-
-// Proprietes personnalisees Tiled lues comme un nombre/booleen, meme quand
-// leur TYPE est reste "string" cote Tiled (ex: changer le type d'une
-// propriete deja creee n'est pas toujours evident dans l'interface — inutile
-// de se battre avec ca : le code accepte les deux).
-function ValeurNombreTiled(Valeur, Defaut) {
-  const Nombre = Number(Valeur);
-  return Number.isNaN(Nombre) ? Defaut : Nombre;
-}
-function ValeurBooleenneTiled(Valeur) {
-  if (typeof Valeur === 'string') return Valeur.trim().toLowerCase() === 'true';
-  return !!Valeur;
-}
+// CalculerBoitePixels / CalculerBoiteTuiles / CalqueEstFlippe /
+// ValeurNombreTiled / ValeurBooleenneTiled : voir src/js/maps/cartes.js.
 
 // --- Interactivite gare (calques "gare" et "derriere", n'importe quelle
 // carte) ---
@@ -304,58 +206,8 @@ const SpritesPNJConnus = [
   { Cle: 'other_child', Chemin: 'assets/sprites/characters/other_child.png', LargeurFrame: 16, HauteurFrame: 16 },
 ];
 
-// --- Ecran de tele animee (tele.png) ---
-// Grille 6x3 = 18 cases de 32x32px, mais seules les 13 premieres (index 0 a
-// 12) contiennent un dessin : le reste de la feuille est vide. Ces 13 frames
-// montrent un cardiogramme sur l'ecran — le trait rouge s'efface puis se
-// redessine — soit un battement complet, qu'on rejoue en boucle continue.
-// Placement dans Tiled : cases (2,7) a (3,8), soit x:32-64 y:112-144 en
-// pixels (16px par case) — un carre de 2x2 cases = 32x32px, exactement la
-// taille d'une frame.
-const CleTele = 'ecranTele';
-const CheminTele = 'assets/sprites/props/tele.png';
-const TailleImageTele = 32;
-const NombreImagesTele = 13; // frames reellement dessinees (0 a 12)
-const PositionTeleX = 2 * 16;
-const PositionTeleY = 7 * 16;
-
-// --- Interactivite de la tele : le joueur peut s'en approcher et appuyer 4
-// fois sur E pour accelerer le cardiogramme (le bip suit tout seul, voir
-// 'animationrepeat' dans create()) ; au 5e appui, la ligne devient plate
-// (voir DeclencherLignePlateTele). Zone un peu plus large que la tele
-// elle-meme (marge horizontale), meme principe que ZoneGare.
-const ZoneTele = {
-  XMin: PositionTeleX - 16,
-  XMax: PositionTeleX + TailleImageTele + 16,
-  YMin: PositionTeleY,
-  YMax: PositionTeleY + TailleImageTele,
-};
-// frameRate applique apres le 1er, 2e, 3e puis 4e appui (le 0 correspond au
-// frameRate de base de l'anim 'cardiogramme', avant tout appui). Calcule pour
-// donner un rythme cardiaque croissant : ~46 -> 70 -> 100 -> 140 -> 190 bpm
-// (bpm * NombreImagesTele / 60).
-const VitessesCardiogramme = [10, 15, 22, 30, 41];
-
-// Volume du son de la tele (bip du cardiogramme ou ligne plate continue)
-// selon la distance du joueur : plein volume tout pres, silence total au-dela
-// de DistanceSonTeleMax (voir VolumeSonSelonDistanceTele, appele en boucle
-// dans update()).
-const DistanceSonTeleMin = 40;
-const DistanceSonTeleMax = 250;
-
-// Ecran "mort" affiche au 5e appui (voir DeclencherLignePlateTele) : 4x3 =
-// 12 frames de 32x32px, toutes dessinees, jouees en boucle lente.
-const CleTeleMort = 'ecranTeleMort';
-const CheminTeleMort = 'assets/sprites/props/tele_death.png';
-const NombreImagesTeleMort = 12;
-
-// Icone d'interaction dediee a la tele (meme spritesheet/anims que celle de
-// la gare, juste une 2e instance positionnee au-dessus de la tele plutot que
-// de la gare). Contrairement a la gare, elle ne disparait pas definitivement
-// des le 1er appui : elle rejoue son invite entre chaque appui, et ne
-// s'efface pour de bon qu'au 5e (voir la boucle update()).
-const PositionIconeInteractionTeleX = PositionTeleX + TailleImageTele / 2;
-const PositionIconeInteractionTeleY = PositionTeleY - TailleIconeInteraction;
+// L'ecran de tele n'existe que sur map-TEST-map1 : constantes, sons et
+// logique sont dans src/js/maps/map-TEST-map1/map-TEST-map1.js.
 
 // --- Textes de zone ---
 // Phrases affichees a un endroit fixe du monde (pas un texte d'interface qui
@@ -376,8 +228,8 @@ const PositionIconeInteractionTeleY = PositionTeleY - TailleIconeInteraction;
 //      directement, sans cette intro.
 // Le texte apparait centre juste au-dessus du rectangle. Pas besoin de
 // toucher au code, ni de recalculer la moindre position en pixels — et ca
-// marche independamment sur chaque carte.
-const NomCoucheObjets = "Calque d'Objets 1"; // meme calque que l'objet "spawn"
+// marche independamment sur chaque carte. (Le calque objets Tiled utilise,
+// NomCoucheObjets, est defini dans src/js/maps/cartes.js.)
 
 // Style visuel des textes de zone : pixel art oblige, une petite taille de
 // police (multipliee par ZoomCamera a l'affichage) plutot qu'une police fine
@@ -539,80 +391,19 @@ function JouerSonAtterrissage() {
   Oscillateur.stop(Contexte.currentTime + 0.11);
 }
 
-// Facteur de volume (0 a 1) selon la distance entre le joueur et le centre
-// de la tele : 1 en dessous de DistanceSonTeleMin, decroit lineairement
-// jusqu'a 0 (silence total) a partir de DistanceSonTeleMax. Utilise a la fois
-// par le bip du cardiogramme et par la ligne plate continue (voir update()).
-function VolumeSonSelonDistanceTele(PositionJoueurX, PositionJoueurY) {
-  const CentreTeleX = PositionTeleX + TailleImageTele / 2;
-  const CentreTeleY = PositionTeleY + TailleImageTele / 2;
-  const Distance = Phaser.Math.Distance.Between(PositionJoueurX, PositionJoueurY, CentreTeleX, CentreTeleY);
-  const Portee = DistanceSonTeleMax - DistanceSonTeleMin;
-  return Phaser.Math.Clamp(1 - (Distance - DistanceSonTeleMin) / Portee, 0, 1);
-}
-
-// Cardiogramme (ecran de tele) — bref bip aigu et net, comme un moniteur
-// cardiaque. Declenche en synchro avec la boucle de l'animation de l'ecran
-// (voir 'animationrepeat' sur SpriteTele dans create()). `Volume` (0 a 1,
-// voir VolumeSonSelonDistanceTele) attenue le bip selon la distance au
-// moment ou il se declenche.
-function JouerSonCardiogramme(Volume) {
-  if (Volume <= 0) return; // trop loin : inutile de generer un son inaudible
-
-  const Contexte = ObtenirContexteAudio();
-  const Oscillateur = Contexte.createOscillator();
-  Oscillateur.type = 'square'; // timbre net et electronique, pas doux comme une sinusoide
-  Oscillateur.frequency.value = 880; // aigu, typique d'un bip de moniteur
-
-  const PicVolume = 0.1 * Volume;
-  const VolumeNode = Contexte.createGain();
-  VolumeNode.gain.setValueAtTime(PicVolume, Contexte.currentTime);
-  VolumeNode.gain.exponentialRampToValueAtTime(0.001, Contexte.currentTime + 0.08);
-
-  Oscillateur.connect(VolumeNode);
-  VolumeNode.connect(Contexte.destination);
-  Oscillateur.start();
-  Oscillateur.stop(Contexte.currentTime + 0.09);
-}
-
-// Ligne plate (tele HS, apres le 5e appui) — bip continu, grave et etouffe,
-// comme l'alarme d'un moniteur cardiaque a l'arret. Contrairement aux autres
-// sons de ce fichier, pas de stop() programme : il continue indefiniment une
-// fois lance (voir DeclencherLignePlateTele, qui ne l'appelle qu'une fois).
-// Retourne le noeud de gain : update() ajuste son volume image par image
-// selon la distance du joueur (voir VolumeSonSelonDistanceTele), pour qu'on
-// ne l'entende plus du tout une fois assez loin.
-function JouerSonLignePlate() {
-  const Contexte = ObtenirContexteAudio();
-  const Oscillateur = Contexte.createOscillator();
-  Oscillateur.type = 'sawtooth'; // plus riche qu'une sinusoide, pour avoir de quoi etouffer ensuite
-  Oscillateur.frequency.value = 300; // grave-medium, pas aigu comme le bip normal
-
-  const Filtre = Contexte.createBiquadFilter();
-  Filtre.type = 'lowpass';
-  Filtre.frequency.value = 500; // coupe les aigus : rend le son sourd/etouffe
-
-  const Volume = Contexte.createGain();
-  Volume.gain.value = 0; // mis a jour des la premiere frame par update()
-
-  Oscillateur.connect(Filtre);
-  Filtre.connect(Volume);
-  Volume.connect(Contexte.destination);
-  Oscillateur.start();
-
-  return Volume;
-}
+// Les sons de la tele (VolumeSonSelonDistanceTele, JouerSonCardiogramme,
+// JouerSonLignePlate) sont dans map-TEST-map1.js, avec le reste de la tele.
 
 class ScenePrincipale extends Phaser.Scene {
   // Appele a chaque demarrage/redemarrage de la scene (le tout premier lancement
   // ET chaque this.scene.restart(...), voir DemarrerSequenceGare) — AVANT
-  // preload(). "data" est absent au tout premier lancement (retombe alors sur
-  // CleCarteChoisie, la carte de depart par defaut/testee via l'URL) ; il
+  // preload(). "data" est absent au tout premier lancement (on prend alors la
+  // carte de depart, ou ?carte=<cle> en test — voir CleCarteDeDepart) ; il
   // contient { carte, arrivee } quand on arrive d'une autre carte via le train
-  // (voir CarteSuivante). this.ArriveeParTrain pilote JouerArriveeEnTrain,
+  // (voir CleCarteSuivante). this.ArriveeParTrain pilote JouerArriveeEnTrain,
   // appele en toute fin de create().
   init(Donnees) {
-    this.NomCarteActuelle = (Donnees && Donnees.carte) || CleCarteChoisie;
+    this.NomCarteActuelle = (Donnees && Donnees.carte) || CleCarteDeDepart();
     this.ArriveeParTrain = !!(Donnees && Donnees.arrivee);
   }
 
@@ -734,7 +525,6 @@ class ScenePrincipale extends Phaser.Scene {
       // pour le calque "gare" ci-dessus).
       const BoiteDerriere = CalculerBoiteTuiles(Carte, 'derriere', !this.GareFlippee);
       this.ArriveeTrainConfiguree = !!BoiteDerriere;
-      const CalqueDerriereExiste = this.ArriveeTrainConfiguree; // alias local, lisibilite
       if (BoiteDerriere) {
         Carte.createLayer('derriere', JeuDeTuiles, 0, 0).setVisible(false);
         const { ColMin, ColMax, RangeeMin, RangeeMax } = BoiteDerriere;
@@ -769,51 +559,10 @@ class ScenePrincipale extends Phaser.Scene {
         this.ZoneRetour = { XMin: 0, XMax: 0, YMin: 0, YMax: 0 };
       }
 
-      // Ecran de tele : uniquement sur les cartes qui ont un calque
-      // "derriere" (c'est la que son decor de reference est place dans
-      // Tiled) — simple decor anime en boucle continue, pas besoin de mise a
-      // jour par frame (contrairement a l'herbe/au tunnel) — juste
-      // l'animation Phaser plus un bip declenche a chaque repetition de la
-      // boucle (voir JouerSonCardiogramme). Le bip ecoute l'evenement
-      // 'animationrepeat' plus bas, donc il reste toujours synchro tout seul
-      // avec ce frameRate, quel qu'il soit — pas besoin de le retoucher a
-      // chaque changement.
-      if (CalqueDerriereExiste) {
-        this.anims.create({
-          key: 'cardiogramme',
-          frames: this.anims.generateFrameNumbers(CleTele, { start: 0, end: NombreImagesTele - 1 }),
-          // Un battement toutes les (NombreImagesTele / frameRate) secondes :
-          // a 10 img/s -> 13/10 = 1,3s par battement (~46 bpm).
-          frameRate: 10,
-          repeat: -1,
-        });
-        // Ecran mort (5e appui) : boucle lente, tant que la partie continue.
-        this.anims.create({
-          key: 'ecranMort',
-          frames: this.anims.generateFrameNumbers(CleTeleMort, { start: 0, end: NombreImagesTeleMort - 1 }),
-          frameRate: 8,
-          repeat: -1,
-        });
-        this.SpriteTele = this.add.sprite(PositionTeleX, PositionTeleY, CleTele, 0);
-        this.SpriteTele.setOrigin(0, 0); // meme ancrage qu'une tuile, cale pile sur (2,7)
-        // Pas de depth forcee : a depth egale (0 par defaut), Phaser affiche
-        // par-dessus ce qui est cree en dernier. Cree ici, juste apres le sol,
-        // la tele reste donc au-dessus de bg/bg2/gare/sol mais en dessous de
-        // l'herbe et du personnage, crees plus bas.
-        this.SpriteTele.play('cardiogramme');
-        // 'animationrepeat' : declenche a chaque fois que la boucle repart de
-        // la premiere frame, soit l'instant ou le trait est de nouveau complet
-        // a l'ecran juste avant de se reeffacer — le point naturel du battement.
-        this.SpriteTele.on('animationrepeat', () => {
-          JouerSonCardiogramme(VolumeSonSelonDistanceTele(this.Personnage.x, this.Personnage.y));
-        });
-        // Compteur d'appuis sur E pres de la tele (voir ZoneTele dans
-        // update()) et etat "ligne plate" une fois le 5e appui atteint (voir
-        // DeclencherLignePlateTele).
-        this.CompteurAppuisTele = 0;
-        this.TeleHS = false;
-        this.IconeTeleEnCours = false; // true pendant que iconePressee joue (voir update())
-      }
+      // Elements propres a la carte active (ex: l'ecran de tele sur
+      // map-TEST-map1). Appele ICI, a la place ou la tele etait creee, pour
+      // garder le meme ordre d'affichage des sprites poses par le hook.
+      DeclencherHookCarte(this, 'auChargement');
 
       // 'devant' n'est plus rendu comme un calque de tuiles figees : on lit
       // ses positions pour y poser des sprites d'herbe individuels a la place
@@ -895,13 +644,10 @@ class ScenePrincipale extends Phaser.Scene {
       this.IconeInteraction.setDepth(20); // au-dessus de tout le reste
       this.IconeInteraction.setVisible(false);
 
-      // 2e instance de la meme icone (memes anims iconeAttente/iconePressee),
-      // positionnee au-dessus de la tele plutot que de la gare.
-      this.IconeInteractionTele = this.add.sprite(PositionIconeInteractionTeleX, PositionIconeInteractionTeleY, CleIconeInteraction, 0);
-      this.IconeInteractionTele.setDepth(20);
-      this.IconeInteractionTele.setVisible(false);
+      // (l'icone au-dessus de la tele, this.IconeInteractionTele, est creee
+      // par le hook auChargement de map-TEST-map1)
 
-      // 3e instance : invite du trajet retour, a l'arrivee (voir ZoneRetour
+      // 2e instance : invite du trajet retour, a l'arrivee (voir ZoneRetour
       // et DemarrerRetourGare). Meme fonctionnement que celle de la gare
       // (disparait definitivement une fois la sequence lancee).
       this.IconeInteractionRetour = this.add.sprite(this.PositionIconeInteractionRetourX, PositionIconeInteractionRetourY, CleIconeInteraction, 0);
@@ -1131,54 +877,9 @@ class ScenePrincipale extends Phaser.Scene {
       }
     }
 
-    // Interaction tele : chaque appui sur E a proximite accelere le
-    // cardiogramme (le bip suit tout seul, voir 'animationrepeat' plus haut)
-    // et fait trembler l'ecran. Contrairement a la gare, l'icone E ne
-    // disparait pas au premier appui : elle rejoue son invite entre chaque
-    // (voir IconeTeleEnCours) et ne s'efface pour de bon qu'au 5e, quand la
-    // ligne devient plate.
-    // Ligne plate continue : contrairement au bip discret (attenue une seule
-    // fois, au moment ou il se declenche), ce son dure indefiniment, donc son
-    // volume doit etre reevalue image par image pendant que le joueur se
-    // deplace (voir VolumeSonSelonDistanceTele).
-    if (this.GainLignePlate) {
-      this.GainLignePlate.gain.value = 0.09 * VolumeSonSelonDistanceTele(this.Personnage.x, this.Personnage.y);
-    }
-
-    if (this.SpriteTele && !this.TeleHS) {
-      const DansZoneTele =
-        this.Personnage.x > ZoneTele.XMin &&
-        this.Personnage.x < ZoneTele.XMax &&
-        this.Personnage.y > ZoneTele.YMin &&
-        this.Personnage.y < ZoneTele.YMax;
-
-      if (DansZoneTele) {
-        this.IconeInteractionTele.setVisible(true);
-        if (!this.IconeTeleEnCours) {
-          this.IconeInteractionTele.play('iconeAttente', true); // true : ne relance pas si deja en cours
-        }
-
-        if (Phaser.Input.Keyboard.JustDown(this.ToucheInteraction)) {
-          this.CompteurAppuisTele++;
-          this.IconeTeleEnCours = true;
-          this.IconeInteractionTele.play('iconePressee');
-          this.IconeInteractionTele.once('animationcomplete', () => {
-            this.IconeTeleEnCours = false;
-            // Sinon la boucle ci-dessus rejoue iconeAttente a la frame suivante.
-            if (this.TeleHS) this.IconeInteractionTele.setVisible(false);
-          });
-
-          if (this.CompteurAppuisTele < VitessesCardiogramme.length) {
-            this.SpriteTele.play({ key: 'cardiogramme', frameRate: VitessesCardiogramme[this.CompteurAppuisTele], repeat: -1 });
-            this.Secouer(this.SpriteTele, 200, 1, () => {});
-          } else {
-            this.DeclencherLignePlateTele();
-          }
-        }
-      } else {
-        this.IconeInteractionTele.setVisible(false);
-      }
-    }
+    // Interactions propres a la carte active (ex: l'ecran de tele sur
+    // map-TEST-map1). Meme place qu'avant dans update().
+    DeclencherHookCarte(this, 'aLaMiseAJour', Temps, TempsEcoule);
 
     // Interaction PNJ (mini-jeu de dialogue) : meme principe que la gare/la
     // tele — icone qui suit tant que le joueur est a portee, E pour lancer.
@@ -1243,17 +944,6 @@ class ScenePrincipale extends Phaser.Scene {
     }
   }
 
-  // 5e appui sur la tele : le cardiogramme laisse place a l'ecran mort
-  // (tele_death.png) et le bip discret laisse place a un bip continu et
-  // sourd (JouerSonLignePlate).
-  DeclencherLignePlateTele() {
-    this.TeleHS = true;
-    this.SpriteTele.play('ecranMort');
-    // Reference gardee sur le noeud de gain : update() l'ajuste en continu
-    // selon la distance du joueur (voir VolumeSonSelonDistanceTele).
-    this.GainLignePlate = JouerSonLignePlate();
-  }
-
   // Le joueur disparait et devient immobile pour de vrai (corps physique
   // desactive, sinon la gravite continue de s'appliquer meme invisible), la
   // mosaique statique cede la place au sprite anime : clignoteGare (frames 3
@@ -1298,7 +988,7 @@ class ScenePrincipale extends Phaser.Scene {
             // soit non et le train ne mene nulle part pour l'instant (le
             // joueur reapparait simplement la ou il etait).
             if (!this.ArriveeTrainConfiguree) {
-              const CarteApres = CarteSuivante[this.NomCarteActuelle];
+              const CarteApres = CleCarteSuivante(this.NomCarteActuelle);
               if (CarteApres) {
                 // La scene entiere redemarre avec la carte suivante (voir
                 // init() et JouerArriveeEnTrain, appele depuis le create()

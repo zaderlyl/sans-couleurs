@@ -7,31 +7,36 @@
 // une version fraiche.
 const ParametreAntiCache = `?v=${Date.now()}`;
 
-function PrechargerAssets(Scene) {
-  const Url = (chemin) => chemin + ParametreAntiCache;
-  const Feuille = (cle, chemin, largeur, hauteur = largeur) =>
-    Scene.load.spritesheet(cle, Url(chemin), { frameWidth: largeur, frameHeight: hauteur });
+// Helpers reutilises par les hooks "precharger" des cartes (voir cartes.js).
+function UrlAntiCache(Chemin) {
+  return Chemin + ParametreAntiCache;
+}
+function ChargerFeuille(Scene, Cle, Chemin, Largeur, Hauteur = Largeur) {
+  Scene.load.spritesheet(Cle, UrlAntiCache(Chemin), { frameWidth: Largeur, frameHeight: Hauteur });
+}
 
+function PrechargerAssets(Scene) {
   // Assets Tiled : seulement si le mode carte est actif, pour ne pas tenter
   // de charger des fichiers absents.
   if (UtiliseCarteTiled) {
-    Scene.load.image(CleTuiles, Url(CheminTuiles));
+    Scene.load.image(CleTuiles, UrlAntiCache(CheminTuiles));
 
     // Cle de cache = nom de la carte (pose par init()) et non une cle fixe,
     // pour que chaque carte ait sa propre entree apres un scene.restart(...).
-    Scene.load.tilemapTiledJSON(Scene.NomCarteActuelle, Url(`assets/maps/${Scene.NomCarteActuelle}.json`));
+    Scene.load.tilemapTiledJSON(Scene.NomCarteActuelle, UrlAntiCache(`assets/maps/${Scene.NomCarteActuelle}.json`));
 
-    Feuille(CleGare, CheminGare, TailleImageGare);
-    Feuille(CleHerbe, CheminHerbe, TailleImageHerbe);
-    Feuille(CleIconeInteraction, CheminIconeInteraction, TailleIconeInteraction);
-    Feuille(CleTele, CheminTele, TailleImageTele);
-    Feuille(CleTeleMort, CheminTeleMort, TailleImageTele);
+    ChargerFeuille(Scene, CleGare, CheminGare, TailleImageGare);
+    ChargerFeuille(Scene, CleHerbe, CheminHerbe, TailleImageHerbe);
+    ChargerFeuille(Scene, CleIconeInteraction, CheminIconeInteraction, TailleIconeInteraction);
 
     // Tous les PNJ connus (voir CreerPNJs), utilises ou non sur cette carte.
-    SpritesPNJConnus.forEach((p) => Feuille(p.Cle, p.Chemin, p.LargeurFrame, p.HauteurFrame));
+    SpritesPNJConnus.forEach((p) => ChargerFeuille(Scene, p.Cle, p.Chemin, p.LargeurFrame, p.HauteurFrame));
+
+    // Assets propres a la carte active (ex: la tele sur map-TEST-map1).
+    DeclencherHookCarte(Scene, 'precharger');
   }
 
   if (UtiliseSpritePersonnage) {
-    Feuille(ClePersonnage, CheminPersonnage, LargeurImagePersonnage, HauteurImagePersonnage);
+    ChargerFeuille(Scene, ClePersonnage, CheminPersonnage, LargeurImagePersonnage, HauteurImagePersonnage);
   }
 }
