@@ -76,8 +76,27 @@ function DeplacerHorizontalement(Scene, Entrees) {
 
   if (Entrees.Gauche || Entrees.Droite) {
     const VersGauche = Entrees.Gauche; // gauche prioritaire si les deux touches sont pressees
-    Corps.setVelocityX(VersGauche ? -VitesseMarchePersonnage : VitesseMarchePersonnage);
-    Scene.Orientation = VersGauche ? 'gauche' : 'droite';
+
+    let Vitesse;
+    if (VersGauche) {
+      Vitesse = -VitesseMarchePersonnage; // negatif = vers la gauche
+    } else {
+      Vitesse = VitesseMarchePersonnage;
+    }
+    Corps.setVelocityX(Vitesse);
+    // [appris] - Ecriture conditionnelle courte ("operateur ternaire").
+    // Forme : condition ? valeur_si_vrai : valeur_si_faux
+    // C'est le if/else juste au-dessus ramasse en une ligne, et ca RENVOIE
+    // une valeur (un if/else normal, non). Version courte de ce bloc-ci :
+    //   Corps.setVelocityX(VersGauche ? -VitesseMarchePersonnage : VitesseMarchePersonnage);
+    // "?" marque la fin de la condition, ":" separe les deux valeurs.
+
+    if (VersGauche) {
+      Scene.Orientation = 'gauche';
+    } else {
+      Scene.Orientation = 'droite';
+    }
+
     if (UtiliseSpritePersonnage) {
       Scene.Personnage.setFlipX(VersGauche);
       Scene.Personnage.anims.play('marche', true); // true : ne redemarre pas si deja en cours
@@ -112,7 +131,12 @@ function RythmerLesPas(Scene, Entrees, AuSol, TempsEcoule) {
 // Intensite de marche (fondu) + tangage du sprite. S'annulent tout seuls a
 // l'arret ou en l'air puisque l'intensite retombe a 0.
 function AppliquerRessentiMarche(Scene, Entrees, AuSol, Temps) {
-  const IntensiteVoulue = (Entrees.Gauche || Entrees.Droite) && AuSol ? 1 : 0;
+  let IntensiteVoulue;
+  if ((Entrees.Gauche || Entrees.Droite) && AuSol) {
+    IntensiteVoulue = 1; // le joueur marche au sol
+  } else {
+    IntensiteVoulue = 0; // immobile, ou en l'air
+  }
   Scene.IntensiteMarche = Phaser.Math.Linear(Scene.IntensiteMarche, IntensiteVoulue, VitesseFonduMarche);
 
   if (UtiliseSpritePersonnage) {
