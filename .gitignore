@@ -1,1 +1,10 @@
+# macOS
 .DS_Store
+
+# Tiled
+*.tiled-session
+*.autosave
+
+# Editeurs
+.vscode/
+.idea/

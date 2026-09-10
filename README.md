@@ -19,8 +19,8 @@ niveau au suivant.
 ## Apercu
 
 Le jeu tourne entierement dans le navigateur, sans etape de build ni
-dependance a installer : un fichier `index.html`, un fichier `game.js`, et
-des assets exportes depuis [Tiled](https://www.mapeditor.org/). Les cartes,
+dependance a installer : un fichier `index.html`, le code dans `src/game.js`,
+et des assets exportes depuis [Tiled](https://www.mapeditor.org/). Les cartes,
 les textes, les personnages non-joueurs et leurs dialogues sont tous
 definis depuis Tiled plutot que codes en dur, pour pouvoir faire evoluer le
 contenu du jeu sans toucher au code.
@@ -60,27 +60,40 @@ http://localhost:8765/?carte=enfance
 
 ```
 .
-├── index.html              Page d'entree du jeu
-├── game.js                 Toute la logique du jeu (scene, physique,
-│                            camera, dialogues, gare/train...)
-├── assets/
-│   ├── maps/                Cartes Tiled (.tmx sources + .json exportes)
-│   ├── tilesets/             Images de tuiles utilisees par les cartes
-│   ├── sprites/               Feuilles de sprites (personnage, herbe...)
-│   ├── font/                    Police utilisee pour les textes de zone
-│   └── UI/                        Elements d'interface (icone d'interaction)
+├── index.html                  Page d'entree du jeu
+├── src/
+│   └── game.js                 Toute la logique du jeu (scene, physique,
+│                                camera, dialogues, gare/train...)
+├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
+│   ├── maps/                    Cartes exportees depuis Tiled (.json)
+│   ├── tilesets/                Images de tuiles referencees par les cartes
+│   ├── sprites/
+│   │   ├── characters/          Feuilles de sprites des personnages
+│   │   ├── environment/         Herbe animee, train (gare)
+│   │   └── props/               Objets animes (ecrans tele...)
+│   ├── ui/                      Elements d'interface (icone d'interaction)
+│   ├── fonts/                   Polices (voir le @font-face d'index.html)
+│   └── audio/                   Reserve : les sons sont synthetises via Web Audio pour l'instant
+├── tiled/                       Sources d'edition, jamais chargees par le jeu
+│   ├── maps/                    Fichiers sources Tiled (.tmx)
+│   └── art-source/              Images de travail et tuiles pas encore utilisees
 ├── docs/
-│   └── index.html            Panel admin des issues, publie via GitHub Pages
+│   └── index.html              Panel admin des issues, publie via GitHub Pages
 └── .github/
-    └── ISSUE_TEMPLATE/       Formulaires de creation d'issue
+    └── ISSUE_TEMPLATE/         Formulaires de creation d'issue
 ```
+
+Regle : `assets/` ne contient que ce que le jeu charge reellement. Une image
+de tuiles reste dans `tiled/art-source/` tant qu'aucune carte ne l'utilise ;
+elle passe dans `assets/tilesets/` au moment ou on la branche.
 
 ## Cartes et niveaux
 
-Chaque carte est un fichier Tiled independant dans `assets/maps/`. Les
+Chaque carte est un fichier Tiled independant : la source `.tmx` dans
+`tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`. Les
 niveaux s'enchainent via la gare : arrive au bout d'une carte, le joueur
 prend un train qui charge la carte suivante (voir la constante
-`CarteSuivante` dans `game.js`). La position et la zone d'interaction de la
+`CarteSuivante` dans `src/game.js`). La position et la zone d'interaction de la
 gare ne sont pas codees en dur : elles sont recalculees depuis le calque
 `gare` de chaque carte, donc une nouvelle carte n'a qu'a poser ce calque
 pour que la gare fonctionne automatiquement.

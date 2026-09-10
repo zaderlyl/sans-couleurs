@@ -1,10 +1,16 @@
 // "Sans Couleurs" — prototype d'ouverture
 // Un personnage blanc, seul, avance sur une ligne droite dans un decor bicolore.
 //
-// ── Structure des assets, quand tu les auras ──────────────────────────────
-//   jeu/assets/tilesets/<nom>.png   -> l'image du tileset exportee depuis Tiled
-//   jeu/assets/maps/<nom>.json      -> la map, exportee via Tiled : File > Export As > JSON
-//   jeu/assets/sprites/<nom>.png    -> ta feuille de sprites (spritesheet) du personnage
+// ── Structure des assets ─────────────────────────────────────────────────
+//   assets/tilesets/<nom>.png          -> image de tileset referencee par une map
+//   assets/maps/<nom>.json             -> map exportee depuis Tiled (File > Export As > JSON)
+//   assets/sprites/characters/<nom>.png -> feuilles de sprites des personnages
+//   assets/sprites/environment/<nom>.png-> herbe animee, train (gare)
+//   assets/sprites/props/<nom>.png      -> objets animes (ecrans tele...)
+//   assets/ui/<nom>.png                -> elements d'interface (icone d'interaction)
+//   assets/fonts/<nom>.otf             -> polices (voir le @font-face d'index.html)
+//   Les sources d'edition (.tmx Tiled, images de travail) vivent dans tiled/,
+//   hors du dossier assets/ qui ne contient que ce qui est charge au runtime.
 //
 // Pour brancher chaque partie, passe le flag correspondant a true ci-dessous
 // et ajuste les constantes juste en dessous (chemins, noms, tailles de frame).
@@ -40,7 +46,7 @@ const NomCalqueSol = 'sol'; // le calque qui porte la collision — DOIT corresp
 
 // --- Spritesheet du personnage ---
 const ClePersonnage = 'personnage'; // nom interne, libre
-const CheminPersonnage = 'assets/sprites/player.png'; // chemin vers ta feuille de sprites
+const CheminPersonnage = 'assets/sprites/characters/player.png'; // chemin vers ta feuille de sprites
 const LargeurImagePersonnage = 16; // largeur en pixels d'une frame (player.png = 96x16 -> 6 frames de 16)
 const HauteurImagePersonnage = 16; // hauteur en pixels d'une frame
 // Repartition des 6 frames (indices 0 a 5) — voir animations plus bas :
@@ -87,7 +93,7 @@ const DecalageAnticipationCameraMax = 14; // pixels MONDE, decalage max
 // animated_grass, et on bascule sur la frame qui correspond au sens de
 // deplacement du joueur quand il passe a proximite.
 const CleHerbe = 'herbeAnimee';
-const CheminHerbe = 'assets/sprites/animated_grass.png';
+const CheminHerbe = 'assets/sprites/environment/animated_grass.png';
 const TailleImageHerbe = 16;
 const ImagesParVariante = 3; // statique, droite, gauche
 // Le GID de la variante 0 n'est PAS fixe ici : il change a chaque fois que
@@ -215,7 +221,7 @@ const TailleTuile = 16;
 // suivantes montrent le E qui eclate une fois la touche pressee, jouees une
 // fois — la sequence de la gare ne demarre qu'a la toute fin de cette anim.
 const CleIconeInteraction = 'iconeInteraction';
-const CheminIconeInteraction = 'assets/UI/E_animated.png';
+const CheminIconeInteraction = 'assets/ui/E_animated.png';
 const TailleIconeInteraction = 16;
 // Hauteur fixe au-dessus de la gare (this.PositionIconeInteractionX suit lui
 // la position de la gare de la carte active — voir plus haut).
@@ -224,7 +230,7 @@ const PositionIconeInteractionY = 80;
 // --- Spritesheet d'animation de la gare (gare.png) ---
 // Grille 8x8 = 64 frames de 256x256px, fond transparent, toutes remplies.
 const CleGare = 'animationGare';
-const CheminGare = 'assets/tilesets/gare.png';
+const CheminGare = 'assets/sprites/environment/gare.png';
 const TailleImageGare = 256;
 const NombreImagesGare = 64; // grille 8x8
 
@@ -308,7 +314,7 @@ const PositionIconeInteractionRetourY = 80; // meme hauteur au-dessus du sol que
 // entree ici pour chaque nouveau personnage, puis reference sa Cle depuis la
 // propriete "sprite" dans Tiled.
 const SpritesPNJConnus = [
-  { Cle: 'other_child', Chemin: 'assets/tilesets/other_child.png', LargeurFrame: 16, HauteurFrame: 16 },
+  { Cle: 'other_child', Chemin: 'assets/sprites/characters/other_child.png', LargeurFrame: 16, HauteurFrame: 16 },
 ];
 
 // --- Ecran de tele animee (tele.png) ---
@@ -320,7 +326,7 @@ const SpritesPNJConnus = [
 // pixels (16px par case) — un carre de 2x2 cases = 32x32px, exactement la
 // taille d'une frame.
 const CleTele = 'ecranTele';
-const CheminTele = 'assets/tilesets/tele.png';
+const CheminTele = 'assets/sprites/props/tele.png';
 const TailleImageTele = 32;
 const NombreImagesTele = 13; // frames reellement dessinees (0 a 12)
 const PositionTeleX = 2 * 16;
@@ -353,7 +359,7 @@ const DistanceSonTeleMax = 250;
 // Ecran "mort" affiche au 5e appui (voir DeclencherLignePlateTele) : 4x3 =
 // 12 frames de 32x32px, toutes dessinees, jouees en boucle lente.
 const CleTeleMort = 'ecranTeleMort';
-const CheminTeleMort = 'assets/tilesets/tele_death.png';
+const CheminTeleMort = 'assets/sprites/props/tele_death.png';
 const NombreImagesTeleMort = 12;
 
 // Icone d'interaction dediee a la tele (meme spritesheet/anims que celle de
@@ -390,7 +396,7 @@ const NomCoucheObjets = "Calque d'Objets 1"; // meme calque que l'objet "spawn"
 // police (multipliee par ZoomCamera a l'affichage) plutot qu'une police fine
 // qui deteindrait mal a ce niveau de zoom. Contour noir pour rester lisible
 // quel que soit le fond derriere.
-// Nom choisi dans le @font-face d'index.html (assets/font/) — pas forcement
+// Nom choisi dans le @font-face d'index.html (assets/fonts/) — pas forcement
 // le nom interne du fichier.
 const NomPoliceTexteDeZone = 'DeltaruneExtended';
 const StyleTexteDeZone = {
