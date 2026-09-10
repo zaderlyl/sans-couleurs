@@ -26,7 +26,6 @@ function PrechargerAssets(Scene) {
     Scene.load.tilemapTiledJSON(Scene.NomCarteActuelle, UrlAntiCache(`assets/maps/${Scene.NomCarteActuelle}.json`));
 
     ChargerFeuille(Scene, CleGare, CheminGare, TailleImageGare);
-    ChargerFeuille(Scene, CleHerbe, CheminHerbe, TailleImageHerbe);
     ChargerFeuille(Scene, CleIconeInteraction, CheminIconeInteraction, TailleIconeInteraction);
 
     // Tous les PNJ connus (voir CreerPNJs), utilises ou non sur cette carte.

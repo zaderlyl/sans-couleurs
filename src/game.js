@@ -41,38 +41,8 @@
 // n'ont pas les memes (ex: seule map-TEST-map1 a "derriere"), donc create()
 // verifie leur presence avant de s'en servir.
 
-// --- Herbe animee (animated_grass.png) ---
-// Les brins d'herbe sont des tuiles figees dans le calque "devant" (GID 33 a
-// 36 = les 4 variantes de grass.png, dans l'ordre). animated_grass.png
-// reprend le meme ordre de variantes, mais avec 3 frames chacune au lieu
-// d'une seule : [statique, penche a droite, penche a gauche]. On detecte la
-// variante d'une tuile via son GID, on retrouve son groupe de 3 frames dans
-// animated_grass, et on bascule sur la frame qui correspond au sens de
-// deplacement du joueur quand il passe a proximite.
-const CleHerbe = 'herbeAnimee';
-const CheminHerbe = 'assets/sprites/environment/animated_grass.png';
-const TailleImageHerbe = 16;
-const ImagesParVariante = 3; // statique, droite, gauche
-// Le GID de la variante 0 n'est PAS fixe ici : il change a chaque fois que
-// des tuiles sont ajoutees avant elle dans Tileset.png. Il est recalcule a
-// chaque partie dans CreerBrinsHerbe, a partir du plus petit GID reellement
-// present sur le calque "devant", plutot que d'etre code en dur (ce qui
-// obligeait a corriger cette constante a chaque reorganisation du tileset).
-const NombreVariantesHerbe = 4; // variantes valides : les 4 plus petits GID d'affilee sur "devant"
-const RayonReactionHerbe = 20; // distance (px monde) a partir de laquelle l'herbe reagit au joueur
-
-// --- Tunnel avec passage cache (calque "tunnel", purement visuel — pas de
-// collision) ---
-// Se dessine devant le joueur (depth elevee) pour cacher ce qu'il y a
-// derriere. Quand le joueur marche dans son emprise horizontale (donc
-// visuellement "derriere"), il s'estompe en fondu pour ne pas le cacher
-// completement, puis redevient opaque une fois le joueur ressorti.
-// Son emprise horizontale n'est PAS codee en dur : chaque carte peut la
-// placer differemment (voir CalculerBoitePixels, utilise dans create()),
-// donc calculee depuis les tuiles reellement posees sur ce calque plutot
-// que fixee pour une seule carte.
-const TunnelAlphaMin = 0.15; // jamais totalement invisible, pour qu'on voie encore qu'il est la
-const TunnelVitesseFondu = 0.08; // vitesse de transition vers l'alpha cible (par frame)
+// Herbe animee : feature src/js/features/herbe.js. Tunnel : feature
+// src/js/features/tunnel.js.
 
 // CalculerBoitePixels / CalculerBoiteTuiles / CalqueEstFlippe /
 // ValeurNombreTiled / ValeurBooleenneTiled : voir src/js/maps/cartes.js.
@@ -364,21 +334,8 @@ class ScenePrincipale extends Phaser.Scene {
       // par une feature (ex: la tele) gardent le meme ordre d'affichage.
       InstallerFeaturesCarte(this, { Carte, JeuDeTuiles });
 
-      // 'devant' n'est plus rendu comme un calque de tuiles figees : on lit
-      // ses positions pour y poser des sprites d'herbe individuels a la place
-      // (voir CreerBrinsHerbe), afin qu'ils puissent plier au passage du joueur.
-      this.CreerBrinsHerbe(Carte);
-
-      // Tunnel au premier plan avec passage cache : depth elevee pour se
-      // dessiner devant le joueur (voir MettreAJourTunnel pour le fondu).
-      // Son emprise horizontale (this.TunnelXMin/XMax) est calculee depuis
-      // les tuiles reellement posees sur ce calque plutot que codee en dur,
-      // puisqu'elle differe d'une carte a l'autre.
-      this.CalqueTunnel = Carte.createLayer('tunnel', JeuDeTuiles, 0, 0);
-      this.CalqueTunnel.setDepth(3);
-      const BoiteTunnel = CalculerBoitePixels(Carte, 'tunnel');
-      this.TunnelXMin = BoiteTunnel ? BoiteTunnel.XMin : 0;
-      this.TunnelXMax = BoiteTunnel ? BoiteTunnel.XMax : 0;
+      // (l'herbe du calque "devant" et le calque "tunnel" sont des features,
+      // installees par InstallerFeaturesCarte ci-dessus.)
 
       // Sprite anime de la gare : cache au depart, superpose a la mosaique
       // statique de tuiles et affiche uniquement pendant l'interaction (voir
@@ -722,9 +679,6 @@ class ScenePrincipale extends Phaser.Scene {
       this.AvancerPageDialogue();
     }
 
-    if (this.BrinsHerbe) this.MettreAJourHerbe();
-    if (this.CalqueTunnel) this.MettreAJourTunnel();
-
     // Aucun controle pendant le voyage en train (voir DemarrerSequenceGare)
     // ni pendant un dialogue PNJ (voir OuvrirDialoguePNJ) : le corps physique
     // est desactive, mais sans ce garde-fou les touches tenues enfoncees
@@ -948,84 +902,6 @@ class ScenePrincipale extends Phaser.Scene {
       Cible.x = PositionInitialeX;
       Cible.y = PositionInitialeY;
       ALaFin();
-    });
-  }
-
-  // Lit les positions/frames du calque "devant" de la map et pose DEUX
-  // sprites d'herbe superposes a chaque emplacement (au lieu de creer ce
-  // calque comme des tuiles figees) : "Avant" (visible) et "Arriere" (cache,
-  // alpha 0), utilises en alternance pour fondre d'une frame a l'autre dans
-  // animated_grass plutot que de changer brutalement (voir DefinirImageHerbe).
-  CreerBrinsHerbe(Carte) {
-    this.BrinsHerbe = [];
-
-    const DonneesCalque = Carte.getLayer('devant').data; // tableau 2D [ligne][colonne] de Tile
-
-    // Voir le commentaire sur NombreVariantesHerbe plus haut : ce GID bouge
-    // a chaque ajout de tuile dans Tileset.png, donc on le lit directement
-    // depuis la map plutot que de le figer dans une constante.
-    let IdentifiantDepartHerbe = Infinity;
-    for (const Ligne of DonneesCalque) {
-      for (const Tuile of Ligne) {
-        if (Tuile.index > 0 && Tuile.index < IdentifiantDepartHerbe) IdentifiantDepartHerbe = Tuile.index;
-      }
-    }
-
-    for (const Ligne of DonneesCalque) {
-      for (const Tuile of Ligne) {
-        if (Tuile.index <= 0) continue; // case vide
-
-        // Meme variante (0 a 3) que sur la tuile d'origine, mais chaque
-        // variante occupe maintenant 3 frames dans animated_grass.
-        const Variante = Tuile.index - IdentifiantDepartHerbe;
-        if (Variante < 0 || Variante >= NombreVariantesHerbe) continue; // tuile egaree (pas de l'herbe), on l'ignore
-        const ImageStatique = Variante * ImagesParVariante;
-
-        const Avant = this.add.sprite(Tuile.pixelX, Tuile.pixelY, CleHerbe, ImageStatique);
-        Avant.setOrigin(0, 0); // meme ancrage qu'une tuile, alignement pixel-perfect garanti
-        const Arriere = this.add.sprite(Tuile.pixelX, Tuile.pixelY, CleHerbe, ImageStatique);
-        Arriere.setOrigin(0, 0);
-        Arriere.setAlpha(0);
-        Arriere.setDepth(Avant.depth + 1);
-
-        this.BrinsHerbe.push({
-          Avant,
-          Arriere,
-          PositionX: Tuile.pixelX + TailleImageHerbe / 2,
-          ImageStatique,
-          ImageCible: ImageStatique,
-          DirectionActuelle: null, // null = debout, 'droite'/'gauche' = penche
-          AnimationFondu: null,
-        });
-      }
-    }
-  }
-
-  // Fait apparaitre `Image` en fondu (120ms) par-dessus la frame actuelle au
-  // lieu d'un changement instantane. Ne relance pas de fondu si `Image` est
-  // deja la cible en cours (evite de saccader si l'etat change tres vite).
-  DefinirImageHerbe(Brin, Image) {
-    if (Brin.ImageCible === Image) return;
-    Brin.ImageCible = Image;
-
-    if (Brin.AnimationFondu) Brin.AnimationFondu.stop();
-
-    Brin.Arriere.setFrame(Image);
-    Brin.Arriere.setAlpha(0);
-    Brin.Arriere.setDepth(Brin.Avant.depth + 1);
-
-    Brin.AnimationFondu = this.tweens.add({
-      targets: Brin.Arriere,
-      alpha: 1,
-      duration: 120,
-      onComplete: () => {
-        Brin.Arriere.setAlpha(1); // garantit l'etat final meme si le tween est interrompu/force
-        Brin.Avant.setAlpha(0);
-        const Temporaire = Brin.Avant;
-        Brin.Avant = Brin.Arriere;
-        Brin.Arriere = Temporaire;
-        Brin.AnimationFondu = null;
-      },
     });
   }
 
@@ -1396,44 +1272,7 @@ class ScenePrincipale extends Phaser.Scene {
     });
   }
 
-  // Un brin penche des que le joueur marche dessus, et le reste tant que le
-  // joueur reste sur sa tuile (meme s'il s'arrete de bouger) — il ne revient
-  // debout que lorsque le joueur quitte la tuile.
-  MettreAJourHerbe() {
-    const { Gauche: SeDeplaceAGauche, Droite: SeDeplaceADroite } = LireDeplacement(this);
-
-    for (const Brin of this.BrinsHerbe) {
-      const Distance = Math.abs(Brin.PositionX - this.Personnage.x);
-
-      if (Distance < RayonReactionHerbe) {
-        if (SeDeplaceADroite) Brin.DirectionActuelle = 'droite';
-        else if (SeDeplaceAGauche) Brin.DirectionActuelle = 'gauche';
-        // sinon : le joueur est toujours sur la tuile mais ne bouge pas,
-        // on garde le dernier sens connu (etat "soumis au deplacement")
-      } else {
-        Brin.DirectionActuelle = null; // le joueur a quitte la tuile
-      }
-
-      const Image =
-        Brin.DirectionActuelle === 'droite'
-          ? Brin.ImageStatique + 1
-          : Brin.DirectionActuelle === 'gauche'
-            ? Brin.ImageStatique + 2
-            : Brin.ImageStatique;
-
-      this.DefinirImageHerbe(Brin, Image);
-    }
-  }
-
-  // Fondu du tunnel selon la position horizontale du joueur : s'estompe des
-  // qu'il entre dans son emprise (pour ne pas le cacher), redevient opaque
-  // une fois ressorti. Phaser.Math.Linear avance doucement vers la cible au
-  // lieu d'un saut net.
-  MettreAJourTunnel() {
-    const DansLeTunnel = this.Personnage.x > this.TunnelXMin && this.Personnage.x < this.TunnelXMax;
-    const AlphaCible = DansLeTunnel ? TunnelAlphaMin : 1;
-    this.CalqueTunnel.alpha = Phaser.Math.Linear(this.CalqueTunnel.alpha, AlphaCible, TunnelVitesseFondu);
-  }
+  // (herbe et tunnel sont des features : src/js/features/herbe.js et tunnel.js)
 }
 
 // La configuration Phaser et le demarrage du jeu sont dans src/js/index.js
