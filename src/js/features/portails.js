@@ -45,6 +45,11 @@ export const Portails = {
 
     const Colonne = Math.floor(Scene.Personnage.x / TailleTuile);
     const Rangee = Math.floor(Scene.Personnage.y / TailleTuile);
+    // Lu UNE SEULE fois par frame : JustDown() consomme l'appui des le 1er
+    // appel (le "just" ne dure qu'une frame) — appele une fois par portail
+    // dans la boucle, il se faisait "manger" par le 1er duo de la liste avant
+    // meme d'atteindre celui ou le joueur se trouve reellement.
+    const ToucheVientDetrePressee = !Fige && Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction);
 
     for (const Portail of Scene.Portails) {
       const SurA = Colonne === Portail.A.Colonne && Rangee === Portail.A.Rangee;
@@ -53,11 +58,16 @@ export const Portails = {
       GererIconePortail(Scene, Portail.IconeA, SurA && !Fige);
       GererIconePortail(Scene, Portail.IconeB, SurB && !Fige);
 
-      if (Fige) continue;
-      if (!Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) continue;
+      if (!ToucheVientDetrePressee) continue;
 
-      if (SurA) DeclencherPortail(Scene, Portail.IconeA, Portail.B);
-      else if (SurB) DeclencherPortail(Scene, Portail.IconeB, Portail.A);
+      if (SurA) {
+        DeclencherPortail(Scene, Portail.IconeA, Portail.B);
+        break; // un seul voyage a la fois, inutile de tester les autres duos
+      }
+      if (SurB) {
+        DeclencherPortail(Scene, Portail.IconeB, Portail.A);
+        break;
+      }
     }
   },
 };

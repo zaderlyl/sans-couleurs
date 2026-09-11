@@ -21,10 +21,17 @@ EnregistrerCarte({
   nom: 'debut-college',
   // suivante: a definir quand l'enchainement des niveaux sera decide
   sortieGare: false, // on arrive en train, on ne repart pas (pas encore)
-  // Portail aller-retour (touche E) : (24,8) <-> (46,18).
-  // iconeEnBas : l'icone E se pose sous le joueur plutot qu'au-dessus.
+  // Portails aller-retour (touche E), meme logique pour chaque duo :
+  // iconeEnBas pose l'icone E sous le joueur plutot qu'au-dessus.
+  // (39,19) demande par le user corrige en (39,18) : (39,19) tombe en plein
+  // dans le sol (case solide), le joueur ne peut pas s'y tenir - (39,18) est
+  // la case juste au-dessus, comme tous les autres duos de cette carte.
   portails: [
     { colonneA: 24, rangeeA: 8, colonneB: 46, rangeeB: 18, iconeEnBas: true },
+    { colonneA: 39, rangeeA: 18, colonneB: 68, rangeeB: 18, iconeEnBas: true },
+    { colonneA: 76, rangeeA: 18, colonneB: 7, rangeeB: 18, iconeEnBas: true },
+    { colonneA: 16, rangeeA: 18, colonneB: 95, rangeeB: 18, iconeEnBas: true },
+    { colonneA: 89, rangeeA: 18, colonneB: 59, rangeeB: 8, iconeEnBas: true },
   ],
   features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ, Glitch],
 });
