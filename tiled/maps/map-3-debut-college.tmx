@@ -114,7 +114,7 @@
     <property name="name" value="glitch"/>
    </properties>
   </object>
-  <object id="10" x="549.389" y="203.671" width="104.946" height="103.403">
+  <object id="10" x="554.389" y="203.671" width="104.946" height="103.403">
    <properties>
     <property name="name" value="glitch"/>
    </properties>
@@ -124,7 +124,7 @@
     <property name="name" value="glitch"/>
    </properties>
   </object>
-  <object id="12" x="976.927" y="41.6699" width="331.816" height="103.403">
+  <object id="12" x="944.956" y="41.6699" width="171.961" height="103.403">
    <properties>
     <property name="name" value="glitch2"/>
    </properties>
