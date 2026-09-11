@@ -21,8 +21,9 @@ EnregistrerCarte({
   // suivante: a definir quand l'enchainement des niveaux sera decide
   sortieGare: false, // on arrive en train, on ne repart pas (pas encore)
   // Portail aller-retour (touche E) : (24,8) <-> (46,18).
+  // iconeEnBas : l'icone E se pose sous le joueur plutot qu'au-dessus.
   portails: [
-    { colonneA: 24, rangeeA: 8, colonneB: 46, rangeeB: 18 },
+    { colonneA: 24, rangeeA: 8, colonneB: 46, rangeeB: 18, iconeEnBas: true },
   ],
   features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ],
 });

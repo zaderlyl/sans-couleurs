@@ -7,7 +7,9 @@
 // de la meme facon.
 //
 // Une carte declare ses duos dans sa config :
-//   portails: [{ colonneA, rangeeA, colonneB, rangeeB }]
+//   portails: [{ colonneA, rangeeA, colonneB, rangeeB, iconeEnBas? }]
+// iconeEnBas (optionnel, false par defaut) : l'icone "E" se pose sous le
+// joueur au lieu d'au-dessus (utile si un plafond bas cache l'icone du dessus).
 
 import { ConfigCarte, TailleTuile } from '../maps/cartes.js';
 import { CreerIconeInteraction, TailleIconeInteraction } from '../icone-interaction.js';
@@ -25,8 +27,8 @@ export const Portails = {
     Scene.Portails = Config.map((Duo) => ({
       A: { Colonne: Duo.colonneA, Rangee: Duo.rangeeA },
       B: { Colonne: Duo.colonneB, Rangee: Duo.rangeeB },
-      IconeA: CreerIconePortail(Scene, Duo.colonneA, Duo.rangeeA),
-      IconeB: CreerIconePortail(Scene, Duo.colonneB, Duo.rangeeB),
+      IconeA: CreerIconePortail(Scene, Duo.colonneA, Duo.rangeeA, Duo.iconeEnBas),
+      IconeB: CreerIconePortail(Scene, Duo.colonneB, Duo.rangeeB, Duo.iconeEnBas),
     }));
     Scene.PortailEnCours = false; // verrou : un seul voyage a la fois
   },
@@ -63,13 +65,13 @@ export const Portails = {
 
 // --- Interne ------------------------------------------------------
 
-// Icone posee juste au-dessus de la case, cachee tant que le joueur n'y est pas.
-function CreerIconePortail(Scene, Colonne, Rangee) {
-  return CreerIconeInteraction(
-    Scene,
-    (Colonne + 0.5) * TailleTuile,
-    Rangee * TailleTuile - TailleIconeInteraction,
-  );
+// Icone au-dessus (par defaut) ou en-dessous (iconeEnBas) de la case, cachee
+// tant que le joueur n'y est pas.
+function CreerIconePortail(Scene, Colonne, Rangee, EnBas) {
+  const Y = EnBas
+    ? (Rangee + 1) * TailleTuile + TailleIconeInteraction // sous le sol, sous le joueur
+    : Rangee * TailleTuile - TailleIconeInteraction;      // au-dessus de la tete (comportement habituel)
+  return CreerIconeInteraction(Scene, (Colonne + 0.5) * TailleTuile, Y);
 }
 
 // Affiche/anime l'icone d'un point du duo selon si le joueur y est.
@@ -98,9 +100,15 @@ function DeclencherPortail(Scene, IconeDepart, Destination) {
         Destination.Rangee * TailleTuile,
       );
       Scene.Personnage.body.setVelocity(0, 0);
-      Scene.CameraDoitSauterEnX = true; // recadrage instantane, pas de glissement
+      // Recadrage instantane (X et Y) : sans ca, la camera glisserait
+      // doucement vers le joueur et le laisserait hors champ un instant
+      // (les 2 cases d'un portail peuvent etre tres eloignees).
+      Scene.CameraDoitSauter = true;
 
       Scene.cameras.main.fadeIn(DureeFonduPortail, 0, 0, 0);
+      Scene.cameras.main.once('camerafadeincomplete', () => {
+        Scene.CameraDoitSauter = false; // retour au suivi doux normal
+      });
       Scene.PortailEnCours = false;
     });
   });

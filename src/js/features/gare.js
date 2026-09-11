@@ -277,7 +277,7 @@ function DemarrerSequenceGare(Scene) {
           // Sortie de l'autre cote du tunnel de la MEME carte.
           Scene.SpriteGare.setVisible(false);
           Scene.Personnage.setPosition(Scene.PositionSortieTunnelX, Scene.PositionSortieTunnelY);
-          Scene.CameraDoitSauterEnX = true; // recadrage instantane
+          Scene.CameraDoitSauter = true; // recadrage instantane
 
           Scene.SpriteGare.setFlipX(!Scene.GareFlippee);
           Scene.SpriteGare.setPosition(Scene.PositionGareInverseeX, Scene.PositionGareInverseeY);
@@ -286,7 +286,7 @@ function DemarrerSequenceGare(Scene) {
           Scene.cameras.main.fadeIn(500, 0, 0, 0);
 
           Scene.SpriteGare.once('animationcomplete', () => {
-            Scene.CameraDoitSauterEnX = false;
+            Scene.CameraDoitSauter = false;
             Scene.SpriteGare.setFrame(0); // reste visible, fige (train a l'arret)
             DegelerJoueur(Scene);
             Scene.EtatGare = 'retourAttente'; // le joueur peut repartir
@@ -314,7 +314,7 @@ function DemarrerRetourGare(Scene) {
         Scene.cameras.main.once('camerafadeoutcomplete', () => {
           Scene.SpriteGare.setVisible(false);
           Scene.Personnage.setPosition(Scene.PositionAvantVoyage.x, Scene.PositionAvantVoyage.y);
-          Scene.CameraDoitSauterEnX = true;
+          Scene.CameraDoitSauter = true;
 
           Scene.SpriteGare.setFlipX(Scene.GareFlippee); // sprite a l'endroit
           Scene.SpriteGare.setPosition(Scene.PositionGareX, Scene.PositionGareY);
@@ -323,7 +323,7 @@ function DemarrerRetourGare(Scene) {
           Scene.cameras.main.fadeIn(500, 0, 0, 0);
 
           Scene.SpriteGare.once('animationcomplete', () => {
-            Scene.CameraDoitSauterEnX = false;
+            Scene.CameraDoitSauter = false;
             Scene.SpriteGare.setFrame(0);
             DegelerJoueur(Scene);
             Scene.EtatGare = 'attente'; // un nouvel aller est possible

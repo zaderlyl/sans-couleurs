@@ -147,11 +147,12 @@ export class SceneJeu extends Phaser.Scene {
     // ET scrollY chaque frame evite ce probleme une bonne fois pour toutes.
     this.HauteurMondeCarte = HauteurMonde;
     this.LargeurMondeCarte = LargeurMonde;
-    // true force un recadrage horizontal instantane dans MettreAJourCamera
+    // true force un recadrage instantane (X et Y) dans MettreAJourCamera
     // (utilise pendant le voyage en train, voir
-    // DemarrerSequenceGare/DemarrerRetourGare) ; remis a false une fois
-    // arrive pour retrouver le suivi doux normal.
-    this.CameraDoitSauterEnX = false;
+    // DemarrerSequenceGare/DemarrerRetourGare, et pendant un portail E, voir
+    // features/portails.js) ; remis a false une fois arrive pour retrouver
+    // le suivi doux normal.
+    this.CameraDoitSauter = false;
 
     // Entrees clavier : voir InstallerControles dans src/js/controle.js.
     InstallerControles(this);
