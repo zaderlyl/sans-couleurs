@@ -109,6 +109,11 @@ export class SceneJeu extends Phaser.Scene {
       const PointDepart = Carte.findObject("Calque d'Objets 1", (Objet) => Objet.name === 'spawn');
       PositionDepartX = PointDepart ? PointDepart.x : 250;
       PositionDepartY = PointDepart ? PointDepart.y : 120;
+      // Garde le VRAI point de spawn (avant l'eventuel decalage "arrivee en
+      // train" ci-dessous) : sert p.ex. a la feature glitch pour renvoyer le
+      // joueur au debut de la carte quand l'effet devient trop fort.
+      this.PositionSpawnX = PositionDepartX;
+      this.PositionSpawnY = PositionDepartY;
 
       // Arrivee en train : le joueur apparait sur le bloc "gare" de cette
       // carte (this.PositionArriveeX/Y, pose par la feature gare) plutot qu'au
