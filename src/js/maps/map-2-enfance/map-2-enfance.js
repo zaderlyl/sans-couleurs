@@ -6,6 +6,7 @@ import { TextesDeZone } from '../../features/textes-de-zone.js';
 import { Herbe } from '../../features/herbe.js';
 import { Tunnel } from '../../features/tunnel.js';
 import { Teleportation } from '../../features/teleportation.js';
+import { Portails } from '../../features/portails.js';
 import { DialoguePNJ } from '../../features/dialogue-pnj.js';
 
 EnregistrerCarte({
@@ -17,5 +18,5 @@ EnregistrerCarte({
   teleportations: [
     { colonne: 51, rangee: 9, versCarte: 'map-3-debut-college', arrivee: true },
   ],
-  features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, DialoguePNJ],
+  features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ],
 });
