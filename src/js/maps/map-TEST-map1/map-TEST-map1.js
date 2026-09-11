@@ -12,6 +12,7 @@ import { Herbe } from '../../features/herbe.js';
 import { Tunnel } from '../../features/tunnel.js';
 import { Teleportation } from '../../features/teleportation.js';
 import { Portails } from '../../features/portails.js';
+import { Glitch } from '../../features/glitch.js';
 import { DialoguePNJ } from '../../features/dialogue-pnj.js';
 import { Tele } from '../../features/tele.js';
 
@@ -20,5 +21,5 @@ EnregistrerCarte({
   numero: 'TEST',
   nom: 'map1',
   // pas de carte suivante
-  features: [Gare, TextesDeZone, Tele, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ],
+  features: [Gare, TextesDeZone, Tele, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ, Glitch],
 });

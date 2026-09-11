@@ -12,6 +12,7 @@ import { Herbe } from '../../features/herbe.js';
 import { Tunnel } from '../../features/tunnel.js';
 import { Teleportation } from '../../features/teleportation.js';
 import { Portails } from '../../features/portails.js';
+import { Glitch } from '../../features/glitch.js';
 import { DialoguePNJ } from '../../features/dialogue-pnj.js';
 
 EnregistrerCarte({
@@ -25,5 +26,5 @@ EnregistrerCarte({
   portails: [
     { colonneA: 24, rangeeA: 8, colonneB: 46, rangeeB: 18, iconeEnBas: true },
   ],
-  features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ],
+  features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ, Glitch],
 });
