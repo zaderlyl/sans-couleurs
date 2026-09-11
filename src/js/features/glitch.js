@@ -11,11 +11,10 @@
 import { NomCoucheObjets } from '../maps/cartes.js';
 
 const CleTextureBruit = 'bruitGlitch';
-// Basse def puis agrandie a la taille de l'ecran : avec pixelArt: true (rendu
-// NEAREST, voir index.js), chaque pixel de la texture devient un gros bloc
-// net a l'ecran — l'aspect "gros pixels colores" d'un ecran qui grésille.
-const LargeurTextureBruit = 64;
-const HauteurTextureBruit = 48;
+// Palette de bandes de "dechirure" (voir RafraichirBruit) : des couleurs
+// franches et satures, pas des teintes ternes — c'est ce qui lit comme un
+// vrai signal qui deconne plutot que de la simple neige.
+const CouleursBandes = ['#ff0040', '#00ffea', '#39ff14', '#ff00ff', '#ffffff', '#ffe600'];
 
 // Intensite (0..1) : le temps pour monter au max en restant dans une zone,
 // et pour redescendre a 0 en sortant (plus rapide -> transition legere mais
@@ -26,6 +25,10 @@ const OpaciteMin = 0.12;   // a peine visible en entrant : la montee doit se sen
 const OpaciteMax = 0.85;   // presque aveuglant juste avant le retour au spawn
 const IntervalleRafraichissementMin = 90; // ms entre 2 images de bruit, intensite 0
 const IntervalleRafraichissementMax = 25; // ms entre 2 images de bruit, intensite 1 (saccade)
+const DensiteGrainMin = 0.06; // part de pixels "allumes" dans le grain fin, intensite 0
+const DensiteGrainMax = 0.35; // ... intensite 1
+const NombreBandesMin = 1; // bandes de dechirure horizontales, intensite 0
+const NombreBandesMax = 7; // ... intensite 1
 const DureeFonduRetourSpawn = 350;
 
 
@@ -37,10 +40,10 @@ export const Glitch = {
     Scene.IntensiteGlitch = 0; // 0 (rien) a 1 (renvoi au spawn)
     Scene.MinuteurBruitGlitch = 0;
     Scene.GlitchRenvoiEnCours = false;
+    Scene.TailleTextureGlitch = null; // { Largeur, Hauteur } de la derniere texture creee
     if (Scene.ZonesGlitch.length === 0) return; // carte sans glitch : rien a poser
 
-    CreerTextureBruit(Scene);
-    Scene.SpriteGlitch = Scene.add.image(0, 0, CleTextureBruit);
+    Scene.SpriteGlitch = Scene.add.image(0, 0, '__DEFAULT'); // texture reelle posee au 1er RafraichirBruit
     Scene.SpriteGlitch.setOrigin(0, 0);
     Scene.SpriteGlitch.setDepth(1000); // au-dessus de tout (perso, herbe, icones...)
     Scene.SpriteGlitch.setVisible(false);
@@ -117,34 +120,78 @@ function PositionnerSurCamera(Scene, GameObject) {
   GameObject.setDisplaySize(LargeurVueMonde, HauteurVueMonde);
 }
 
-// Texture canvas creee une fois par scene ; RafraichirBruit() la redessine
-// avec de nouveaux pixels aleatoires a chaque "image" de bruit.
-function CreerTextureBruit(Scene) {
-  if (Scene.textures.exists(CleTextureBruit)) Scene.textures.remove(CleTextureBruit);
-  Scene.textures.createCanvas(CleTextureBruit, LargeurTextureBruit, HauteurTextureBruit);
+// Un texel de bruit = un pixel du MONDE (pas de l'ecran) : a ce zoom, ça
+// donne le meme grain que les sprites du jeu (gros pixels nets, mais pas plus
+// gros qu'eux) — c'est ce qui evite l'effet "mur de gros cubes" d'une texture
+// trop basse def etiree sur tout l'ecran.
+function TailleTextureVoulue(Scene) {
+  const Cam = Scene.cameras.main;
+  return {
+    Largeur: Math.max(1, Math.ceil(Cam.width / Cam.zoom)),
+    Hauteur: Math.max(1, Math.ceil(Cam.height / Cam.zoom)),
+  };
 }
 
-// Remplit la texture de pixels rouge/vert/bleu independants (pas du gris :
-// c'est ça qui donne l'aspect "colore" plutot que la neige classique). L'opacite
-// du voile suit l'intensite (montee/descente douce), avec un peu de tremblement
-// autour — d'autant plus fort que l'intensite est haute.
-function RafraichirBruit(Scene) {
-  const Texture = Scene.textures.get(CleTextureBruit);
-  const Contexte = Texture.getContext();
-  const Image = Contexte.createImageData(LargeurTextureBruit, HauteurTextureBruit);
+// (Re)cree la texture canvas seulement si sa taille a change (redimensionner
+// la fenetre change LargeurVueMonde/HauteurVueMonde) — evite de la recreer a
+// chaque rafraichissement de bruit (25 a 40 fois par seconde).
+function TextureGlitchAJour(Scene) {
+  const Taille = TailleTextureVoulue(Scene);
+  const Actuelle = Scene.TailleTextureGlitch;
+  if (Actuelle && Actuelle.Largeur === Taille.Largeur && Actuelle.Hauteur === Taille.Hauteur) {
+    return Scene.textures.get(CleTextureBruit);
+  }
 
+  if (Scene.textures.exists(CleTextureBruit)) Scene.textures.remove(CleTextureBruit);
+  const Texture = Scene.textures.createCanvas(CleTextureBruit, Taille.Largeur, Taille.Hauteur);
+  Scene.TailleTextureGlitch = Taille;
+  Scene.SpriteGlitch.setTexture(CleTextureBruit);
+  return Texture;
+}
+
+// Redessine la texture : un grain fin de pixels RVB epars (pas un pixel sur
+// un, sinon ça redevient un bloc plein) + quelques bandes horizontales pleine
+// couleur decalees, comme une image qui dechire — les deux s'intensifient
+// avec Scene.IntensiteGlitch. L'opacite globale du voile suit aussi la meme
+// intensite, avec un peu de tremblement pour un effet instable.
+function RafraichirBruit(Scene) {
+  const Texture = TextureGlitchAJour(Scene);
+  const { Largeur, Hauteur } = Scene.TailleTextureGlitch;
+  const Contexte = Texture.getContext();
+  const Intensite = Scene.IntensiteGlitch;
+
+  Contexte.clearRect(0, 0, Largeur, Hauteur);
+
+  // Grain fin : pixel par pixel, mais seulement une fraction d'entre eux —
+  // le reste reste transparent (voir l'ecran a travers), comme une vraie
+  // neige de recepteur plutot qu'un aplat.
+  const Densite = Phaser.Math.Linear(DensiteGrainMin, DensiteGrainMax, Intensite);
+  const Image = Contexte.createImageData(Largeur, Hauteur);
   for (let i = 0; i < Image.data.length; i += 4) {
+    if (Math.random() >= Densite) continue; // pixel laisse transparent
     Image.data[i] = Phaser.Math.Between(0, 255);     // rouge
     Image.data[i + 1] = Phaser.Math.Between(0, 255); // vert
     Image.data[i + 2] = Phaser.Math.Between(0, 255); // bleu
-    Image.data[i + 3] = 255;                         // alpha du pixel (l'opacite globale est sur le sprite)
+    Image.data[i + 3] = 255;
+  }
+  Contexte.putImageData(Image, 0, 0);
+
+  // Bandes de dechirure : quelques lignes fines, sur un segment horizontal
+  // aleatoire (pas forcement toute la largeur), en couleur vive et pleine.
+  const NombreBandes = Math.round(Phaser.Math.Linear(NombreBandesMin, NombreBandesMax, Intensite));
+  for (let i = 0; i < NombreBandes; i++) {
+    const HauteurBande = Phaser.Math.Between(1, 2);
+    const Y = Phaser.Math.Between(0, Math.max(0, Hauteur - HauteurBande));
+    const LargeurBande = Phaser.Math.Between(Math.round(Largeur * 0.15), Largeur);
+    const X = Phaser.Math.Between(-Math.round(LargeurBande * 0.3), Largeur - Math.round(LargeurBande * 0.7));
+    Contexte.fillStyle = CouleursBandes[Phaser.Math.Between(0, CouleursBandes.length - 1)];
+    Contexte.fillRect(X, Y, LargeurBande, HauteurBande);
   }
 
-  Contexte.putImageData(Image, 0, 0);
   Texture.refresh();
 
-  const OpaciteCentrale = Phaser.Math.Linear(OpaciteMin, OpaciteMax, Scene.IntensiteGlitch);
-  const Tremblement = 0.15 * Scene.IntensiteGlitch;
+  const OpaciteCentrale = Phaser.Math.Linear(OpaciteMin, OpaciteMax, Intensite);
+  const Tremblement = 0.15 * Intensite;
   Scene.SpriteGlitch.setAlpha(
     Phaser.Math.Clamp(OpaciteCentrale + Phaser.Math.FloatBetween(-Tremblement, Tremblement), 0, 1),
   );
