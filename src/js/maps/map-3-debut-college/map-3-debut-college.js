@@ -26,9 +26,10 @@ EnregistrerCarte({
   // (39,19) demande par le user corrige en (39,18) : (39,19) tombe en plein
   // dans le sol (case solide), le joueur ne peut pas s'y tenir - (39,18) est
   // la case juste au-dessus, comme tous les autres duos de cette carte.
-  // (93,15) : rien au sol juste en dessous a cet endroit (petite fosse) -
-  // le joueur y tombera un instant avant d'atterrir sur le vrai sol (pas
-  // bloquant, juste une petite chute a l'arrivee - ajuster si non voulu).
+  // (93,15) corrige en (93,18) : c'etait la seule sortie posee sur une case
+  // sans le meme sol en dessous que toutes les autres (une petite fosse a cet
+  // endroit) - (93,18) est la case valide la plus proche avec le meme sol,
+  // pas deja prise par un autre duo.
   portails: [
     { colonneA: 24, rangeeA: 8, colonneB: 46, rangeeB: 18, iconeEnBas: true },
     { colonneA: 39, rangeeA: 18, colonneB: 68, rangeeB: 18, iconeEnBas: true },
@@ -39,7 +40,7 @@ EnregistrerCarte({
     { colonneA: 0, rangeeA: 18, colonneB: 12, rangeeB: 8, iconeEnBas: true },
     { colonneA: 12, rangeeA: 18, colonneB: 40, rangeeB: 18, iconeEnBas: true },
     { colonneA: 64, rangeeA: 18, colonneB: 33, rangeeB: 18, iconeEnBas: true },
-    { colonneA: 41, rangeeA: 8, colonneB: 93, rangeeB: 15, iconeEnBas: true },
+    { colonneA: 41, rangeeA: 8, colonneB: 93, rangeeB: 18, iconeEnBas: true },
     { colonneA: 8, rangeeA: 18, colonneB: 45, rangeeB: 8, iconeEnBas: true },
   ],
   features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ, Glitch],
