@@ -15,8 +15,10 @@ EnregistrerCarte({
   nom: 'enfance',
   // pas de carte suivante en train pour l'instant
   // Passage vers le college : le joueur marche jusqu'a la case (51, 9).
+  // arrivee: false (par defaut) -> arrive au point "spawn" du college, pas
+  // sur la gare (pas d'anim de train pour ce passage-la).
   teleportations: [
-    { colonne: 51, rangee: 9, versCarte: 'map-3-debut-college', arrivee: true },
+    { colonne: 51, rangee: 9, versCarte: 'map-3-debut-college' },
   ],
   features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ],
 });
