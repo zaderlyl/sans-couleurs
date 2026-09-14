@@ -22,8 +22,9 @@ export const Teleportation = {
   miseAJour(Scene) {
     if (Scene.TeleportationEnCours) return;
     if (Scene.Teleportations.length === 0) return;
-    // Pas pendant une sequence de gare ou un dialogue (joueur fige).
-    if (Scene.EtatGare === 'enCours' || Scene.DialogueOuvert) return;
+    // Pas pendant une sequence de gare, un dialogue, ou l'ecran de fin d'un
+    // glitch2 (joueur fige).
+    if (Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || Scene.GlitchEtatFin) return;
 
     const Colonne = Math.floor(Scene.Personnage.x / TailleTuile);
     const Rangee = Math.floor(Scene.Personnage.y / TailleTuile);

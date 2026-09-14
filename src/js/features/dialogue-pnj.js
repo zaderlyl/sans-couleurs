@@ -50,6 +50,9 @@ export const DialoguePNJ = {
   },
 
   miseAJour(Scene) {
+    // Pas d'interaction PNJ pendant l'ecran de fin d'un glitch2 (joueur fige).
+    if (Scene.GlitchEtatFin) return;
+
     // Icone qui suit + E pour lancer. Aucun PNJ ne reagit si un dialogue est
     // deja ouvert.
     if (Scene.PNJs && !Scene.DialogueOuvert) {

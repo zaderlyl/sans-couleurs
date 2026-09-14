@@ -40,8 +40,10 @@ export const Portails = {
     // avec "iconeAttente" entre-temps (le joueur est encore sur la case de
     // depart jusqu'a la fin du fondu).
     if (Scene.PortailEnCours) return;
-    // Pas de portail pendant un voyage en train ou un dialogue (joueur fige).
-    const Fige = Scene.EtatGare === 'enCours' || Scene.DialogueOuvert;
+    // Pas de portail pendant un voyage en train, un dialogue, ou l'ecran de
+    // fin d'un glitch2 (joueur fige) — sans ce garde-fou, la lecture de E
+    // ci-dessous "mangerait" l'appui avant meme que ces sequences le lisent.
+    const Fige = Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || !!Scene.GlitchEtatFin;
 
     const Colonne = Math.floor(Scene.Personnage.x / TailleTuile);
     const Rangee = Math.floor(Scene.Personnage.y / TailleTuile);

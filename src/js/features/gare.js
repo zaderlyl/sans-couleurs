@@ -102,6 +102,8 @@ export const Gare = {
 
   miseAJour(Scene) {
     if (!Scene.CalqueGare) return;
+    // Pas d'interaction gare pendant l'ecran de fin d'un glitch2 (joueur fige).
+    if (Scene.GlitchEtatFin) return;
 
     // Interaction gare : icone qui suit dans la zone, E pour lancer. La
     // sequence ne demarre qu'a la fin de l'anim "E qui eclate", mais on passe

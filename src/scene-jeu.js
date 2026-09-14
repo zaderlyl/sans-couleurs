@@ -184,10 +184,12 @@ export class SceneJeu extends Phaser.Scene {
     MettreAJourFeaturesCarte(this, Temps, TempsEcoule);
 
     // Aucun controle pendant le voyage en train (this.EtatGare, pose par la
-    // feature gare) ni pendant un dialogue PNJ (this.DialogueOuvert) : le
-    // corps physique est desactive, mais sans ce garde-fou les touches
-    // tenues continueraient a jouer des bruits de pas sur un personnage fige.
-    if (this.EtatGare !== 'enCours' && !this.DialogueOuvert) {
+    // feature gare), un dialogue PNJ (this.DialogueOuvert), ni l'ecran de fin
+    // provoque par un glitch2 a fond (this.GlitchEtatFin, pose par la feature
+    // glitch) : le corps physique est desactive, mais sans ce garde-fou les
+    // touches tenues continueraient a jouer des bruits de pas sur un
+    // personnage fige.
+    if (this.EtatGare !== 'enCours' && !this.DialogueOuvert && !this.GlitchEtatFin) {
       MettreAJourDeplacement(this, Temps, TempsEcoule);
     }
   }
