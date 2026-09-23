@@ -98,10 +98,13 @@ export const Gare = {
     // jamais (points opposes de la carte), donc pas de risque de conflit.
     // Cible : le train lui-meme (Scene.SpriteGare), pas la petite icone —
     // meme sprite repositionne pour le depart et le retour, mais toujours
-    // au bon endroit vu qu'un seul des deux est actif a la fois.
+    // au bon endroit vu qu'un seul des deux est actif a la fois. Le cadre de
+    // l'image (256x256) est bien plus grand que le train dessine dedans ->
+    // EchelleSurvol retrecit la zone de survol pour coller au dessin utile.
     EnregistrerInteractionSouris(Scene, {
       Zone: Scene.ZoneGare,
       Cible: Scene.SpriteGare,
+      EchelleSurvol: 0.4,
       Icone: Scene.IconeInteraction,
       EstActive: () => Scene.EtatGare === 'attente' && Scene.SortieGareActive,
       OnDeclenchement: () => {
@@ -112,6 +115,7 @@ export const Gare = {
     EnregistrerInteractionSouris(Scene, {
       Zone: Scene.ZoneRetour,
       Cible: Scene.SpriteGare,
+      EchelleSurvol: 0.4,
       Icone: Scene.IconeInteractionRetour,
       EstActive: () => Scene.EtatGare === 'retourAttente',
       OnDeclenchement: () => {

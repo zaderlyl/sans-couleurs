@@ -26,6 +26,10 @@
 //   - EstActive (optionnel) : d'autres conditions a verifier avant de
 //                proposer l'interaction (ex: la gare n'est utilisable que
 //                dans l'etat 'attente') — par defaut toujours active
+//   - EchelleSurvol (optionnel, 1 par defaut) : retrecit la zone de survol
+//                autour du centre de la Cible (0.5 = moitie moins large/haute).
+//                Utile quand le sprite a une grosse marge transparente autour
+//                du dessin utile (ex: le train de la gare, cadre 256x256).
 //
 // Ce module se charge ensuite, une fois par frame pour tout le monde, de :
 // trouver quel point est survole (peu importe la distance du joueur — seule
@@ -51,13 +55,14 @@ export function InstallerInteractionSouris(Scene) {
   });
 }
 
-export function EnregistrerInteractionSouris(Scene, { Zone, Cible, Icone, OnDeclenchement, EstActive }) {
+export function EnregistrerInteractionSouris(Scene, { Zone, Cible, Icone, OnDeclenchement, EstActive, EchelleSurvol }) {
   Scene.InteractionsSouris.push({
     Zone,
     Cible,
     Icone,
     OnDeclenchement,
     EstActive: EstActive || (() => true),
+    EchelleSurvol: EchelleSurvol || 1,
     EnCours: false, // verrou pendant l'anim "E qui eclate", entre le clic et OnDeclenchement
   });
 }
@@ -77,6 +82,19 @@ function EstDetruit(Objet) {
 function BornesSurvol(Cible) {
   if (typeof Cible.getBounds === 'function') return Cible.getBounds();
   return new Phaser.Geom.Rectangle(Cible.XMin, Cible.YMin, Cible.XMax - Cible.XMin, Cible.YMax - Cible.YMin);
+}
+
+// Retrecit `Rect` autour de son propre centre (1 = inchange, 0.5 = moitie
+// moins large/haute). Modifie `Rect` en place, comme Phaser.Geom.Rectangle.Inflate.
+function RetrecirSurCentre(Rect, Echelle) {
+  if (Echelle === 1) return Rect;
+  const CentreX = Rect.centerX;
+  const CentreY = Rect.centerY;
+  Rect.width *= Echelle;
+  Rect.height *= Echelle;
+  Rect.x = CentreX - Rect.width / 2;
+  Rect.y = CentreY - Rect.height / 2;
+  return Rect;
 }
 
 // A appeler une fois par frame (scene-jeu.js). Gele tout (rien de survole,
@@ -113,6 +131,7 @@ export function MettreAJourInteractionsSouris(Scene) {
     }
 
     const Bornes = BornesSurvol(Interaction.Cible);
+    RetrecirSurCentre(Bornes, Interaction.EchelleSurvol);
     Phaser.Geom.Rectangle.Inflate(Bornes, MargeSurvol, MargeSurvol);
     const Survolee = Phaser.Geom.Rectangle.Contains(Bornes, PointMonde.x, PointMonde.y);
     if (!Survolee) {
