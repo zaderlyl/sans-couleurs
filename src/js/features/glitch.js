@@ -8,9 +8,10 @@
 // pareil pour la montee (passer de l'une a l'autre ne coupe rien), seul le
 // type de la zone ou le joueur se trouve QUAND l'intensite atteint 1 change
 // ce qui se passe ensuite :
-//   - "glitch"  -> le glitch "avale" le joueur, retour au spawn de la carte.
-//   - "glitch2" -> ecran noir, texte (placeholder, a ecrire), puis E pour
-//     continuer vers la carte suivante (CleCarteApresGlitch2 ci-dessous).
+//   - "glitch"  -> le glitch "avale" le joueur, retour au spawn de la carte,
+//     sans coupure (pas d'ecran de mort).
+//   - "glitch2" -> le joueur "meurt" : ecran noir, texte (placeholder, a
+//     ecrire), puis E pour reapparaitre au spawn de LA MEME carte.
 
 import { NomCoucheObjets } from '../maps/cartes.js';
 import { NomPoliceTexteDeZone } from '../config.js';
@@ -36,13 +37,12 @@ const NombreBandesMin = 1; // bandes de dechirure horizontales, intensite 0
 const NombreBandesMax = 7; // ... intensite 1
 const DureeFonduRetourSpawn = 350;
 
-// --- Fin "glitch2" : ecran noir + texte + E pour continuer ---------
-// TODO : carte et texte definitifs pas encore decides (voir map-4-a-definir/).
-const CleCarteApresGlitch2 = 'map-4-a-definir';
-const DureeFonduFinGlitch2 = 500;
-const TextePlaceholderFinGlitch2 =
-  '[ SIGNAL PERDU ]\n\n( texte a definir )\n\nAppuie sur E pour continuer';
-const StyleTextePlaceholderFinGlitch2 = {
+// --- Mort "glitch2" : ecran noir + texte + E pour reapparaitre -----
+// TODO : texte definitif pas encore decide.
+const DureeFonduMortGlitch2 = 500;
+const TextePlaceholderMortGlitch2 =
+  '[ SIGNAL PERDU ]\n\n( texte a definir )\n\nAppuie sur E pour reapparaitre';
+const StyleTextePlaceholderMortGlitch2 = {
   fontFamily: `'${NomPoliceTexteDeZone}', monospace`,
   fontSize: '10px',
   color: '#ffffff',
@@ -63,8 +63,8 @@ export const Glitch = {
     Scene.GlitchRenvoiEnCours = false;
     Scene.GlitchEtatFin = null; // null | 'enCours' (fondu) | 'attente' (E pour continuer)
     Scene.TailleTextureGlitch = null; // { Largeur, Hauteur } de la derniere texture creee
-    Scene.FondEcranFinGlitch2 = null;
-    Scene.TextePlaceholderFinGlitch2 = null;
+    Scene.FondEcranMortGlitch2 = null;
+    Scene.TextePlaceholderMortGlitch2 = null;
     if (Scene.ZonesGlitch.length === 0) return; // carte sans glitch : rien a poser
 
     Scene.SpriteGlitch = Scene.add.image(0, 0, '__DEFAULT'); // texture reelle posee au 1er RafraichirBruit
@@ -77,10 +77,10 @@ export const Glitch = {
   miseAJour(Scene, Temps, TempsEcoule) {
     if (Scene.ZonesGlitch.length === 0) return;
 
-    // Ecran de fin glitch2 : plus rien d'autre a faire tant qu'on attend le E.
+    // Ecran de mort glitch2 : plus rien d'autre a faire tant qu'on attend le E.
     if (Scene.GlitchEtatFin === 'attente') {
       if (Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) {
-        ContinuerApresGlitch2(Scene);
+        RespawnApresMortGlitch2(Scene);
       }
       return;
     }
@@ -104,7 +104,7 @@ export const Glitch = {
     }
 
     if (Scene.IntensiteGlitch >= 1) {
-      if (Scene.TypeZoneGlitchActuelle === 'glitch2') DeclencherFinGlitch2(Scene);
+      if (Scene.TypeZoneGlitchActuelle === 'glitch2') DeclencherMortGlitch2(Scene);
       else RenvoyerAuSpawn(Scene);
       return;
     }
@@ -234,7 +234,7 @@ function RafraichirBruit(Scene) {
 }
 
 // Fige le joueur (invisible, corps desactive) — reutilise par les 2 issues
-// possibles de la pleine intensite (RenvoyerAuSpawn / DeclencherFinGlitch2).
+// possibles de la pleine intensite (RenvoyerAuSpawn / DeclencherMortGlitch2).
 function GelerJoueur(Scene) {
   Scene.Personnage.setVisible(false);
   Scene.Personnage.body.setVelocity(0, 0);
@@ -265,17 +265,17 @@ function RenvoyerAuSpawn(Scene) {
   });
 }
 
-// Intensite au maximum dans une zone "glitch2" : fondu au noir (pas de flash
-// blanc, contrairement au retour au spawn — ça ne "recommence" pas, ça
-// bascule ailleurs), texte plein ecran, puis E pour repartir sur la carte
-// suivante (CleCarteApresGlitch2 — a construire dans Tiled, voir map-4-a-definir/).
-function DeclencherFinGlitch2(Scene) {
+// Intensite au maximum dans une zone "glitch2" : le joueur "meurt" — fondu
+// au noir (pas de flash blanc, contrairement au retour au spawn — ça ne
+// "continue" pas discretement, ça marque un coup d'arret), texte plein
+// ecran, puis E pour reapparaitre au spawn de LA MEME carte.
+function DeclencherMortGlitch2(Scene) {
   Scene.GlitchEtatFin = 'enCours';
   Scene.IntensiteGlitch = 0;
   Scene.SpriteGlitch.setVisible(false);
   GelerJoueur(Scene);
 
-  Scene.cameras.main.fadeOut(DureeFonduFinGlitch2, 0, 0, 0);
+  Scene.cameras.main.fadeOut(DureeFonduMortGlitch2, 0, 0, 0);
   Scene.cameras.main.once('camerafadeoutcomplete', () => {
     // Le fondu de camera reste applique tel quel (un simple overlay) tant
     // qu'on ne le reinitialise pas : tout ce qu'on ajouterait par-dessus
@@ -283,7 +283,7 @@ function DeclencherFinGlitch2(Scene) {
     // fond noir (objet de la scene, comme le voile de bruit) pour que le
     // texte puisse s'afficher DESSUS, pas en-dessous.
     Scene.cameras.main.resetFX();
-    AfficherEcranFinGlitch2(Scene);
+    AfficherEcranMortGlitch2(Scene);
     Scene.GlitchEtatFin = 'attente';
   });
 }
@@ -291,7 +291,7 @@ function DeclencherFinGlitch2(Scene) {
 // Fond noir + texte, tous deux cales sur la vue actuelle de la camera (meme
 // logique que PositionnerSurCamera) : des objets normaux (pas scrollFactor
 // 0) suivent le zoom naturellement, comme le voile de bruit.
-function AfficherEcranFinGlitch2(Scene) {
+function AfficherEcranMortGlitch2(Scene) {
   const Cam = Scene.cameras.main;
   const LargeurVueMonde = Cam.width / Cam.zoom;
   const HauteurVueMonde = Cam.height / Cam.zoom;
@@ -304,7 +304,7 @@ function AfficherEcranFinGlitch2(Scene) {
 
   const Texte = Scene.add.text(
     VueX + LargeurVueMonde / 2, VueY + HauteurVueMonde / 2,
-    TextePlaceholderFinGlitch2, StyleTextePlaceholderFinGlitch2,
+    TextePlaceholderMortGlitch2, StyleTextePlaceholderMortGlitch2,
   );
   Texte.setOrigin(0.5, 0.5);
   Texte.setDepth(1001); // au-dessus du fond noir
@@ -313,21 +313,23 @@ function AfficherEcranFinGlitch2(Scene) {
   // (meme astuce que textes-de-zone.js).
   Texte.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
 
-  Scene.FondEcranFinGlitch2 = Fond;
-  Scene.TextePlaceholderFinGlitch2 = Texte;
+  Scene.FondEcranMortGlitch2 = Fond;
+  Scene.TextePlaceholderMortGlitch2 = Texte;
 }
 
-// E presse sur l'ecran de fin : nettoie fond + texte et repart sur la carte
-// suivante (scene.restart, comme un teleportation.js classique).
-function ContinuerApresGlitch2(Scene) {
-  if (Scene.FondEcranFinGlitch2) {
-    Scene.FondEcranFinGlitch2.destroy();
-    Scene.FondEcranFinGlitch2 = null;
+// E presse sur l'ecran de mort : nettoie fond + texte et redemarre la MEME
+// carte (pas de "carte" dans les donnees -> scene-jeu.js relit CleCarteDeDepart,
+// donc on passe explicitement Scene.NomCarteActuelle) : "meurt depuis la
+// map 3, reapparait sur la map 3", au spawn normal (pas d'arrivee en train).
+function RespawnApresMortGlitch2(Scene) {
+  if (Scene.FondEcranMortGlitch2) {
+    Scene.FondEcranMortGlitch2.destroy();
+    Scene.FondEcranMortGlitch2 = null;
   }
-  if (Scene.TextePlaceholderFinGlitch2) {
-    Scene.TextePlaceholderFinGlitch2.destroy();
-    Scene.TextePlaceholderFinGlitch2 = null;
+  if (Scene.TextePlaceholderMortGlitch2) {
+    Scene.TextePlaceholderMortGlitch2.destroy();
+    Scene.TextePlaceholderMortGlitch2 = null;
   }
   Scene.GlitchEtatFin = null;
-  Scene.scene.restart({ carte: CleCarteApresGlitch2 });
+  Scene.scene.restart({ carte: Scene.NomCarteActuelle });
 }
