@@ -20,6 +20,7 @@ import {
 } from './js/config.js';
 import { CreerAnimsIconeInteraction } from './js/icone-interaction.js';
 import { InstallerInteractionSouris, MettreAJourInteractionsSouris } from './js/interaction-souris.js';
+import { InstallerAutoMarche, MettreAJourAutoMarche } from './js/auto-marche.js';
 import { MettreAJourCamera } from './js/camera.js';
 import { CreerPersonnage, MettreAJourDeplacement } from './js/player.js';
 import { InstallerControles } from './js/controle.js';
@@ -85,8 +86,10 @@ export class SceneJeu extends Phaser.Scene {
       CreerAnimsIconeInteraction(this);
       // Survol + clic souris (voir interaction-souris.js) : a installer AVANT
       // les features, qui enregistrent leurs points interactifs pendant leur
-      // propre installer() juste en dessous.
+      // propre installer() juste en dessous. Auto-marche (voir auto-marche.js) :
+      // le joueur y court tout seul quand l'element clique est loin.
       InstallerInteractionSouris(this);
+      InstallerAutoMarche(this);
 
       // Features de la carte active (voir sa config + src/js/features/).
       // Installees ICI, avant le personnage : elles posent leurs sprites
@@ -201,5 +204,9 @@ export class SceneJeu extends Phaser.Scene {
     if (this.EtatGare !== 'enCours' && !this.DialogueOuvert && !this.GlitchEtatFin) {
       MettreAJourDeplacement(this, Temps, TempsEcoule);
     }
+
+    // Arrivee au bout d'une auto-marche (voir auto-marche.js) : verifiee
+    // apres le deplacement, sur la position tout juste mise a jour.
+    MettreAJourAutoMarche(this, TempsEcoule);
   }
 }

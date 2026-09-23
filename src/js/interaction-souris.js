@@ -10,7 +10,9 @@
 // frame, ici et nulle part ailleurs) evite structurellement ce risque.
 //
 // Une feature enregistre chaque point interactif pendant installer(), avec :
-//   - Zone     : portee depuis le joueur (comme avant, propre a la feature)
+//   - Zone     : plus une histoire de "portee" (voir plus bas) — sert de
+//                point de rendez-vous : son centre est la ou le joueur va
+//                marcher tout seul quand on declenche l'interaction.
 //   - Cible    : ce que la souris doit survoler pour declencher — le SPRITE
 //                visible en jeu (le train de la gare, le PNJ, l'ecran de
 //                tele...), pas la petite icone "E" (trop precis a viser).
@@ -26,8 +28,12 @@
 //                dans l'etat 'attente') — par defaut toujours active
 //
 // Ce module se charge ensuite, une fois par frame pour tout le monde, de :
-// trouver quel point est survole (le joueur doit etre A PORTEE ET la souris
-// doit survoler la Cible), afficher son icone, et le declencher au clic gauche.
+// trouver quel point est survole (peu importe la distance du joueur — seule
+// la souris compte), afficher son icone, et au clic gauche envoyer le joueur
+// marcher automatiquement jusqu'au centre de Zone (voir auto-marche.js) avant
+// de jouer l'anim "E qui eclate" puis OnDeclenchement.
+
+import { DemarrerAutoMarche } from './auto-marche.js';
 
 // Marge (px monde) ajoutee autour de la cible pour le survol — confortable
 // meme pour les cibles deja petites (un PNJ, un portail sans sprite dedie).
@@ -74,13 +80,16 @@ function BornesSurvol(Cible) {
 }
 
 // A appeler une fois par frame (scene-jeu.js). Gele tout (rien de survole,
-// curseur normal) pendant un voyage en train, un dialogue, ou l'ecran de
-// mort glitch2 — comme le mouvement du joueur dans scene-jeu.js.
+// curseur normal) pendant un voyage en train, un dialogue, l'ecran de mort
+// glitch2, ou une auto-marche deja en cours vers un autre element — comme
+// le mouvement du joueur dans scene-jeu.js.
 export function MettreAJourInteractionsSouris(Scene) {
   const Clic = Scene.SourisVientDeCliquer;
   Scene.SourisVientDeCliquer = false; // consomme ici, une seule fois, pour tout le monde
 
-  const Fige = Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || !!Scene.GlitchEtatFin;
+  const Fige =
+    Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || !!Scene.GlitchEtatFin ||
+    Scene.CibleAutoMarcheX !== null;
   if (Fige) {
     Scene.InteractionsSouris.forEach((Interaction) => {
       if (!EstDetruit(Interaction.Icone) && !Interaction.EnCours) Interaction.Icone.setVisible(false);
@@ -103,16 +112,6 @@ export function MettreAJourInteractionsSouris(Scene) {
       continue;
     }
 
-    const Perso = Scene.Personnage;
-    const APortee =
-      Perso.x > Interaction.Zone.XMin && Perso.x < Interaction.Zone.XMax &&
-      Perso.y > Interaction.Zone.YMin && Perso.y < Interaction.Zone.YMax;
-
-    if (!APortee) {
-      Interaction.Icone.setVisible(false);
-      continue;
-    }
-
     const Bornes = BornesSurvol(Interaction.Cible);
     Phaser.Geom.Rectangle.Inflate(Bornes, MargeSurvol, MargeSurvol);
     const Survolee = Phaser.Geom.Rectangle.Contains(Bornes, PointMonde.x, PointMonde.y);
@@ -127,11 +126,18 @@ export function MettreAJourInteractionsSouris(Scene) {
 
     if (Clic) {
       Interaction.EnCours = true;
-      Interaction.Icone.play('iconePressee');
-      Interaction.Icone.once('animationcomplete', () => {
-        Interaction.Icone.setVisible(false);
-        Interaction.EnCours = false;
-        Interaction.OnDeclenchement();
+      // Marche automatique jusqu'au point de rendez-vous (centre de Zone) —
+      // immediate si le joueur y est deja (voir SeuilArriveeAutoMarche dans
+      // auto-marche.js), sinon il y court d'abord. L'anim "E qui eclate" ne
+      // joue qu'a l'arrivee : c'est l'appui manette de fin, pas le depart.
+      const CibleX = (Interaction.Zone.XMin + Interaction.Zone.XMax) / 2;
+      DemarrerAutoMarche(Scene, CibleX, () => {
+        Interaction.Icone.play('iconePressee');
+        Interaction.Icone.once('animationcomplete', () => {
+          Interaction.Icone.setVisible(false);
+          Interaction.EnCours = false;
+          Interaction.OnDeclenchement();
+        });
       });
     }
   }
