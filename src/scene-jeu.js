@@ -32,7 +32,14 @@ export class SceneJeu extends Phaser.Scene {
   // this.ArriveeParTrain declenche l'animation d'arrivee (feature gare).
   init(Donnees) {
     this.NomCarteActuelle = (Donnees && Donnees.carte) || CleCarteDeDepart();
-    this.ArriveeParTrain = !!(Donnees && Donnees.arrivee);
+    // Arrivee en train : soit on vient d'une autre carte (Donnees.arrivee),
+    // soit, au tout premier lancement uniquement, on force l'arrivee pour
+    // tester une carte isolee -> ?carte=<cle>&arrivee=1
+    // (Phaser passe {} et non undefined au 1er lancement : on teste le contenu.)
+    const PremierLancement = !Donnees || Object.keys(Donnees).length === 0;
+    const ArriveeParUrl =
+      PremierLancement && new URLSearchParams(window.location.search).get('arrivee') === '1';
+    this.ArriveeParTrain = !!(Donnees && Donnees.arrivee) || ArriveeParUrl;
   }
 
   preload() {
@@ -102,6 +109,11 @@ export class SceneJeu extends Phaser.Scene {
       const PointDepart = Carte.findObject("Calque d'Objets 1", (Objet) => Objet.name === 'spawn');
       PositionDepartX = PointDepart ? PointDepart.x : 250;
       PositionDepartY = PointDepart ? PointDepart.y : 120;
+      // Garde le VRAI point de spawn (avant l'eventuel decalage "arrivee en
+      // train" ci-dessous) : sert p.ex. a la feature glitch pour renvoyer le
+      // joueur au debut de la carte quand l'effet devient trop fort.
+      this.PositionSpawnX = PositionDepartX;
+      this.PositionSpawnY = PositionDepartY;
 
       // Arrivee en train : le joueur apparait sur le bloc "gare" de cette
       // carte (this.PositionArriveeX/Y, pose par la feature gare) plutot qu'au
@@ -140,11 +152,12 @@ export class SceneJeu extends Phaser.Scene {
     // ET scrollY chaque frame evite ce probleme une bonne fois pour toutes.
     this.HauteurMondeCarte = HauteurMonde;
     this.LargeurMondeCarte = LargeurMonde;
-    // true force un recadrage horizontal instantane dans MettreAJourCamera
+    // true force un recadrage instantane (X et Y) dans MettreAJourCamera
     // (utilise pendant le voyage en train, voir
-    // DemarrerSequenceGare/DemarrerRetourGare) ; remis a false une fois
-    // arrive pour retrouver le suivi doux normal.
-    this.CameraDoitSauterEnX = false;
+    // DemarrerSequenceGare/DemarrerRetourGare, et pendant un portail E, voir
+    // features/portails.js) ; remis a false une fois arrive pour retrouver
+    // le suivi doux normal.
+    this.CameraDoitSauter = false;
 
     // Entrees clavier : voir InstallerControles dans src/js/controle.js.
     InstallerControles(this);
@@ -171,10 +184,12 @@ export class SceneJeu extends Phaser.Scene {
     MettreAJourFeaturesCarte(this, Temps, TempsEcoule);
 
     // Aucun controle pendant le voyage en train (this.EtatGare, pose par la
-    // feature gare) ni pendant un dialogue PNJ (this.DialogueOuvert) : le
-    // corps physique est desactive, mais sans ce garde-fou les touches
-    // tenues continueraient a jouer des bruits de pas sur un personnage fige.
-    if (this.EtatGare !== 'enCours' && !this.DialogueOuvert) {
+    // feature gare), un dialogue PNJ (this.DialogueOuvert), ni l'ecran de fin
+    // provoque par un glitch2 a fond (this.GlitchEtatFin, pose par la feature
+    // glitch) : le corps physique est desactive, mais sans ce garde-fou les
+    // touches tenues continueraient a jouer des bruits de pas sur un
+    // personnage fige.
+    if (this.EtatGare !== 'enCours' && !this.DialogueOuvert && !this.GlitchEtatFin) {
       MettreAJourDeplacement(this, Temps, TempsEcoule);
     }
   }

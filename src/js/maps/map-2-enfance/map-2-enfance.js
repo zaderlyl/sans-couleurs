@@ -5,12 +5,21 @@ import { Gare } from '../../features/gare.js';
 import { TextesDeZone } from '../../features/textes-de-zone.js';
 import { Herbe } from '../../features/herbe.js';
 import { Tunnel } from '../../features/tunnel.js';
+import { Teleportation } from '../../features/teleportation.js';
+import { Portails } from '../../features/portails.js';
+import { Glitch } from '../../features/glitch.js';
 import { DialoguePNJ } from '../../features/dialogue-pnj.js';
 
 EnregistrerCarte({
   cle: 'map-2-enfance',
   numero: 2,
   nom: 'enfance',
-  // pas de carte suivante pour l'instant
-  features: [Gare, TextesDeZone, Herbe, Tunnel, DialoguePNJ],
+  // pas de carte suivante en train pour l'instant
+  // Passage vers le college : le joueur marche jusqu'a la case (51, 9).
+  // arrivee: false (par defaut) -> arrive au point "spawn" du college, pas
+  // sur la gare (pas d'anim de train pour ce passage-la).
+  teleportations: [
+    { colonne: 51, rangee: 9, versCarte: 'map-3-debut-college' },
+  ],
+  features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ, Glitch],
 });

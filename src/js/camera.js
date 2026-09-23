@@ -7,9 +7,17 @@
 // En recalculant depuis la taille ACTUELLE de la camera chaque frame, ce
 // suivi est insensible aux redimensionnements.
 //
-// Reglages dans config.js.
+// X et Y suivent tous les deux le joueur (meme logique, lerp + saut
+// instantane sur Scene.CameraDoitSauter) : au debut, Y etait fige sur un
+// point du monde fixe, ce qui marchait tant que le joueur restait a peu pres
+// a la meme hauteur — mais le sortait carrement du cadre sur les cartes avec
+// beaucoup de relief vertical (ex: les portails du college, cases tres
+// eloignees en hauteur). Reglages dans config.js.
 
-import { CentreVerticalCadrageCamera, VitesseSuiviCameraX, DecalageAnticipationCameraMax } from './config.js';
+import {
+  VitesseSuiviCameraX, VitesseSuiviCameraY, DecalageVerticalCadrageCamera,
+  DecalageAnticipationCameraMax,
+} from './config.js';
 
 export function MettreAJourCamera(Scene) {
   const Cam = Scene.cameras.main;
@@ -37,16 +45,19 @@ export function MettreAJourCamera(Scene) {
     Math.max(0, Scene.LargeurMondeCarte - LargeurVueMonde),
   );
   const ScrollXVoulu = VueXVoulue + (LargeurVueMonde - Cam.width) / 2;
-  // Saut instantane pendant le voyage en train (Scene.CameraDoitSauterEnX),
+  // Saut instantane pendant le voyage en train ou un portail (Scene.CameraDoitSauter),
   // suivi doux sinon.
-  Cam.scrollX = Scene.CameraDoitSauterEnX
+  Cam.scrollX = Scene.CameraDoitSauter
     ? ScrollXVoulu
     : Phaser.Math.Linear(Cam.scrollX, ScrollXVoulu, VitesseSuiviCameraX);
 
   const VueYVoulue = Phaser.Math.Clamp(
-    CentreVerticalCadrageCamera - HauteurVueMonde / 2,
+    Scene.Personnage.y + DecalageVerticalCadrageCamera - HauteurVueMonde / 2,
     0,
     Math.max(0, Scene.HauteurMondeCarte - HauteurVueMonde),
   );
-  Cam.scrollY = VueYVoulue + (HauteurVueMonde - Cam.height) / 2;
+  const ScrollYVoulu = VueYVoulue + (HauteurVueMonde - Cam.height) / 2;
+  Cam.scrollY = Scene.CameraDoitSauter
+    ? ScrollYVoulu
+    : Phaser.Math.Linear(Cam.scrollY, ScrollYVoulu, VitesseSuiviCameraY);
 }

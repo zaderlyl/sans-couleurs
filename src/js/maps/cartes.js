@@ -34,7 +34,7 @@ export function EnregistrerCarte(Config) {
 }
 
 // Les features de la carte active (tableau, vide si aucune).
-function FeaturesCarteActive(Scene) {
+function FeaturesCarteActive(Scene) { 
   const Carte = RegistreCartes[Scene.NomCarteActuelle];
   return (Carte && Carte.features) || [];
 }
@@ -52,6 +52,12 @@ export function CleCarteDeDepart() {
 export function CleCarteSuivante(Cle) {
   const Carte = RegistreCartes[Cle];
   return Carte && Carte.suivante ? Carte.suivante : null;
+}
+
+// Config brute d'une carte (ou {} si inconnue) : pour qu'une feature lise une
+// option propre a la carte active (ex: la gare regarde `sortieGare`).
+export function ConfigCarte(Cle) {
+  return RegistreCartes[Cle] || {};
 }
 
 // preload() : laisse chaque feature de la carte declarer ses assets.

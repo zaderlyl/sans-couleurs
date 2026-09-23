@@ -15,9 +15,13 @@ export const UtiliseSpritePersonnage = true;
 // Suivi entierement manuel chaque frame (voir MettreAJourCamera dans
 // src/js/camera.js).
 export const ZoomCamera = 5;                    // pixel art de 16px, sinon minuscule a l'ecran
-export const CentreVerticalCadrageCamera = 140; // point du monde vise au milieu de l'ecran
-                                         // (augmenter = faire monter l'horizon)
 export const VitesseSuiviCameraX = 0.1;         // lerp horizontal (0 = fige, 1 = colle au joueur)
+export const VitesseSuiviCameraY = 0.1;         // lerp vertical, meme principe
+// Decalage (px monde) entre le joueur et le centre vise par la camera en Y.
+// Positif = la camera vise un peu plus bas que le joueur (donc le joueur
+// remonte a l'ecran). Valeur choisie pour retrouver le cadrage d'avant
+// (point fixe a 140, joueur au sol vers y=136) sur les cartes "plates".
+export const DecalageVerticalCadrageCamera = 4;
 export const DecalageAnticipationCameraMax = 14; // px monde : la camera regarde un peu plus
                                           // loin devant dans le sens de la marche
 
