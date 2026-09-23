@@ -1,10 +1,10 @@
 // features/gare.js — la gare et le voyage en train.
 //
-// Le joueur entre dans la zone de la gare, appuie sur E : le train (sprite
-// anime gare.png) demarre, l'ecran devient noir, puis SOIT il change de carte
-// (si la config de la carte a une `suivante`), SOIT il ressort de l'autre
-// cote du "tunnel" de la meme carte (calque "derriere", un miroir de la gare)
-// et peut repartir dans l'autre sens.
+// Le joueur entre dans la zone de la gare, clique sur l'icone : le train
+// (sprite anime gare.png) demarre, l'ecran devient noir, puis SOIT il change
+// de carte (si la config de la carte a une `suivante`), SOIT il ressort de
+// l'autre cote du "tunnel" de la meme carte (calque "derriere", un miroir de
+// la gare) et peut repartir dans l'autre sens.
 //
 // Rien n'est code en dur : position/zone de la gare et de sa sortie sont
 // calculees depuis les calques "gare" et "derriere" de la carte active
@@ -18,6 +18,7 @@
 
 import { ChargerFeuille } from '../loading.js';
 import { CreerIconeInteraction } from '../icone-interaction.js';
+import { EnregistrerInteractionSouris } from '../interaction-souris.js';
 import { CalculerBoiteTuiles, CalqueEstFlippe, TailleTuile, CleCarteSuivante, ConfigCarte } from '../maps/cartes.js';
 import { Secouer, CreerAnim } from '../util.js';
 
@@ -90,6 +91,29 @@ export const Gare = {
     // Sur le college, on arrive en train mais on ne peut pas repartir (pas
     // encore). Absent = true, pour ne rien changer aux autres cartes.
     Scene.SortieGareActive = ConfigCarte(Scene.NomCarteActuelle).sortieGare !== false;
+
+    // Interaction souris (voir interaction-souris.js) : le depart n'est
+    // propose que dans l'etat 'attente' (et si la sortie est active), le
+    // retour que dans 'retourAttente' — les 2 zones ne se chevauchent
+    // jamais (points opposes de la carte), donc pas de risque de conflit.
+    EnregistrerInteractionSouris(Scene, {
+      Zone: Scene.ZoneGare,
+      Icone: Scene.IconeInteraction,
+      EstActive: () => Scene.EtatGare === 'attente' && Scene.SortieGareActive,
+      OnDeclenchement: () => {
+        Scene.EtatGare = 'enCours';
+        DemarrerSequenceGare(Scene);
+      },
+    });
+    EnregistrerInteractionSouris(Scene, {
+      Zone: Scene.ZoneRetour,
+      Icone: Scene.IconeInteractionRetour,
+      EstActive: () => Scene.EtatGare === 'retourAttente',
+      OnDeclenchement: () => {
+        Scene.EtatGare = 'enCours';
+        DemarrerRetourGare(Scene);
+      },
+    });
   },
 
   // Appele en toute fin de create() : si on arrive en train, joue l'animation
@@ -97,26 +121,6 @@ export const Gare = {
   apresChargement(Scene) {
     if (Scene.ArriveeParTrain && Scene.PositionGareX !== undefined) {
       JouerArriveeEnTrain(Scene);
-    }
-  },
-
-  miseAJour(Scene) {
-    if (!Scene.CalqueGare) return;
-    // Pas d'interaction gare pendant l'ecran de fin d'un glitch2 (joueur fige).
-    if (Scene.GlitchEtatFin) return;
-
-    // Interaction gare : icone qui suit dans la zone, E pour lancer. La
-    // sequence ne demarre qu'a la fin de l'anim "E qui eclate", mais on passe
-    // EtatGare a 'enCours' DES l'appui (verrou immediat contre un 2e appui).
-    if (Scene.EtatGare === 'attente' && Scene.SortieGareActive) {
-      const Presse = GererZoneInteraction(Scene, Scene.ZoneGare, Scene.IconeInteraction, () => DemarrerSequenceGare(Scene));
-      if (Presse) Scene.EtatGare = 'enCours';
-    }
-
-    // Interaction retour : symetrique, une fois arrive de l'autre cote.
-    if (Scene.EtatGare === 'retourAttente') {
-      const Presse = GererZoneInteraction(Scene, Scene.ZoneRetour, Scene.IconeInteractionRetour, () => DemarrerRetourGare(Scene));
-      if (Presse) Scene.EtatGare = 'enCours';
     }
   },
 };
@@ -203,36 +207,6 @@ function CreerAnimsGare(Scene) {
   const FramesArrivee = [];
   for (let i = NombreImagesGare - 1; i >= 5; i--) FramesArrivee.push({ key: CleGare, frame: i });
   CreerAnim(Scene, { key: 'arriveeGare', frames: FramesArrivee, frameRate: 10, repeat: 0 });
-}
-
-
-// --- Interaction ------------------------------------------------
-
-// Icone qui suit dans `Zone` ; sur E, joue l'anim "E qui eclate" puis appelle
-// `AuDeclenchement`. Renvoie true si E vient d'etre presse (pour que
-// l'appelant pose son verrou tout de suite).
-function GererZoneInteraction(Scene, Zone, Icone, AuDeclenchement) {
-  const Perso = Scene.Personnage;
-  const DansLaZone =
-    Perso.x > Zone.XMin && Perso.x < Zone.XMax &&
-    Perso.y > Zone.YMin && Perso.y < Zone.YMax;
-
-  if (!DansLaZone) {
-    Icone.setVisible(false);
-    return false;
-  }
-
-  Icone.setVisible(true);
-  Icone.play('iconeAttente', true); // true : ne relance pas si deja en cours
-
-  if (!Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) return false;
-
-  Icone.play('iconePressee');
-  Icone.once('animationcomplete', () => {
-    Icone.setVisible(false);
-    AuDeclenchement();
-  });
-  return true;
 }
 
 

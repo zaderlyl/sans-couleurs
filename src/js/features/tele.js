@@ -1,6 +1,6 @@
 // features/tele.js — ecran de tele avec cardiogramme : le joueur s'en
-// approche, appuie 4 fois sur E pour accelerer le rythme, et au 5e la ligne
-// devient plate (ecran mort + bip continu).
+// approche, clique 4 fois sur l'icone pour accelerer le rythme, et au 5e la
+// ligne devient plate (ecran mort + bip continu).
 //
 // Feature branchee par les cartes qui la listent dans leur `features`. Pour
 // l'instant seule map-TEST-map1 l'utilise. Position posee dans Tiled sur les
@@ -9,6 +9,7 @@
 
 import { ChargerFeuille } from '../loading.js';
 import { CleIconeInteraction, TailleIconeInteraction } from '../icone-interaction.js';
+import { EnregistrerInteractionSouris } from '../interaction-souris.js';
 import { ObtenirContexteAudio } from '../sons.js';
 import { Secouer, CreerAnim } from '../util.js';
 
@@ -91,52 +92,40 @@ export const Tele = {
 
     Scene.CompteurAppuisTele = 0;
     Scene.TeleHS = false;
-    Scene.IconeTeleEnCours = false; // true pendant que 'iconePressee' joue
+
+    // Interaction souris (voir interaction-souris.js) : desactivee des que
+    // l'ecran est HS (TeleHS), le clic n'a alors plus aucun effet.
+    EnregistrerInteractionSouris(Scene, {
+      Zone: ZoneTele,
+      Icone: Scene.IconeInteractionTele,
+      EstActive: () => !Scene.TeleHS,
+      OnDeclenchement: () => AppuyerSurTele(Scene),
+    });
   },
 
-  // update() : chaque appui sur E a proximite accelere le cardiogramme (+
-  // tremblement) ; au 5e, ligne plate. L'icone E ne disparait qu'au 5e appui.
+  // update() : la ligne plate continue joue tant que l'ecran est HS, avec un
+  // volume reajuste image par image selon la distance (le reste — icone,
+  // clic — est gere par interaction-souris.js).
   miseAJour(Scene) {
-    // Ligne plate continue : volume reajuste image par image selon la distance.
     if (Scene.GainLignePlate) {
       Scene.GainLignePlate.gain.value = 0.09 * VolumeSonSelonDistanceTele(Scene.Personnage.x, Scene.Personnage.y);
     }
-
-    if (!Scene.SpriteTele || Scene.TeleHS) return;
-
-    const Perso = Scene.Personnage;
-    const DansZone =
-      Perso.x > ZoneTele.XMin && Perso.x < ZoneTele.XMax &&
-      Perso.y > ZoneTele.YMin && Perso.y < ZoneTele.YMax;
-
-    if (!DansZone) {
-      Scene.IconeInteractionTele.setVisible(false);
-      return;
-    }
-
-    Scene.IconeInteractionTele.setVisible(true);
-    if (!Scene.IconeTeleEnCours) {
-      Scene.IconeInteractionTele.play('iconeAttente', true); // true : ne relance pas si en cours
-    }
-
-    if (!Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) return;
-
-    Scene.CompteurAppuisTele++;
-    Scene.IconeTeleEnCours = true;
-    Scene.IconeInteractionTele.play('iconePressee');
-    Scene.IconeInteractionTele.once('animationcomplete', () => {
-      Scene.IconeTeleEnCours = false;
-      if (Scene.TeleHS) Scene.IconeInteractionTele.setVisible(false);
-    });
-
-    if (Scene.CompteurAppuisTele < VitessesCardiogramme.length) {
-      Scene.SpriteTele.play({ key: 'cardiogramme', frameRate: VitessesCardiogramme[Scene.CompteurAppuisTele], repeat: -1 });
-      Secouer(Scene, Scene.SpriteTele, 200, 1, () => {});
-    } else {
-      DeclencherLignePlateTele(Scene);
-    }
   },
 };
+
+// Un clic sur la tele : accelere le cardiogramme (+ tremblement), et au 5e,
+// ligne plate. L'anim "E qui eclate" est deja jouee par interaction-souris.js
+// avant d'appeler cette fonction.
+function AppuyerSurTele(Scene) {
+  Scene.CompteurAppuisTele++;
+
+  if (Scene.CompteurAppuisTele < VitessesCardiogramme.length) {
+    Scene.SpriteTele.play({ key: 'cardiogramme', frameRate: VitessesCardiogramme[Scene.CompteurAppuisTele], repeat: -1 });
+    Secouer(Scene, Scene.SpriteTele, 200, 1, () => {});
+  } else {
+    DeclencherLignePlateTele(Scene);
+  }
+}
 
 
 // --- Sons (Web Audio) ---

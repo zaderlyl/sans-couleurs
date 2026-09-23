@@ -2,7 +2,9 @@
 // InstallerControles(this) : une fois, depuis create().
 // LireDeplacement(this)    : chaque frame (player.js, et MettreAJourHerbe dans la feature herbe).
 
-// Fleches + WASD pour se deplacer, E pour interagir (gare, tele, PNJ).
+// Fleches + WASD pour se deplacer. E ne sert plus qu'a avancer une page de
+// dialogue PNJ deja ouverte (dialogue-pnj.js) — gare/tele/portails/PNJ se
+// declenchent maintenant a la souris, voir interaction-souris.js.
 export function InstallerControles(Scene) {
   Scene.Fleches = Scene.input.keyboard.createCursorKeys();
   Scene.ToucheA = Scene.input.keyboard.addKey('A');

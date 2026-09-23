@@ -1,11 +1,15 @@
 // features/dialogue-pnj.js — mini-jeu de dialogue avec les PNJ.
 //
 // Chaque PNJ est defini depuis Tiled (un objet sur le calque objets, avec une
-// propriete "ligneNPJ"). Le joueur s'approche, appuie sur E : le PNJ dit sa
-// phrase, puis le joueur "repond" avec une phrase a trous — il glisse les
-// mots proposes dans les trous. Peu importe les mots choisis, la reaction est
-// toujours la meme (secousse + rougissement), puis le PNJ disparait pour de
-// bon.
+// propriete "ligneNPJ"). Le joueur s'approche, clique sur l'icone : le PNJ
+// dit sa phrase, puis le joueur "repond" avec une phrase a trous — il glisse
+// les mots proposes dans les trous (a la souris, comme avant). Peu importe
+// les mots choisis, la reaction est toujours la meme (secousse +
+// rougissement), puis le PNJ disparait pour de bon.
+//
+// Avancer d'une page de dialogue (E) reste au clavier pour l'instant : ce
+// n'est pas un element du monde a survoler, juste "continuer" une fois la
+// page remplie.
 //
 // Format des proprietes Tiled (sur un objet du calque objets) :
 //   - ligneNPJ (string, obligatoire) : la phrase du PNJ, et le marqueur "ceci
@@ -27,6 +31,7 @@
 
 import { ChargerFeuille } from '../loading.js';
 import { CleIconeInteraction, TailleIconeInteraction } from '../icone-interaction.js';
+import { EnregistrerInteractionSouris } from '../interaction-souris.js';
 import { NomCoucheObjets, ValeurNombreTiled } from '../maps/cartes.js';
 import { StyleTexteDeZone, StyleMotDialogue } from '../config.js';
 
@@ -47,48 +52,23 @@ export const DialoguePNJ = {
     Scene.PageDialogueEnAttente = false;
     CreerPNJs(Scene, Ctx.Carte);
     InstallerGlisserDeposer(Scene);
+
+    // Interaction souris (voir interaction-souris.js) : un PNJ ne propose
+    // plus rien une fois son dialogue termine, ni tant qu'un autre dialogue
+    // est deja ouvert (un seul a la fois).
+    Scene.PNJs.forEach((PNJ) => {
+      EnregistrerInteractionSouris(Scene, {
+        Zone: PNJ.Zone,
+        Icone: PNJ.Icone,
+        EstActive: () => !PNJ.Termine && !Scene.DialogueOuvert,
+        OnDeclenchement: () => OuvrirDialoguePNJ(Scene, PNJ),
+      });
+    });
   },
 
   miseAJour(Scene) {
-    // Pas d'interaction PNJ pendant l'ecran de fin d'un glitch2 (joueur fige).
-    if (Scene.GlitchEtatFin) return;
-
-    // Icone qui suit + E pour lancer. Aucun PNJ ne reagit si un dialogue est
-    // deja ouvert.
-    if (Scene.PNJs && !Scene.DialogueOuvert) {
-      Scene.PNJs.forEach((PNJ) => {
-        // Termine : deja repondu. EnAttenteOuverture : E vient d'etre presse,
-        // l'anim "iconePressee" joue — verrou immediat, sinon la ligne
-        // "play('iconeAttente', true)" ci-dessous la relancerait chaque frame
-        // et le dialogue ne s'ouvrirait jamais.
-        if (PNJ.Termine || PNJ.EnAttenteOuverture) return;
-
-        const DansZone =
-          Scene.Personnage.x > PNJ.Zone.XMin &&
-          Scene.Personnage.x < PNJ.Zone.XMax &&
-          Scene.Personnage.y > PNJ.Zone.YMin &&
-          Scene.Personnage.y < PNJ.Zone.YMax;
-
-        if (!DansZone) {
-          PNJ.Icone.setVisible(false);
-          return;
-        }
-
-        PNJ.Icone.setVisible(true);
-        PNJ.Icone.play('iconeAttente', true);
-
-        if (Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) {
-          PNJ.EnAttenteOuverture = true;
-          PNJ.Icone.play('iconePressee');
-          PNJ.Icone.once('animationcomplete', () => {
-            PNJ.Icone.setVisible(false);
-            OuvrirDialoguePNJ(Scene, PNJ);
-          });
-        }
-      });
-    }
-
     // Une page vient d'etre completee et il en reste : E affiche la suivante.
+    // Pas un element du monde a survoler (juste "continuer"), reste au clavier.
     if (Scene.PageDialogueEnAttente && Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) {
       AvancerPageDialogue(Scene);
     }
@@ -155,7 +135,6 @@ function CreerPNJs(Scene, Carte) {
         },
         Dialogue: { LigneNPJ: Lire('ligneNPJ', ''), Intro: Lire('intro', ''), Pages },
         Termine: false,
-        EnAttenteOuverture: false,
       };
     });
 }

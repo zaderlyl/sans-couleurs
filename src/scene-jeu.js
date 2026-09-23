@@ -19,6 +19,7 @@ import {
   LargeurMondeParDefaut, HauteurMondeParDefaut, HauteurSol, CouleurSol, CouleurAccent,
 } from './js/config.js';
 import { CreerAnimsIconeInteraction } from './js/icone-interaction.js';
+import { InstallerInteractionSouris, MettreAJourInteractionsSouris } from './js/interaction-souris.js';
 import { MettreAJourCamera } from './js/camera.js';
 import { CreerPersonnage, MettreAJourDeplacement } from './js/player.js';
 import { InstallerControles } from './js/controle.js';
@@ -82,6 +83,10 @@ export class SceneJeu extends Phaser.Scene {
 
       // Animations de l'icone "E" (partagees gare / tele / PNJ).
       CreerAnimsIconeInteraction(this);
+      // Survol + clic souris (voir interaction-souris.js) : a installer AVANT
+      // les features, qui enregistrent leurs points interactifs pendant leur
+      // propre installer() juste en dessous.
+      InstallerInteractionSouris(this);
 
       // Features de la carte active (voir sa config + src/js/features/).
       // Installees ICI, avant le personnage : elles posent leurs sprites
@@ -182,6 +187,10 @@ export class SceneJeu extends Phaser.Scene {
     // Toutes les features de la carte active (gare/train, tele, herbe,
     // tunnel, textes de zone, dialogue PNJ) — voir src/js/features/.
     MettreAJourFeaturesCarte(this, Temps, TempsEcoule);
+
+    // Survol + clic souris sur tout ce que les features ont enregistre
+    // (gare, portails, PNJ...) — voir interaction-souris.js.
+    MettreAJourInteractionsSouris(this);
 
     // Aucun controle pendant le voyage en train (this.EtatGare, pose par la
     // feature gare), un dialogue PNJ (this.DialogueOuvert), ni l'ecran de fin
