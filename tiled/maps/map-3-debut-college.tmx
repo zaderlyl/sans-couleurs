@@ -124,7 +124,7 @@
     <property name="name" value="glitch"/>
    </properties>
   </object>
-  <object id="12" x="944.956" y="41.6699" width="96.082" height="103.403">
+  <object id="12" x="944.956" y="41.6699" width="350.573" height="103.403">
    <properties>
     <property name="name" value="glitch2"/>
    </properties>

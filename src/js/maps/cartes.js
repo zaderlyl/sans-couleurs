@@ -34,7 +34,7 @@ export function EnregistrerCarte(Config) {
 }
 
 // Les features de la carte active (tableau, vide si aucune).
-function FeaturesCarteActive(Scene) {
+function FeaturesCarteActive(Scene) { 
   const Carte = RegistreCartes[Scene.NomCarteActuelle];
   return (Carte && Carte.features) || [];
 }
