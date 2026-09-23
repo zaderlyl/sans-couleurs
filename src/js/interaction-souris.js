@@ -22,6 +22,11 @@
 // trouver quel point est survole (le joueur doit etre A PORTEE ET la souris
 // doit survoler l'icone), afficher son icone, et le declencher au clic gauche.
 
+// Marge (px monde) ajoutee autour de l'icone pour le survol : elle fait
+// 16px monde (voir icone-interaction.js), donc minuscule a l'ecran malgre le
+// zoom — sans cette marge, il faut viser tres precisement.
+const MargeSurvolIcone = 6;
+
 export function InstallerInteractionSouris(Scene) {
   Scene.InteractionsSouris = [];
   Scene.SourisVientDeCliquer = false;
@@ -84,7 +89,12 @@ export function MettreAJourInteractionsSouris(Scene) {
       continue;
     }
 
-    const Survolee = Phaser.Geom.Rectangle.Contains(Interaction.Icone.getBounds(), PointMonde.x, PointMonde.y);
+    // Zone de survol un peu plus large que l'icone elle-meme (16px monde,
+    // donc minuscule a l'ecran malgre le zoom) : plus facile a viser, sans
+    // rendre l'icone elle-meme plus grosse visuellement.
+    const Bornes = Interaction.Icone.getBounds();
+    Phaser.Geom.Rectangle.Inflate(Bornes, MargeSurvolIcone, MargeSurvolIcone);
+    const Survolee = Phaser.Geom.Rectangle.Contains(Bornes, PointMonde.x, PointMonde.y);
     if (!Survolee) {
       Interaction.Icone.setVisible(false);
       continue;
