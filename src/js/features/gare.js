@@ -96,8 +96,12 @@ export const Gare = {
     // propose que dans l'etat 'attente' (et si la sortie est active), le
     // retour que dans 'retourAttente' — les 2 zones ne se chevauchent
     // jamais (points opposes de la carte), donc pas de risque de conflit.
+    // Cible : le train lui-meme (Scene.SpriteGare), pas la petite icone —
+    // meme sprite repositionne pour le depart et le retour, mais toujours
+    // au bon endroit vu qu'un seul des deux est actif a la fois.
     EnregistrerInteractionSouris(Scene, {
       Zone: Scene.ZoneGare,
+      Cible: Scene.SpriteGare,
       Icone: Scene.IconeInteraction,
       EstActive: () => Scene.EtatGare === 'attente' && Scene.SortieGareActive,
       OnDeclenchement: () => {
@@ -107,6 +111,7 @@ export const Gare = {
     });
     EnregistrerInteractionSouris(Scene, {
       Zone: Scene.ZoneRetour,
+      Cible: Scene.SpriteGare,
       Icone: Scene.IconeInteractionRetour,
       EstActive: () => Scene.EtatGare === 'retourAttente',
       OnDeclenchement: () => {

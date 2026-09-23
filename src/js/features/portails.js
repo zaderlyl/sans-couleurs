@@ -33,14 +33,20 @@ export const Portails = {
       const IconeA = CreerIconePortail(Scene, Duo.colonneA, Duo.rangeeA, Duo.iconeEnBas);
       const IconeB = CreerIconePortail(Scene, Duo.colonneB, Duo.rangeeB, Duo.iconeEnBas);
 
+      // Pas de sprite dedie pour un portail : la Cible de survol est la
+      // case elle-meme (meme rectangle que la portee), pas la petite icone.
+      const CaseA = ZoneDeLaCase(A);
+      const CaseB = ZoneDeLaCase(B);
       EnregistrerInteractionSouris(Scene, {
-        Zone: ZoneDeLaCase(A),
+        Zone: CaseA,
+        Cible: CaseA,
         Icone: IconeA,
         EstActive: () => !Scene.PortailEnCours,
         OnDeclenchement: () => DeclencherPortail(Scene, IconeA, B),
       });
       EnregistrerInteractionSouris(Scene, {
-        Zone: ZoneDeLaCase(B),
+        Zone: CaseB,
+        Cible: CaseB,
         Icone: IconeB,
         EstActive: () => !Scene.PortailEnCours,
         OnDeclenchement: () => DeclencherPortail(Scene, IconeB, A),

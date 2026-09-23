@@ -53,12 +53,14 @@ export const DialoguePNJ = {
     CreerPNJs(Scene, Ctx.Carte);
     InstallerGlisserDeposer(Scene);
 
-    // Interaction souris (voir interaction-souris.js) : un PNJ ne propose
-    // plus rien une fois son dialogue termine, ni tant qu'un autre dialogue
-    // est deja ouvert (un seul a la fois).
+    // Interaction souris (voir interaction-souris.js) : cible = le PNJ
+    // lui-meme (PNJ.Sprite), pas la petite icone. Un PNJ ne propose plus
+    // rien une fois son dialogue termine, ni tant qu'un autre dialogue est
+    // deja ouvert (un seul a la fois).
     Scene.PNJs.forEach((PNJ) => {
       EnregistrerInteractionSouris(Scene, {
         Zone: PNJ.Zone,
+        Cible: PNJ.Sprite,
         Icone: PNJ.Icone,
         EstActive: () => !PNJ.Termine && !Scene.DialogueOuvert,
         OnDeclenchement: () => OuvrirDialoguePNJ(Scene, PNJ),

@@ -93,10 +93,12 @@ export const Tele = {
     Scene.CompteurAppuisTele = 0;
     Scene.TeleHS = false;
 
-    // Interaction souris (voir interaction-souris.js) : desactivee des que
+    // Interaction souris (voir interaction-souris.js) : cible = l'ecran
+    // lui-meme (Scene.SpriteTele), pas la petite icone. Desactivee des que
     // l'ecran est HS (TeleHS), le clic n'a alors plus aucun effet.
     EnregistrerInteractionSouris(Scene, {
       Zone: ZoneTele,
+      Cible: Scene.SpriteTele,
       Icone: Scene.IconeInteractionTele,
       EstActive: () => !Scene.TeleHS,
       OnDeclenchement: () => AppuyerSurTele(Scene),

@@ -11,8 +11,15 @@
 //
 // Une feature enregistre chaque point interactif pendant installer(), avec :
 //   - Zone     : portee depuis le joueur (comme avant, propre a la feature)
-//   - Icone    : le sprite "E" deja pose (CreerIconeInteraction) — sa
-//                position/taille sert de zone de survol pour la souris
+//   - Cible    : ce que la souris doit survoler pour declencher — le SPRITE
+//                visible en jeu (le train de la gare, le PNJ, l'ecran de
+//                tele...), pas la petite icone "E" (trop precis a viser).
+//                Accepte un GameObject (son getBounds() sert de zone de
+//                survol) ou directement un rectangle {XMin,XMax,YMin,YMax}
+//                pour les interactions sans sprite dedie (ex: un portail).
+//   - Icone    : le sprite "E" deja pose (CreerIconeInteraction) — purement
+//                visuel desormais (l'invite qui apparait/s'anime), il ne
+//                sert plus a detecter le survol.
 //   - OnDeclenchement : rappelle quoi faire une fois l'anim "E qui eclate" finie
 //   - EstActive (optionnel) : d'autres conditions a verifier avant de
 //                proposer l'interaction (ex: la gare n'est utilisable que
@@ -20,12 +27,11 @@
 //
 // Ce module se charge ensuite, une fois par frame pour tout le monde, de :
 // trouver quel point est survole (le joueur doit etre A PORTEE ET la souris
-// doit survoler l'icone), afficher son icone, et le declencher au clic gauche.
+// doit survoler la Cible), afficher son icone, et le declencher au clic gauche.
 
-// Marge (px monde) ajoutee autour de l'icone pour le survol : elle fait
-// 16px monde (voir icone-interaction.js), donc minuscule a l'ecran malgre le
-// zoom — sans cette marge, il faut viser tres precisement.
-const MargeSurvolIcone = 6;
+// Marge (px monde) ajoutee autour de la cible pour le survol — confortable
+// meme pour les cibles deja petites (un PNJ, un portail sans sprite dedie).
+const MargeSurvol = 4;
 
 export function InstallerInteractionSouris(Scene) {
   Scene.InteractionsSouris = [];
@@ -39,14 +45,32 @@ export function InstallerInteractionSouris(Scene) {
   });
 }
 
-export function EnregistrerInteractionSouris(Scene, { Zone, Icone, OnDeclenchement, EstActive }) {
+export function EnregistrerInteractionSouris(Scene, { Zone, Cible, Icone, OnDeclenchement, EstActive }) {
   Scene.InteractionsSouris.push({
     Zone,
+    Cible,
     Icone,
     OnDeclenchement,
     EstActive: EstActive || (() => true),
     EnCours: false, // verrou pendant l'anim "E qui eclate", entre le clic et OnDeclenchement
   });
+}
+
+// true si `Objet` est un GameObject Phaser (a un getBounds()) qui a ete
+// detruit (Phaser vide sa reference `.scene` a la destruction). Un simple
+// rectangle {XMin,...} n'a jamais de getBounds -> jamais "detruit".
+function EstDetruit(Objet) {
+  return typeof Objet.getBounds === 'function' && !Objet.scene;
+}
+
+// Rectangle de survol d'une interaction : getBounds() de la Cible si c'est
+// un GameObject (deja un Phaser.Geom.Rectangle, x/y/width/height) ; sinon la
+// Cible est un rectangle "maison" {XMin,XMax,YMin,YMax} (meme forme que
+// `Zone` partout ailleurs dans le jeu) — a convertir, Phaser.Geom.Rectangle
+// attend x/y/width/height, pas XMin/XMax/YMin/YMax.
+function BornesSurvol(Cible) {
+  if (typeof Cible.getBounds === 'function') return Cible.getBounds();
+  return new Phaser.Geom.Rectangle(Cible.XMin, Cible.YMin, Cible.XMax - Cible.XMin, Cible.YMax - Cible.YMin);
 }
 
 // A appeler une fois par frame (scene-jeu.js). Gele tout (rien de survole,
@@ -59,7 +83,7 @@ export function MettreAJourInteractionsSouris(Scene) {
   const Fige = Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || !!Scene.GlitchEtatFin;
   if (Fige) {
     Scene.InteractionsSouris.forEach((Interaction) => {
-      if (Interaction.Icone.scene && !Interaction.EnCours) Interaction.Icone.setVisible(false);
+      if (!EstDetruit(Interaction.Icone) && !Interaction.EnCours) Interaction.Icone.setVisible(false);
     });
     Scene.game.canvas.style.cursor = 'default';
     return;
@@ -69,10 +93,10 @@ export function MettreAJourInteractionsSouris(Scene) {
   let SurvolTrouve = false;
 
   for (const Interaction of Scene.InteractionsSouris) {
-    // L'icone peut avoir ete detruite pour de bon (ex: un PNJ dont le
-    // dialogue est termine, voir dialogue-pnj.js) : `.scene` disparait a la
-    // destruction, plus rien a faire pour cette interaction.
-    if (!Interaction.Icone.scene) continue;
+    // L'icone ou sa cible peuvent avoir ete detruites pour de bon (ex: un
+    // PNJ dont le dialogue est termine, voir dialogue-pnj.js) : plus rien a
+    // faire pour cette interaction.
+    if (EstDetruit(Interaction.Icone) || EstDetruit(Interaction.Cible)) continue;
     if (Interaction.EnCours) continue; // anim "E qui eclate" deja en cours : ne pas y toucher
     if (!Interaction.EstActive()) {
       Interaction.Icone.setVisible(false);
@@ -89,11 +113,8 @@ export function MettreAJourInteractionsSouris(Scene) {
       continue;
     }
 
-    // Zone de survol un peu plus large que l'icone elle-meme (16px monde,
-    // donc minuscule a l'ecran malgre le zoom) : plus facile a viser, sans
-    // rendre l'icone elle-meme plus grosse visuellement.
-    const Bornes = Interaction.Icone.getBounds();
-    Phaser.Geom.Rectangle.Inflate(Bornes, MargeSurvolIcone, MargeSurvolIcone);
+    const Bornes = BornesSurvol(Interaction.Cible);
+    Phaser.Geom.Rectangle.Inflate(Bornes, MargeSurvol, MargeSurvol);
     const Survolee = Phaser.Geom.Rectangle.Contains(Bornes, PointMonde.x, PointMonde.y);
     if (!Survolee) {
       Interaction.Icone.setVisible(false);
