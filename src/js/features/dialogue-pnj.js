@@ -7,9 +7,8 @@
 // les mots choisis, la reaction est toujours la meme (secousse +
 // rougissement), puis le PNJ disparait pour de bon.
 //
-// Avancer d'une page de dialogue (E) reste au clavier pour l'instant : ce
-// n'est pas un element du monde a survoler, juste "continuer" une fois la
-// page remplie.
+// Avancer d'une page de dialogue se fait au clic gauche une fois la page
+// remplie : ce n'est pas un element du monde a survoler, juste "continuer".
 //
 // Format des proprietes Tiled (sur un objet du calque objets) :
 //   - ligneNPJ (string, obligatoire) : la phrase du PNJ, et le marqueur "ceci
@@ -18,7 +17,7 @@
 //     la phrase a trous (ex. "Oui !").
 //   - phrase (string) : la reponse du joueur, "{}" par trou. Un saut de ligne
 //     coupe en "pages" (la suivante n'apparait qu'apres avoir rempli la page
-//     courante ET appuye sur E).
+//     courante ET clique).
 //   - mots (string) : les mots a glisser, separes par des virgules, dans
 //     l'ordre des trous (puis des pages).
 //   - sprite (string, optionnel) : cle d'un personnage de SpritesPNJConnus
@@ -31,7 +30,7 @@
 
 import { ChargerFeuille } from '../loading.js';
 import { CleIconeInteraction, TailleIconeInteraction } from '../icone-interaction.js';
-import { EnregistrerInteractionSouris } from '../interaction-souris.js';
+import { ConsommerClicSouris, EnregistrerInteractionSouris } from '../interaction-souris.js';
 import { NomCoucheObjets, ValeurNombreTiled } from '../maps/cartes.js';
 import { StyleTexteDeZone, StyleMotDialogue } from '../config.js';
 
@@ -69,9 +68,9 @@ export const DialoguePNJ = {
   },
 
   miseAJour(Scene) {
-    // Une page vient d'etre completee et il en reste : E affiche la suivante.
-    // Pas un element du monde a survoler (juste "continuer"), reste au clavier.
-    if (Scene.PageDialogueEnAttente && Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) {
+    // Une page vient d'etre completee et il en reste : le clic affiche la suivante.
+    // Pas un element du monde a survoler (juste "continuer").
+    if (Scene.PageDialogueEnAttente && ConsommerClicSouris(Scene)) {
       AvancerPageDialogue(Scene);
     }
   },

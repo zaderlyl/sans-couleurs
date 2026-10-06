@@ -30,7 +30,7 @@ export class SceneJeu extends Phaser.Scene {
   // Appele avant preload(), au 1er lancement ET a chaque scene.restart(...)
   // (voir la feature gare). "data" est absent au 1er lancement -> carte de
   // depart, ou ?carte=<cle> en test (CleCarteDeDepart) ; il contient
-  // { carte, arrivee } quand on arrive d'une autre carte via le train.
+  // { carte, arrivee, transitionTrain } quand on arrive d'une autre carte via le train.
   // this.ArriveeParTrain declenche l'animation d'arrivee (feature gare).
   init(Donnees) {
     this.NomCarteActuelle = (Donnees && Donnees.carte) || CleCarteDeDepart();
@@ -42,6 +42,7 @@ export class SceneJeu extends Phaser.Scene {
     const ArriveeParUrl =
       PremierLancement && new URLSearchParams(window.location.search).get('arrivee') === '1';
     this.ArriveeParTrain = !!(Donnees && Donnees.arrivee) || ArriveeParUrl;
+    this.TransitionTrain = !!(Donnees && Donnees.transitionTrain);
   }
 
   preload() {

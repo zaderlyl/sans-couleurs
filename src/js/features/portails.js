@@ -33,20 +33,23 @@ export const Portails = {
       const IconeA = CreerIconePortail(Scene, Duo.colonneA, Duo.rangeeA, Duo.iconeEnBas);
       const IconeB = CreerIconePortail(Scene, Duo.colonneB, Duo.rangeeB, Duo.iconeEnBas);
 
-      // Pas de sprite dedie pour un portail : la Cible de survol est la
-      // case elle-meme (meme rectangle que la portee), pas la petite icone.
+      // Pas de sprite dedie pour un portail : la Cible de survol doit couvrir
+      // a la fois la case (le point de rendez-vous, "Zone") ET l'icone
+      // elle-meme (dessinee au-dessus OU en-dessous de la case selon
+      // iconeEnBas) — sinon la souris doit survoler un endroit vide (la
+      // case) different d'ou l'icone est reellement affichee.
       const CaseA = ZoneDeLaCase(A);
       const CaseB = ZoneDeLaCase(B);
       EnregistrerInteractionSouris(Scene, {
         Zone: CaseA,
-        Cible: CaseA,
+        Cible: ZoneSurvolPortail(CaseA, Duo.colonneA, Duo.rangeeA, Duo.iconeEnBas),
         Icone: IconeA,
         EstActive: () => !Scene.PortailEnCours,
         OnDeclenchement: () => DeclencherPortail(Scene, IconeA, B),
       });
       EnregistrerInteractionSouris(Scene, {
         Zone: CaseB,
-        Cible: CaseB,
+        Cible: ZoneSurvolPortail(CaseB, Duo.colonneB, Duo.rangeeB, Duo.iconeEnBas),
         Icone: IconeB,
         EstActive: () => !Scene.PortailEnCours,
         OnDeclenchement: () => DeclencherPortail(Scene, IconeB, A),
@@ -78,6 +81,23 @@ function CreerIconePortail(Scene, Colonne, Rangee, EnBas) {
     ? (Rangee + 1) * TailleTuile + TailleIconeInteraction // sous le sol, sous le joueur
     : Rangee * TailleTuile - TailleIconeInteraction;      // au-dessus de la tete (comportement habituel)
   return CreerIconeInteraction(Scene, (Colonne + 0.5) * TailleTuile, Y);
+}
+
+// Rectangle de survol d'un portail : `Case` (la case elle-meme) etendu
+// jusqu'a englober l'icone (meme calcul de position que CreerIconePortail),
+// qui se dessine hors de la case (au-dessus ou en-dessous selon EnBas).
+function ZoneSurvolPortail(Case, Colonne, Rangee, EnBas) {
+  const CentreIconeY = EnBas
+    ? (Rangee + 1) * TailleTuile + TailleIconeInteraction
+    : Rangee * TailleTuile - TailleIconeInteraction;
+  const IconeYMin = CentreIconeY - TailleIconeInteraction / 2;
+  const IconeYMax = CentreIconeY + TailleIconeInteraction / 2;
+  return {
+    XMin: Case.XMin,
+    XMax: Case.XMax,
+    YMin: Math.min(Case.YMin, IconeYMin),
+    YMax: Math.max(Case.YMax, IconeYMax),
+  };
 }
 
 // Fondu -> deplacement instantane vers `Destination` -> fondu inverse. Le

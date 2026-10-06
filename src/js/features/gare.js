@@ -20,6 +20,7 @@ import { ChargerFeuille } from '../loading.js';
 import { CreerIconeInteraction } from '../icone-interaction.js';
 import { EnregistrerInteractionSouris } from '../interaction-souris.js';
 import { CalculerBoiteTuiles, CalqueEstFlippe, TailleTuile, CleCarteSuivante, ConfigCarte } from '../maps/cartes.js';
+import { StyleTexteDeZone } from '../config.js';
 import { Secouer, CreerAnim } from '../util.js';
 
 const CleGare = 'animationGare';
@@ -47,6 +48,18 @@ const DecalageCentreGareNonFlippe = LargeurContenuGare / 2;               // 88
 const DecalageCentreGareFlippe = LargeurContenuGare / 2 - AncrageImageGareX; // 8
 
 const HauteurIconeGareY = 80; // hauteur fixe de l'icone E au-dessus du sol
+const PhrasesTransitionTrain = [
+  'Le train quitte la gare.',
+  'Les paysages defilent derriere la vitre.',
+  'Quelques instants plus tard...',
+];
+const DelaiParLettreTransitionTrain = 70;
+const StyleTexteTransitionTrain = {
+  ...StyleTexteDeZone,
+  fontSize: '8px',
+  align: 'center',
+  wordWrap: { width: 220 },
+};
 
 
 export const Gare = {
@@ -99,12 +112,12 @@ export const Gare = {
     // Cible : le train lui-meme (Scene.SpriteGare), pas la petite icone —
     // meme sprite repositionne pour le depart et le retour, mais toujours
     // au bon endroit vu qu'un seul des deux est actif a la fois. Le cadre de
-    // l'image (256x256) est bien plus grand que le train dessine dedans ->
-    // EchelleSurvol retrecit la zone de survol pour coller au dessin utile.
+    // l'image (256x256) est bien plus grand que le train dessine dedans,
+    // mais interaction-souris.js teste le pixel reellement opaque sous la
+    // souris pour une cible sprite : pas besoin de retrecir la zone a la main.
     EnregistrerInteractionSouris(Scene, {
       Zone: Scene.ZoneGare,
       Cible: Scene.SpriteGare,
-      EchelleSurvol: 0.4,
       Icone: Scene.IconeInteraction,
       EstActive: () => Scene.EtatGare === 'attente' && Scene.SortieGareActive,
       OnDeclenchement: () => {
@@ -115,7 +128,6 @@ export const Gare = {
     EnregistrerInteractionSouris(Scene, {
       Zone: Scene.ZoneRetour,
       Cible: Scene.SpriteGare,
-      EchelleSurvol: 0.4,
       Icone: Scene.IconeInteractionRetour,
       EstActive: () => Scene.EtatGare === 'retourAttente',
       OnDeclenchement: () => {
@@ -157,10 +169,10 @@ function CalculerPositionsGare(Scene, Carte) {
   // Zone d'interaction : quelques cases centrees, a la rangee du bas.
   const ColCentre = ColMin + Math.floor((ColMax - ColMin) / 2);
   Scene.ZoneGare = {
-    XMin: (ColCentre - 1) * TailleTuile,
-    XMax: (ColCentre + 3) * TailleTuile,
+    XMin: ColMin * TailleTuile,
+    XMax: (ColCentre + 4) * TailleTuile,
     YMin: RangeeMax * TailleTuile,
-    YMax: (RangeeMax + 1) * TailleTuile,
+    YMax: (RangeeMax + 2) * TailleTuile,
   };
 }
 
@@ -247,7 +259,7 @@ function DemarrerSequenceGare(Scene) {
             const CarteApres = CleCarteSuivante(Scene.NomCarteActuelle);
             if (CarteApres) {
               // Redemarre la scene avec la carte suivante (ecran deja noir).
-              Scene.scene.restart({ carte: CarteApres, arrivee: true });
+              Scene.scene.restart({ carte: CarteApres, arrivee: true, transitionTrain: true });
               return;
             }
             // Le train ne mene nulle part : le joueur revient ou il etait.
@@ -324,12 +336,25 @@ function DemarrerRetourGare(Scene) {
 // "gare", puis le sprite reste fige sur la frame 0 (= gare au repos).
 function JouerArriveeEnTrain(Scene) {
   Scene.cameras.main.fadeOut(0, 0, 0, 0);
+  // Le fondu de camera reste au-dessus des objets et masquerait le texte.
+  // Le fond noir de la transition prend le relais juste apres.
+  Scene.cameras.main.resetFX();
   Scene.EtatGare = 'enCours';
   GelerJoueur(Scene);
 
   Scene.SpriteGare.setFlipX(Scene.GareFlippee);
   Scene.SpriteGare.setPosition(Scene.PositionGareX, Scene.PositionGareY);
   Scene.SpriteGare.setVisible(true);
+
+  if (Scene.TransitionTrain) {
+    AfficherTransitionTrain(Scene);
+    return;
+  }
+
+  DemarrerAnimationArrivee(Scene);
+}
+
+function DemarrerAnimationArrivee(Scene) {
   Scene.SpriteGare.play('arriveeGare');
   Scene.cameras.main.fadeIn(500, 0, 0, 0);
 
@@ -338,6 +363,89 @@ function JouerArriveeEnTrain(Scene) {
     DegelerJoueur(Scene);
     Scene.EtatGare = 'attente';
   });
+}
+
+function AfficherTransitionTrain(Scene) {
+  const Cam = Scene.cameras.main;
+  const LargeurVueMonde = Cam.width / Cam.zoom;
+  const HauteurVueMonde = Cam.height / Cam.zoom;
+  const VueX = Cam.scrollX + (Cam.width - LargeurVueMonde) / 2;
+  const VueY = Cam.scrollY + (Cam.height - HauteurVueMonde) / 2;
+
+  const Fond = Scene.add.rectangle(VueX, VueY, LargeurVueMonde, HauteurVueMonde, 0x000000, 1);
+  Fond.setOrigin(0, 0);
+  Fond.setDepth(2000);
+
+  const Texte = Scene.add.text(
+    VueX + LargeurVueMonde / 2,
+    VueY + HauteurVueMonde / 2,
+    PhrasesTransitionTrain[0],
+    StyleTexteTransitionTrain,
+  );
+  Texte.setOrigin(0.5, 0.5);
+  Texte.setDepth(2001);
+  Texte.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+
+  let IndexPhrase = 0;
+  let IndexLettre = 1;
+  let EcritureTerminee = PhrasesTransitionTrain[0].length <= 1;
+  let MinuteurEcriture = 0;
+  Texte.setText(PhrasesTransitionTrain[0].slice(0, IndexLettre));
+
+  const EcrirePhrase = () => {
+    PositionnerTransitionTrain(Scene, Fond, Texte);
+    if (EcritureTerminee) return;
+    MinuteurEcriture += Scene.game.loop.delta;
+    if (MinuteurEcriture < DelaiParLettreTransitionTrain) return;
+    MinuteurEcriture = 0;
+    IndexLettre += 1;
+    Texte.setText(PhrasesTransitionTrain[IndexPhrase].slice(0, IndexLettre));
+    if (IndexLettre >= PhrasesTransitionTrain[IndexPhrase].length) {
+      EcritureTerminee = true;
+    }
+  };
+
+  Scene.events.on('update', EcrirePhrase);
+
+  const Continuer = (Pointeur) => {
+    if (!Pointeur.leftButtonDown()) return;
+    if (!EcritureTerminee) {
+      IndexLettre = PhrasesTransitionTrain[IndexPhrase].length;
+      Texte.setText(PhrasesTransitionTrain[IndexPhrase]);
+      EcritureTerminee = true;
+      return;
+    }
+
+    IndexPhrase += 1;
+    if (IndexPhrase < PhrasesTransitionTrain.length) {
+      IndexLettre = 1;
+      MinuteurEcriture = 0;
+      EcritureTerminee = PhrasesTransitionTrain[IndexPhrase].length <= 1;
+      Texte.setText(PhrasesTransitionTrain[IndexPhrase].slice(0, IndexLettre));
+      return;
+    }
+
+    Scene.input.off('pointerdown', Continuer);
+    Scene.events.off('update', EcrirePhrase);
+    Fond.destroy();
+    Texte.destroy();
+    Scene.TransitionTrain = false;
+    DemarrerAnimationArrivee(Scene);
+  };
+
+  Scene.input.on('pointerdown', Continuer);
+}
+
+function PositionnerTransitionTrain(Scene, Fond, Texte) {
+  const Cam = Scene.cameras.main;
+  const LargeurVueMonde = Cam.width / Cam.zoom;
+  const HauteurVueMonde = Cam.height / Cam.zoom;
+  const VueX = Cam.scrollX + (Cam.width - LargeurVueMonde) / 2;
+  const VueY = Cam.scrollY + (Cam.height - HauteurVueMonde) / 2;
+
+  Fond.setPosition(VueX, VueY);
+  Fond.setSize(LargeurVueMonde, HauteurVueMonde);
+  Texte.setPosition(VueX + LargeurVueMonde / 2, VueY + HauteurVueMonde / 2);
 }
 
 function GelerJoueur(Scene) {

@@ -11,10 +11,11 @@
 //   - "glitch"  -> le glitch "avale" le joueur, retour au spawn de la carte,
 //     sans coupure (pas d'ecran de mort).
 //   - "glitch2" -> le joueur "meurt" : ecran noir, texte (placeholder, a
-//     ecrire), puis E pour reapparaitre au spawn de LA MEME carte.
+//     ecrire), puis clic pour reapparaitre au spawn de LA MEME carte.
 
 import { NomCoucheObjets } from '../maps/cartes.js';
 import { NomPoliceTexteDeZone } from '../config.js';
+import { ConsommerClicSouris } from '../interaction-souris.js';
 
 const CleTextureBruit = 'bruitGlitch';
 // Palette de bandes de "dechirure" (voir RafraichirBruit) : des couleurs
@@ -37,11 +38,11 @@ const NombreBandesMin = 1; // bandes de dechirure horizontales, intensite 0
 const NombreBandesMax = 7; // ... intensite 1
 const DureeFonduRetourSpawn = 350;
 
-// --- Mort "glitch2" : ecran noir + texte + E pour reapparaitre -----
+// --- Mort "glitch2" : ecran noir + clic pour reapparaitre -----
 // TODO : texte definitif pas encore decide.
 const DureeFonduMortGlitch2 = 500;
 const TextePlaceholderMortGlitch2 =
-  '[ SIGNAL PERDU ]\n\n( texte a definir )\n\nAppuie sur E pour reapparaitre';
+  '[ SIGNAL PERDU ]\n\n( texte a definir )\n\nClique pour reapparaitre';
 const StyleTextePlaceholderMortGlitch2 = {
   fontFamily: `'${NomPoliceTexteDeZone}', monospace`,
   fontSize: '10px',
@@ -77,9 +78,9 @@ export const Glitch = {
   miseAJour(Scene, Temps, TempsEcoule) {
     if (Scene.ZonesGlitch.length === 0) return;
 
-    // Ecran de mort glitch2 : plus rien d'autre a faire tant qu'on attend le E.
+    // Ecran de mort glitch2 : plus rien d'autre a faire tant qu'on attend le clic.
     if (Scene.GlitchEtatFin === 'attente') {
-      if (Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) {
+      if (ConsommerClicSouris(Scene)) {
         RespawnApresMortGlitch2(Scene);
       }
       return;
@@ -268,7 +269,7 @@ function RenvoyerAuSpawn(Scene) {
 // Intensite au maximum dans une zone "glitch2" : le joueur "meurt" — fondu
 // au noir (pas de flash blanc, contrairement au retour au spawn — ça ne
 // "continue" pas discretement, ça marque un coup d'arret), texte plein
-// ecran, puis E pour reapparaitre au spawn de LA MEME carte.
+// ecran, puis clic pour reapparaitre au spawn de LA MEME carte.
 function DeclencherMortGlitch2(Scene) {
   Scene.GlitchEtatFin = 'enCours';
   Scene.IntensiteGlitch = 0;
