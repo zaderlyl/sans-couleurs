@@ -99,3 +99,40 @@ export function JouerSonAtterrissage() {
   Oscillateur.start();
   Oscillateur.stop(Contexte.currentTime + 0.11);
 }
+
+
+// --- Dialogue a trous : petits bips "ludiques" ---
+// Une note courte qui glisse de FrequenceDebut a FrequenceFin (Hz).
+function JouerNote(FrequenceDebut, FrequenceFin, Duree, Volume, Type = 'square') {
+  const Contexte = ObtenirContexteAudio();
+  const Oscillateur = Contexte.createOscillator();
+  Oscillateur.type = Type;
+  Oscillateur.frequency.setValueAtTime(FrequenceDebut, Contexte.currentTime);
+  Oscillateur.frequency.exponentialRampToValueAtTime(FrequenceFin, Contexte.currentTime + Duree);
+
+  const Gain = Contexte.createGain();
+  Gain.gain.setValueAtTime(Volume, Contexte.currentTime);
+  Gain.gain.exponentialRampToValueAtTime(0.001, Contexte.currentTime + Duree);
+
+  Oscillateur.connect(Gain);
+  Gain.connect(Contexte.destination);
+  Oscillateur.start();
+  Oscillateur.stop(Contexte.currentTime + Duree + 0.01);
+}
+
+// Mot attrape : petit "bloop" montant.
+export function JouerSonMotPris() {
+  JouerNote(380, 620, 0.07, 0.06);
+}
+
+// Mot pose dans un trou : "pop" dont la hauteur monte avec le nombre de trous
+// deja remplis (Rang 0, 1, 2...) -> la phrase se "joue" comme une melodie.
+export function JouerSonMotPose(Rang) {
+  const Base = 440 * Math.pow(2, Math.min(Rang, 7) / 6);
+  JouerNote(Base, Base * 1.5, 0.11, 0.08, 'triangle');
+}
+
+// Depot impossible : bzzz grave.
+export function JouerSonMotRefuse() {
+  JouerNote(150, 90, 0.12, 0.07, 'sawtooth');
+}
