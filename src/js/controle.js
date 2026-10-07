@@ -4,7 +4,7 @@
 
 import { DirectionAutoMarche } from './auto-marche.js';
 
-// Joueur 1 : fleches (ou A/Q et D si un joueur 2 est la). Joueur 2 : fleches. Les actions se declenchent a la souris,
+// Joueur 1 : souris (clavier seulement sur les cartes sans joueur 2). Joueur 2 : fleches. Les actions se declenchent a la souris,
 // voir interaction-souris.js.
 export function InstallerControles(Scene) {
   Scene.Fleches = Scene.input.keyboard.createCursorKeys();
@@ -23,12 +23,12 @@ export function LireDeplacement(Scene) {
   const VersCible = DirectionAutoMarche(Scene);
   if (VersCible) return VersCible;
 
-  // Quand le joueur 2 existe (feature joueur2), les fleches sont a lui :
-  // le joueur 1 garde A/Q et D.
-  const FlechesLibres = !Scene.Joueur2;
+  // Quand le joueur 2 existe (feature joueur2), le clavier est a lui : le
+  // joueur 1 ne se deplace plus qu'a la souris (clic = il y va).
+  if (Scene.Joueur2) return { Gauche: false, Droite: false };
   return {
-    Gauche: (FlechesLibres && Scene.Fleches.left.isDown) || Scene.ToucheA.isDown || Scene.ToucheQ.isDown,
-    Droite: (FlechesLibres && Scene.Fleches.right.isDown) || Scene.ToucheD.isDown,
+    Gauche: Scene.Fleches.left.isDown || Scene.ToucheA.isDown || Scene.ToucheQ.isDown,
+    Droite: Scene.Fleches.right.isDown || Scene.ToucheD.isDown,
   };
 }
 

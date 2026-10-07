@@ -38,7 +38,7 @@
 // marcher automatiquement jusqu'au centre de Zone (voir auto-marche.js) avant
 // de jouer l'anim "E qui eclate" puis OnDeclenchement.
 
-import { DemarrerAutoMarche } from './auto-marche.js';
+import { DemarrerAutoMarche, AfficherRepereDestination } from './auto-marche.js';
 
 // Marge (px monde) ajoutee autour de la cible pour le survol — confortable
 // meme pour les cibles deja petites (un PNJ, un portail sans sprite dedie).
@@ -198,15 +198,15 @@ function ArreterTremblement(Interaction) {
 
 // A appeler une fois par frame (scene-jeu.js). Gele tout (rien de survole,
 // curseur normal) pendant un voyage en train, un dialogue, l'ecran de mort
-// glitch2, ou une auto-marche deja en cours vers un autre element — comme
-// le mouvement du joueur dans scene-jeu.js.
+// glitch2 — comme le mouvement du joueur dans scene-jeu.js. Un clic sur
+// l'element survole l'active ; un clic dans le vide fait simplement marcher le
+// joueur jusque-la (voir la fin de cette fonction).
 export function MettreAJourInteractionsSouris(Scene) {
   const Clic = Scene.SourisVientDeCliquer;
   Scene.SourisVientDeCliquer = false; // consomme ici, une seule fois, pour tout le monde
 
   const Fige =
-    Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || !!Scene.GlitchEtatFin ||
-    Scene.CibleAutoMarcheX !== null;
+    Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || !!Scene.GlitchEtatFin;
   if (Fige) {
     Scene.InteractionsSouris.forEach((Interaction) => {
       if (Interaction.EnCours || EstDetruit(Interaction.Icone) || EstDetruit(Interaction.Cible)) return;
@@ -219,6 +219,7 @@ export function MettreAJourInteractionsSouris(Scene) {
 
   const PointMonde = Scene.cameras.main.getWorldPoint(Scene.input.activePointer.x, Scene.input.activePointer.y);
   let SurvolTrouve = false;
+  let ClicUtilise = false; // le clic a-t-il active un element ? sinon il sert a marcher
 
   for (const Interaction of Scene.InteractionsSouris) {
     // L'icone ou sa cible peuvent avoir ete detruites pour de bon (ex: un
@@ -256,6 +257,7 @@ export function MettreAJourInteractionsSouris(Scene) {
     AppliquerTremblement(Interaction); // indice visuel "c'est cliquable"
 
     if (Clic) {
+      ClicUtilise = true;
       ArreterTremblement(Interaction); // remis a sa place avant de jouer la sequence de clic
       Interaction.EnCours = true;
       // Marche automatique jusqu'au point de rendez-vous (centre de Zone) —
@@ -270,8 +272,18 @@ export function MettreAJourInteractionsSouris(Scene) {
           Interaction.EnCours = false;
           Interaction.OnDeclenchement();
         });
+      }, () => {
+        Interaction.EnCours = false; // le joueur a clique ailleurs avant d'arriver
       });
     }
+  }
+
+  // Clic dans le vide : le joueur marche jusqu'a l'endroit clique (seul le X
+  // compte, il n'y a pas de saut). Un nouveau clic remplace la marche en cours.
+  if (Clic && !ClicUtilise && !Scene.PortailEnCours) {
+    const X = Phaser.Math.Clamp(PointMonde.x, 0, Scene.LargeurMondeCarte);
+    DemarrerAutoMarche(Scene, X, null, null);
+    AfficherRepereDestination(Scene, X, PointMonde.y);
   }
 
   // Le curseur "main" est l'indice visuel qu'un element est cliquable —
