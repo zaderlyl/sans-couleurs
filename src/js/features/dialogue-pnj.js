@@ -553,41 +553,38 @@ function VerifierDialogueComplet(Scene) {
   });
 }
 
-// La reponse du joueur tremble et rougit un instant, puis tout disparait — la
-// phrase, les mots, la ligne du PNJ et le PNJ lui-meme. PNJ.Termine reste vrai
-// pour toujours.
+// Le PNJ est mal a l'aise : le joueur lui parait bizarre, quoi qu'il ait
+// repondu (c'est le point du jeu — le joueur est "different"). La reponse du
+// joueur s'estompe, le PNJ recule d'un pas et une bulle "..." puis "Euh..."
+// apparait ; ensuite tout disparait — la phrase, les mots, la bulle et le PNJ
+// lui-meme. PNJ.Termine reste vrai pour toujours.
 function JouerReactionFinDialogue(Scene) {
   const PNJ = Scene.PNJActif;
-  const ElementsSecoues = [...Scene.ElementsLigneJoueur, ...Scene.MotsDialogue];
-  // Stoppe balancements/pops en cours pour que la secousse parte de positions fixes.
-  ElementsSecoues.forEach((Objet) => {
+  const ElementsJoueur = [...Scene.ElementsLigneJoueur, ...Scene.MotsDialogue];
+  // Stoppe balancements/pops en cours, puis la phrase du joueur s'estompe
+  // (le silence gene).
+  ElementsJoueur.forEach((Objet) => {
     Scene.tweens.killTweensOf(Objet);
     Objet.setAngle(0);
     Objet.setScale(1);
   });
-  const PositionsInitiales = ElementsSecoues.map((Objet) => ({ x: Objet.x, y: Objet.y }));
+  Scene.tweens.add({ targets: ElementsJoueur, alpha: 0.4, duration: 300 });
 
-  ElementsSecoues.forEach((Objet) => {
-    if (Objet.setColor) Objet.setColor('#ff0000');
+  // Recule d'un pas, a l'oppose du joueur.
+  const Sens = PNJ.Sprite.x >= Scene.Personnage.x ? 1 : -1;
+  const Recul = 8;
+  Scene.tweens.add({ targets: PNJ.Sprite, x: PNJ.Sprite.x + Sens * Recul, duration: 250, ease: 'Sine.easeOut' });
+
+  // Bulle de malaise au-dessus du PNJ : d'abord "...", puis "Euh...".
+  const Bulle = Scene.CreerTexteMondeDialogue('...');
+  Bulle.setOrigin(0.5, 1);
+  Bulle.setPosition(PNJ.Sprite.x + Sens * Recul, PNJ.Sprite.y - PNJ.Sprite.height - 6);
+  Scene.time.delayedCall(700, () => {
+    if (Bulle.active) Bulle.setText('Euh...');
   });
 
-  const DureeSecousse = 500;
-  const Intensite = 2;
-  const MinuteurSecousse = Scene.time.addEvent({
-    delay: 40,
-    loop: true,
-    callback: () => {
-      const DecalageX = Phaser.Math.Between(-Intensite, Intensite);
-      const DecalageY = Phaser.Math.Between(-Intensite, Intensite);
-      ElementsSecoues.forEach((Objet, Index) => {
-        Objet.x = PositionsInitiales[Index].x + DecalageX;
-        Objet.y = PositionsInitiales[Index].y + DecalageY;
-      });
-    },
-  });
-
-  Scene.time.delayedCall(DureeSecousse, () => {
-    MinuteurSecousse.remove();
+  const DureeReaction = 1600;
+  Scene.time.delayedCall(DureeReaction, () => {
     Scene.ElementsDialogue.forEach((Objet) => {
       Scene.tweens.killTweensOf(Objet);
       Objet.destroy();
