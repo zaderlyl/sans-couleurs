@@ -151,6 +151,7 @@ export class SceneJeu extends Phaser.Scene {
     // CreerPersonnage dans src/js/player.js.
     CreerPersonnage(this, PositionDepartX, PositionDepartY);
     this.physics.add.collider(this.Personnage, Sol);
+    this.CalqueCollision = Sol; // reutilise par le joueur 2 (feature joueur2)
 
     // Suivi de camera entierement manuel (voir MettreAJourCamera dans
     // update()), plutot que startFollow(...) : constate a l'usage que
