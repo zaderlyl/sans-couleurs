@@ -380,6 +380,7 @@ function ArreterBalancementMot(Scene, Mot) {
 function OuvrirDialoguePNJ(Scene, PNJ) {
   Scene.DialogueOuvert = true;
   Scene.PNJActif = PNJ;
+  Scene.FinDialogueProgrammee = false;
   Scene.MotsChoisis = []; // mots places par le joueur, dans l'ordre, toutes pages
   Scene.Personnage.body.setVelocity(0, 0);
   Scene.Personnage.body.enable = false;
@@ -598,6 +599,11 @@ function VerifierDialogueComplet(Scene) {
     return;
   }
 
+  // Une seule reaction, et les mots ne bougent plus : sinon re-cliquer un mot
+  // pendant ce court delai relancerait la verification (double reaction).
+  if (Scene.FinDialogueProgrammee) return;
+  Scene.FinDialogueProgrammee = true;
+  Scene.MotsDialogue.forEach((Mot) => Mot.disableInteractive());
   Scene.time.delayedCall(600, () => {
     if (Scene.DialogueOuvert) JouerReactionFinDialogue(Scene);
   });

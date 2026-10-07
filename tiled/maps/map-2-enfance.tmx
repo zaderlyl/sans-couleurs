@@ -117,6 +117,7 @@
     <property name="ligneNPJ" value="De quelles couleurs sont les ours ?"/>
     <property name="mots" value="blanc, froid"/>
     <property name="phrase" value="Il sont {} , et {} ."/>
+    <property name="repliques" value="blanc: Blanc ? Les ours sont bruns... Tu vois bizarrement. | froid: Froid ? Ce n'est pas une couleur... T'es bizarre."/>
     <property name="sprite" value="other_child"/>
    </properties>
    <point/>
@@ -127,6 +128,7 @@
     <property name="ligneNPJ" value="Tu aimes les carottes ?"/>
     <property name="mots" value="rouge, aimable"/>
     <property name="phrase" value="Oui, elle sont {} et rendent {}."/>
+    <property name="repliques" value="rouge: Rouge... tu dis ça comme si tu n'en avais jamais vu. | aimable: Aimable ? Une carotte ? ... Euh."/>
     <property name="sprite" value="other_child"/>
    </properties>
    <point/>
@@ -137,6 +139,7 @@
     <property name="ligneNPJ" value="Ma peluche, c'est Rose, et toi ?"/>
     <property name="mots" value="doudou"/>
     <property name="phrase" value="Je n'est pas de {}...."/>
+    <property name="repliques" value="doudou: Pas de doudou ?! T'es vraiment bizarre..."/>
     <property name="sprite" value="other_child"/>
    </properties>
    <point/>
@@ -147,6 +150,7 @@
     <property name="ligneNPJ" value="Pourquoi tu manges la terre ?"/>
     <property name="mots" value="aime"/>
     <property name="phrase" value="J' {} ça"/>
+    <property name="repliques" value="aime: Tu aimes ça ?! Beurk... Personne ne fait ça."/>
     <property name="sprite" value="other_child"/>
    </properties>
    <point/>
