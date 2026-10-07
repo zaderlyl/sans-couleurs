@@ -18,6 +18,14 @@ export function ObtenirContexteAudio() {
   return ContexteAudioPartage;
 }
 
+// Contexte pret a jouer, ou null tant que le navigateur le garde suspendu
+// (aucun geste du joueur encore) : les petits bruitages sautent alors leur
+// tour au lieu de lever l'avertissement "AudioContext was not allowed to start".
+function ContexteAudioActif() {
+  const Contexte = ObtenirContexteAudio();
+  return Contexte.state === 'running' ? Contexte : null;
+}
+
 
 // --- Ambiance : drone grave continu, avec une pulsation lente ---
 let SonAmbianceDemarre = false; // garde-fou : une seule instance du drone
@@ -27,6 +35,9 @@ export function DemarrerSonAmbiance() {
   SonAmbianceDemarre = true;
 
   const Contexte = ObtenirContexteAudio();
+  // Cree avant le 1er geste (ex. un bruit d'atterrissage au chargement), le
+  // contexte reste suspendu : on le reveille ici, pendant le geste du joueur.
+  Contexte.resume();
 
   const Oscillateur = Contexte.createOscillator();
   Oscillateur.type = 'sine'; // son pur, sans harmoniques agressives
@@ -56,7 +67,8 @@ export function DemarrerSonAmbiance() {
 
 // --- Pas : bref grain de bruit filtre, tres court et discret ---
 export function JouerSonPas() {
-  const Contexte = ObtenirContexteAudio();
+  const Contexte = ContexteAudioActif();
+  if (!Contexte) return;
   const Duree = 0.05;
 
   const Tampon = Contexte.createBuffer(1, Contexte.sampleRate * Duree, Contexte.sampleRate);
@@ -84,7 +96,8 @@ export function JouerSonPas() {
 
 // --- Atterrissage : petit "thud" grave et court ---
 export function JouerSonAtterrissage() {
-  const Contexte = ObtenirContexteAudio();
+  const Contexte = ContexteAudioActif();
+  if (!Contexte) return;
   const Oscillateur = Contexte.createOscillator();
   Oscillateur.type = 'sine';
   Oscillateur.frequency.setValueAtTime(140, Contexte.currentTime);
@@ -104,7 +117,8 @@ export function JouerSonAtterrissage() {
 // --- Dialogue a trous : petits bips "ludiques" ---
 // Une note courte qui glisse de FrequenceDebut a FrequenceFin (Hz).
 function JouerNote(FrequenceDebut, FrequenceFin, Duree, Volume, Type = 'square') {
-  const Contexte = ObtenirContexteAudio();
+  const Contexte = ContexteAudioActif();
+  if (!Contexte) return;
   const Oscillateur = Contexte.createOscillator();
   Oscillateur.type = Type;
   Oscillateur.frequency.setValueAtTime(FrequenceDebut, Contexte.currentTime);

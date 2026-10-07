@@ -13,6 +13,11 @@
 // mot pose le renvoie dans la liste). Chaque geste a son petit bip, qui monte
 // d'une note a chaque trou rempli.
 //
+// Les PNJ apparaissent UN A LA FOIS : au depart seul le premier est la ; une
+// fois son dialogue termine (il disparait), le suivant apparait. L'ordre est
+// celui de la propriete Tiled "ordre" (optionnelle), a defaut de gauche a
+// droite (position x sur la carte).
+//
 // Avancer d'une page de dialogue se fait au clic gauche une fois la page
 // remplie : ce n'est pas un element du monde a survoler, juste "continuer".
 //
@@ -26,6 +31,8 @@
 //     courante ET clique).
 //   - mots (string) : les mots a glisser, separes par des virgules, dans
 //     l'ordre des trous (puis des pages).
+//   - ordre (int, optionnel) : rang d'apparition (le plus petit d'abord ;
+//     par defaut la position x, donc de gauche a droite).
 //   - sprite (string, optionnel) : cle d'un personnage de SpritesPNJConnus
 //     (par defaut le premier).
 //   - frame (int, optionnel) : frame du spritesheet (par defaut 0).
@@ -57,6 +64,10 @@ export const DialoguePNJ = {
     Scene.DialogueOuvert = false;
     Scene.PageDialogueEnAttente = false;
     CreerPNJs(Scene, Ctx.Carte);
+    // Un seul PNJ visible au depart : le premier de la file.
+    Scene.PNJs.forEach((PNJ, Index) => {
+      PNJ.Sprite.setVisible(Index === 0);
+    });
     // Clic ou glisser ? en dessous de ce deplacement (px ecran) c'est un clic.
     Scene.input.dragDistanceThreshold = 3;
     InstallerGlisserDeposer(Scene);
@@ -70,7 +81,7 @@ export const DialoguePNJ = {
         Zone: PNJ.Zone,
         Cible: PNJ.Sprite,
         Icone: PNJ.Icone,
-        EstActive: () => !PNJ.Termine && !Scene.DialogueOuvert,
+        EstActive: () => PNJ === PNJActuel(Scene) && !Scene.DialogueOuvert,
         OnDeclenchement: () => OuvrirDialoguePNJ(Scene, PNJ),
       });
     });
@@ -143,10 +154,28 @@ function CreerPNJs(Scene, Carte) {
           YMin: Objet.y - Sprite.height - 16,
           YMax: Objet.y + 16,
         },
+        Ordre: ValeurNombreTiled(Lire('ordre', Objet.x), Objet.x),
         Dialogue: { LigneNPJ: Lire('ligneNPJ', ''), Intro: Lire('intro', ''), Pages },
         Termine: false,
       };
-    });
+    })
+    .sort((A, B) => A.Ordre - B.Ordre);
+}
+
+// Le PNJ qu'on peut voir/interroger maintenant : le premier pas encore termine.
+function PNJActuel(Scene) {
+  return Scene.PNJs.find((PNJ) => !PNJ.Termine) || null;
+}
+
+// Le PNJ suivant surgit en grandissant (petit "pop" avec le meme bip que les
+// mots poses). Rien s'il n'en reste plus.
+function FaireApparaitrePNJSuivant(Scene) {
+  const Suivant = PNJActuel(Scene);
+  if (!Suivant) return;
+  Suivant.Sprite.setVisible(true);
+  Suivant.Sprite.setScale(0);
+  Scene.tweens.add({ targets: Suivant.Sprite, scale: 1, duration: 350, ease: 'Back.easeOut' });
+  JouerSonMotPose(2);
 }
 
 
@@ -575,5 +604,7 @@ function JouerReactionFinDialogue(Scene) {
     Scene.PageDialogueEnAttente = false;
     Scene.PNJActif = null;
     Scene.Personnage.body.enable = true;
+
+    FaireApparaitrePNJSuivant(Scene);
   });
 }
