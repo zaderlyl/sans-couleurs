@@ -612,8 +612,9 @@ function VerifierDialogueComplet(Scene) {
 // Le PNJ est mal a l'aise : le joueur lui parait bizarre, quoi qu'il ait
 // repondu (c'est le point du jeu — le joueur est "different"). La reponse du
 // joueur s'estompe, le PNJ recule d'un pas et une bulle "..." puis une
-// replique (selon le mot choisi) apparait ; ensuite tout disparait — la phrase, les mots, la bulle et le PNJ
-// lui-meme. PNJ.Termine reste vrai pour toujours.
+// replique (selon le mot choisi) apparait ; ensuite la phrase, les mots et la
+// bulle disparaissent et le PNJ s'eloigne en marchant (voir FairePartirPNJ).
+// PNJ.Termine reste vrai pour toujours.
 function JouerReactionFinDialogue(Scene) {
   const PNJ = Scene.PNJActif;
   const ElementsJoueur = [...Scene.ElementsLigneJoueur, ...Scene.MotsDialogue];
@@ -652,9 +653,8 @@ function JouerReactionFinDialogue(Scene) {
       Scene.tweens.killTweensOf(Objet);
       Objet.destroy();
     });
-    PNJ.Sprite.destroy();
     PNJ.Icone.destroy();
-    PNJ.Termine = true;
+    PNJ.Termine = true; // plus interrogeable des maintenant, meme s'il part encore
 
     Scene.ElementsDialogue = [];
     Scene.ElementsLigneJoueur = [];
@@ -665,6 +665,30 @@ function JouerReactionFinDialogue(Scene) {
     Scene.PNJActif = null;
     Scene.Personnage.body.enable = true;
 
-    FaireApparaitrePNJSuivant(Scene);
+    // Le PNJ s'eloigne en marchant (le joueur peut deja bouger) ; le suivant
+    // n'apparait qu'une fois celui-ci parti.
+    FairePartirPNJ(Scene, PNJ, Sens);
+  });
+}
+
+// Le PNJ tourne le dos au joueur et s'eloigne a petits pas (petits sauts de
+// marche, le spritesheet n'a pas d'animation de marche) en s'effacant, puis
+// le PNJ suivant apparait.
+function FairePartirPNJ(Scene, PNJ, Sens) {
+  const Sprite = PNJ.Sprite;
+  Sprite.setFlipX(Sens < 0); // regarde dans le sens ou il part (sprites dessines tournes vers la droite)
+  const DureeDepart = 1400;
+  const DistanceDepart = 36;
+
+  Scene.tweens.add({
+    targets: Sprite, y: Sprite.y - 1, duration: 120, yoyo: true, repeat: Math.floor(DureeDepart / 240),
+  });
+  Scene.tweens.add({
+    targets: Sprite, x: Sprite.x + Sens * DistanceDepart, alpha: 0, duration: DureeDepart, ease: 'Sine.easeIn',
+    onComplete: () => {
+      Scene.tweens.killTweensOf(Sprite);
+      Sprite.destroy();
+      FaireApparaitrePNJSuivant(Scene);
+    },
   });
 }
