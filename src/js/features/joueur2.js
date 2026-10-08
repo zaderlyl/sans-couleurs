@@ -5,7 +5,7 @@
 // Meme personnage que le joueur 1 mais aux couleurs INVERSEES : on fabrique
 // une copie du spritesheet dont les canaux R, G, B sont inverses (l'alpha ne
 // change pas). Le joueur 2 est independant (sa propre physique, son propre
-// deplacement) et les deux joueurs se bloquent l'un l'autre.
+// deplacement) et les deux joueurs se traversent sans se bloquer.
 //
 // Il interagit avec la touche E (portails, tele ; voir PourJoueur2 dans
 // interaction-souris.js). La camera ne suit que le joueur 1 pour l'instant :
@@ -43,7 +43,7 @@ export const Joueur2 = {
     });
 
     Scene.physics.add.collider(Scene.Joueur2, Scene.CalqueCollision);
-    Scene.physics.add.collider(Scene.Joueur2, Perso1); // les deux joueurs se bloquent
+    // Pas de collider entre les deux joueurs : ils se traversent, sans se cogner.
   },
 
   miseAJour(Scene) {
