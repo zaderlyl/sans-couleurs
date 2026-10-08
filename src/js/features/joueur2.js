@@ -18,7 +18,7 @@ import { LireDeplacementJoueur2 } from '../controle.js';
 import { CreerAnim } from '../util.js';
 
 const ClePersonnage2 = 'personnage2';
-const DecalageDepartX = 14;  // px a droite du joueur 1 au depart / au rattrapage
+const DecalageDepartX = 24;  // px a droite du joueur 1 au depart / au rattrapage (> largeur d'un perso : pas colle)
 const MargeEcran = 6;        // px : le joueur 2 reste a l'interieur de l'ecran
 const DistanceRattrapage = 40; // px au-dela de l'ecran : on le ramene au joueur 1
 

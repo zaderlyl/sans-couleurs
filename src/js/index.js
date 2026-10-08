@@ -23,6 +23,11 @@ const Configuration = {
     default: 'arcade',
     arcade: {
       gravity: { y: 900 },
+      // Pas de pas fixe a 60 Hz : sur un ecran 120/144 Hz la physique ne
+      // bougeait le personnage qu'une image sur deux alors que la camera
+      // glissait a chaque image -> le perso semblait vibrer / flou en marchant.
+      // Avec un pas variable, il avance a chaque image affichee.
+      fixedStep: false,
       debug: false, // true pour visualiser les corps physiques
     },
   },
