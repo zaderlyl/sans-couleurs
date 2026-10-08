@@ -39,6 +39,7 @@
 // de jouer l'anim "E qui eclate" puis OnDeclenchement.
 
 import { DemarrerAutoMarche, AfficherRepereDestination } from './auto-marche.js';
+import { PointMondeSouris } from './camera-separee.js';
 
 // Marge (px monde) ajoutee autour de la cible pour le survol — confortable
 // meme pour les cibles deja petites (un PNJ, un portail sans sprite dedie).
@@ -227,7 +228,9 @@ export function MettreAJourInteractionsSouris(Scene) {
     return;
   }
 
-  const PointMonde = Scene.cameras.main.getWorldPoint(Scene.input.activePointer.x, Scene.input.activePointer.y);
+  // L'endroit du monde sous la souris, vu par la camera sous la souris (voir
+  // camera-separee.js : l'ecran peut etre separe en deux).
+  const PointMonde = PointMondeSouris(Scene);
   let SurvolTrouve = false;
   let ClicUtilise = false; // le clic a-t-il active un element ? sinon il sert a marcher
 

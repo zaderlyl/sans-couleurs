@@ -169,3 +169,37 @@ export function AppliquerDispositionCameras(Scene) {
   Camera2.setVisible(true);
   if (Ligne) Ligne.style.display = 'block';
 }
+
+
+// --- La souris et les deux cameras ------------------------------------
+//
+// Quand l'ecran est separe, un meme point de l'ecran correspond a un endroit
+// DIFFERENT du monde selon la moitie ou il se trouve (chaque moitie montre une
+// partie differente de la carte). Pour savoir ce que la souris survole ou
+// clique, il faut donc d'abord trouver LA camera qui est sous la souris, puis
+// convertir avec cette camera-la.
+
+// La camera dont la zone d'affichage contient la souris (la principale si
+// l'ecran n'est pas separe, ou si on ne trouve rien).
+export function CameraSousLaSouris(Scene) {
+  const Souris = Scene.input.activePointer;
+  const Camera2 = Scene.CameraJoueur2;
+
+  // Seule la 2e camera visible (= ecran separe) peut etre sous la souris.
+  if (Camera2 && Camera2.visible && SourisDansCamera(Souris, Camera2)) return Camera2;
+  return Scene.cameras.main;
+}
+
+// true si le point (Souris.x, Souris.y) est dans le rectangle d'affichage de la camera.
+function SourisDansCamera(Souris, Camera) {
+  return Souris.x >= Camera.x && Souris.x < Camera.x + Camera.width
+      && Souris.y >= Camera.y && Souris.y < Camera.y + Camera.height;
+}
+
+// L'endroit du MONDE sous la souris, vu par la bonne camera.
+// (Camera.getWorldPoint accepte directement les coordonnees d'ecran de la
+// souris : pas besoin de retirer le decalage de la moitie droite.)
+export function PointMondeSouris(Scene) {
+  const Souris = Scene.input.activePointer;
+  return CameraSousLaSouris(Scene).getWorldPoint(Souris.x, Souris.y);
+}

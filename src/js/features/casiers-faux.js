@@ -9,6 +9,7 @@
 // fois par clic maintenu (sinon il clignoterait a chaque frame).
 
 import { ConfigCarte } from '../maps/cartes.js';
+import { PointMondeSouris } from '../camera-separee.js';
 
 const NomCalqueCasiers = 'bg2';
 // Tileset : les casiers occupent 2 rangees, une colonne par modele (0 a 7).
@@ -44,7 +45,7 @@ export const CasiersFaux = {
     // Pas de changement pendant un voyage, un dialogue ou l'ecran de fin.
     if (Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || Scene.GlitchEtatFin || Scene.PortailEnCours) return;
 
-    const PointMonde = Scene.cameras.main.getWorldPoint(Souris.x, Souris.y);
+    const PointMonde = PointMondeSouris(Scene); // bonne camera si l'ecran est separe
     const Tuile = Scene.CalqueCasiers.getTileAtWorldXY(PointMonde.x, PointMonde.y);
     if (!Tuile) return;
 
