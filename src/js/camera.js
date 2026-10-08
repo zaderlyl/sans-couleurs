@@ -18,7 +18,7 @@ import {
   VitesseSuiviCameraX, VitesseSuiviCameraY, DecalageVerticalCadrageCamera,
   DecalageAnticipationCameraMax,
 } from './config.js';
-import { MettreAJourEcranSepare } from './camera-separee.js';
+import { MettreAJourEcranSepare, EcranEntierObligatoire } from './camera-separee.js';
 
 // --- Quel point la camera principale doit-elle regarder ? ------------
 //
@@ -38,9 +38,10 @@ function PointSuiviCameraPrincipale(Scene) {
   const Joueur1 = Scene.Personnage;
   const Joueur2 = Scene.Joueur2;
 
-  // Pas de joueur 2 sur cette carte (ou pas encore cree), ou ecran separe :
+  // Pas de joueur 2 sur cette carte (ou pas encore cree), ecran separe, ou
+  // scene qui ne concerne que le joueur 1 (voyage en train, ecran de mort...) :
   // la camera principale ne regarde que le joueur 1.
-  if (!Joueur2 || !Joueur2.active || Scene.EcranSepare) {
+  if (!Joueur2 || !Joueur2.active || Scene.EcranSepare || EcranEntierObligatoire(Scene)) {
     return { X: Joueur1.x, Y: Joueur1.y, AMarcheSeul: true };
   }
 

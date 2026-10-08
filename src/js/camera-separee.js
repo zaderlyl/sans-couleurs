@@ -99,6 +99,15 @@ export function MettreAJourEcranSepare(Scene) {
   const J2 = Scene.Joueur2;
   if (!Scene.CameraJoueur2 || !J2 || !J2.active) return;
 
+  // Certaines scenes doivent couvrir TOUT l'ecran (voir EcranEntierObligatoire) :
+  // on rejoint les deux moities, et on ne separe pas tant que ca dure. Des que
+  // c'est fini, la regle normale ci-dessous reprend (et separe a nouveau si
+  // les joueurs sont toujours eloignes).
+  if (EcranEntierObligatoire(Scene)) {
+    if (Scene.EcranSepare) RejoindreEcran(Scene);
+    return;
+  }
+
   // Taille du monde visible quand l'ecran est ENTIER (pas la taille d'une moitie).
   const LargeurMondeVisible = Scene.scale.width / ZoomCamera;
   const HauteurMondeVisible = Scene.scale.height / ZoomCamera;
@@ -113,6 +122,24 @@ export function MettreAJourEcranSepare(Scene) {
   } else if (Scene.EcranSepare && Eloignement < SeuilRetourEcranEntier) {
     RejoindreEcran(Scene);
   }
+}
+
+// true pendant les scenes qui doivent occuper tout l'ecran et ne concernent
+// que le joueur 1 : le voyage en train (fondu au noir + trajet), le passage
+// d'une carte a l'autre par un tunnel (teleportation) et l'ecran de mort du
+// glitch2 (fond noir + texte). Avec l'ecran coupe en deux, ces effets ne
+// couvriraient que la moitie du joueur 1.
+export function EcranEntierObligatoire(Scene) {
+  return Scene.EtatGare === 'enCours' || !!Scene.GlitchEtatFin || !!Scene.TeleportationEnCours;
+}
+
+// La camera qui montre un joueur donne : la 2e camera pour le joueur 2 quand
+// l'ecran est separe, la camera principale dans tous les autres cas (un seul
+// ecran = la principale montre les deux joueurs).
+// Sert a faire un fondu sur "l'ecran du joueur qui voyage".
+export function CameraDuJoueur(Scene, Joueur) {
+  if (Scene.CameraJoueur2 && Scene.EcranSepare && Joueur === Scene.Joueur2) return Scene.CameraJoueur2;
+  return Scene.cameras.main;
 }
 
 function SeparerEcran(Scene) {

@@ -14,6 +14,7 @@
 import { ConfigCarte, TailleTuile } from '../maps/cartes.js';
 import { CreerIconeInteraction, TailleIconeInteraction } from '../icone-interaction.js';
 import { EnregistrerInteractionSouris } from '../interaction-souris.js';
+import { CameraDuJoueur } from '../camera-separee.js';
 
 const DureeFonduPortail = 250; // ms, fondu court : c'est instantane, pas un voyage
 
@@ -110,8 +111,11 @@ function ZoneSurvolPortail(Case, Colonne, Rangee, EnBas) {
 function DeclencherPortail(Scene, IconeDepart, Destination, Acteur = Scene.Personnage) {
   Scene.PortailEnCours = true;
 
-  Scene.cameras.main.fadeOut(DureeFonduPortail, 0, 0, 0);
-  Scene.cameras.main.once('camerafadeoutcomplete', () => {
+  // Le fondu se fait sur l'ecran du joueur qui voyage : sa moitie si l'ecran
+  // est separe, tout l'ecran sinon (voir camera-separee.js).
+  const CameraVoyageur = CameraDuJoueur(Scene, Acteur);
+  CameraVoyageur.fadeOut(DureeFonduPortail, 0, 0, 0);
+  CameraVoyageur.once('camerafadeoutcomplete', () => {
     Acteur.setPosition(
       (Destination.Colonne + 0.5) * TailleTuile,
       Destination.Rangee * TailleTuile,
@@ -119,12 +123,13 @@ function DeclencherPortail(Scene, IconeDepart, Destination, Acteur = Scene.Perso
     Acteur.body.setVelocity(0, 0);
     // Recadrage instantane (X et Y) : sans ca, la camera glisserait
     // doucement vers le joueur et le laisserait hors champ un instant
-    // (les 2 cases d'un portail peuvent etre tres eloignees).
-    // (la camera ne suit que le joueur souris : inutile de sauter pour le joueur 2)
-    Scene.CameraDoitSauter = Acteur === Scene.Personnage;
+    // (les 2 cases d'un portail peuvent etre tres eloignees). Ca vaut pour
+    // la camera principale ET la 2e s'il y a un ecran separe : chacune lit ce
+    // meme indicateur (voir camera.js).
+    Scene.CameraDoitSauter = true;
 
-    Scene.cameras.main.fadeIn(DureeFonduPortail, 0, 0, 0);
-    Scene.cameras.main.once('camerafadeincomplete', () => {
+    CameraVoyageur.fadeIn(DureeFonduPortail, 0, 0, 0);
+    CameraVoyageur.once('camerafadeincomplete', () => {
       Scene.CameraDoitSauter = false; // retour au suivi doux normal
     });
     Scene.PortailEnCours = false;
