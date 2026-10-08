@@ -19,6 +19,35 @@ import {
   DecalageAnticipationCameraMax,
 } from './config.js';
 
+// --- Quel point la camera doit-elle regarder ? -----------------------
+//
+// Avec UN seul joueur : le joueur lui-meme (le personnage souris).
+// Avec DEUX joueurs : le MILIEU entre les deux, pour que les deux restent
+// visibles tant qu'ils ne sont pas trop eloignes. (Quand ils s'eloigneront
+// trop, l'ecran se separera en deux : etape suivante, pas encore faite.)
+//
+// Renvoie { X, Y, AMarcheSeul } :
+//   - X, Y        : le point du monde a mettre au centre de l'ecran ;
+//   - AMarcheSeul : true s'il n'y a qu'un joueur, car l'"anticipation" (la
+//                   camera qui regarde un peu devant le joueur, voir plus
+//                   bas) n'a de sens que pour un seul joueur.
+function PointSuiviCamera(Scene) {
+  const Joueur1 = Scene.Personnage;
+  const Joueur2 = Scene.Joueur2;
+
+  // Pas de joueur 2 sur cette carte (ou pas encore cree) : on suit le joueur 1.
+  if (!Joueur2 || !Joueur2.active) {
+    return { X: Joueur1.x, Y: Joueur1.y, AMarcheSeul: true };
+  }
+
+  // Deux joueurs : le point au milieu = la moyenne de leurs positions.
+  return {
+    X: (Joueur1.x + Joueur2.x) / 2,
+    Y: (Joueur1.y + Joueur2.y) / 2,
+    AMarcheSeul: false,
+  };
+}
+
 export function MettreAJourCamera(Scene) {
   const Cam = Scene.cameras.main;
   const LargeurVueMonde = Cam.width / Cam.zoom;
@@ -33,14 +62,22 @@ export function MettreAJourCamera(Scene) {
   // convertit en scroll avec la formule inverse — sinon, a fort zoom, la
   // camera vise une zone vide du monde (ecran noir garanti).
 
+  // Le point regarde par la camera : un joueur, ou le milieu des deux.
+  const Point = PointSuiviCamera(Scene);
+
   // Anticipation : centre vise decale dans le sens du regard pendant la
   // marche. Scene.IntensiteMarche (0 a l'arret/en l'air, 1 en pleine marche)
   // sert de fondu — le lerp sur scrollX ci-dessous suffit a lisser.
+  // Elle ne s'applique qu'avec un seul joueur (sinon on decalerait le milieu
+  // des deux dans le sens de marche du joueur 1 seulement, ce qui n'aurait
+  // aucun sens).
   const SensRegard = Scene.Orientation === 'gauche' ? -1 : 1;
-  const Anticipation = SensRegard * DecalageAnticipationCameraMax * (Scene.IntensiteMarche || 0);
+  const Anticipation = Point.AMarcheSeul
+    ? SensRegard * DecalageAnticipationCameraMax * (Scene.IntensiteMarche || 0)
+    : 0;
 
   const VueXVoulue = Phaser.Math.Clamp(
-    Scene.Personnage.x + Anticipation - LargeurVueMonde / 2,
+    Point.X + Anticipation - LargeurVueMonde / 2,
     0,
     Math.max(0, Scene.LargeurMondeCarte - LargeurVueMonde),
   );
@@ -52,7 +89,7 @@ export function MettreAJourCamera(Scene) {
     : Phaser.Math.Linear(Cam.scrollX, ScrollXVoulu, VitesseSuiviCameraX);
 
   const VueYVoulue = Phaser.Math.Clamp(
-    Scene.Personnage.y + DecalageVerticalCadrageCamera - HauteurVueMonde / 2,
+    Point.Y + DecalageVerticalCadrageCamera - HauteurVueMonde / 2,
     0,
     Math.max(0, Scene.HauteurMondeCarte - HauteurVueMonde),
   );
