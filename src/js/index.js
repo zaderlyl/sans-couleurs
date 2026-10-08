@@ -43,5 +43,5 @@ Promise.race([
   document.fonts.load(`16px '${NomPoliceTexteDeZone}'`).catch(() => {}),
   DelaiMaxChargementPolice,
 ]).finally(() => {
-  new Phaser.Game(Configuration);
+  window.__jeu = new Phaser.Game(Configuration);
 });

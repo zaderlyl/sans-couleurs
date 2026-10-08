@@ -49,8 +49,8 @@ import { ZoomCamera } from './config.js';
 // les joueurs soient aux bords de l'ecran : les cameras suivent avec un petit
 // retard (lissage), il faut de la marge pour que personne ne sorte de vue
 // pendant la transition.
-const DebutSeparation = 0.35;
-const FinSeparation = 0.75;
+const DebutSeparation = 0.25;
+const FinSeparation = 0.55;
 
 // Vitesse du lissage de PartSeparation : part de l'ecart comblee a chaque
 // "frame de reference" (1/60 s). 0.1 = assez doux, 0.3 = plus vif.
@@ -71,6 +71,14 @@ export function InstallerCameraSeparee(Scene) {
   Camera2.setBackgroundColor('#000000');
   Camera2.setVisible(false);                  // cachee tant que PartSeparation vaut 0
   Scene.CameraJoueur2 = Camera2;
+
+  // Le voile de bruit du glitch (feature glitch) est un objet du monde pose sur
+  // la vue du JOUEUR 1 : la 2e camera ne doit pas le dessiner (sinon le bruit
+  // du joueur 1 apparaitrait aussi sur l'ecran du joueur 2 des que leurs
+  // zones du monde se recouvrent). Camera.ignore(objet) = "cette camera ne
+  // dessine pas cet objet". (Les objets de l'ecran de mort glitch2, crees plus
+  // tard, sont ignores de la meme facon dans glitch.js.)
+  if (Scene.SpriteGlitch) Camera2.ignore(Scene.SpriteGlitch);
 
   Scene.PartSeparation = 0;
   Scene.Joueur1ACote = true;

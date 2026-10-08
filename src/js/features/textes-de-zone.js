@@ -121,11 +121,15 @@ function MettreAJourTextesDeZone(Scene, TempsEcoule) {
     // 'disparition' : fondu en cours (gere par les tweens). 'termine' : fini.
     if (Entree.Phase === 'disparition' || Entree.Phase === 'termine') return;
 
-    const DansLaZone =
-      Scene.Personnage.x > Entree.Zone.XMin &&
-      Scene.Personnage.x < Entree.Zone.XMax &&
-      Scene.Personnage.y > Entree.Zone.YMin &&
-      Scene.Personnage.y < Entree.Zone.YMax;
+    // Le texte se declenche des que L'UN des joueurs (le joueur 1, ou le
+    // joueur 2 s'il y en a un) est dans la zone.
+    const Joueurs = [Scene.Personnage, Scene.Joueur2].filter((Joueur) => Joueur && Joueur.active);
+    const DansLaZone = Joueurs.some((Joueur) =>
+      Joueur.x > Entree.Zone.XMin &&
+      Joueur.x < Entree.Zone.XMax &&
+      Joueur.y > Entree.Zone.YMin &&
+      Joueur.y < Entree.Zone.YMax,
+    );
 
     if (!DansLaZone) {
       if (Entree.Phase !== 'inactive') {

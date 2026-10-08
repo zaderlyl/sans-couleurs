@@ -316,6 +316,10 @@ function AfficherEcranMortGlitch2(Scene) {
 
   Scene.FondEcranMortGlitch2 = Fond;
   Scene.TextePlaceholderMortGlitch2 = Texte;
+
+  // Ecran de mort = affaire du joueur 1 : la 2e camera (ecran separe) ne le
+  // dessine pas (voir camera-separee.js).
+  if (Scene.CameraJoueur2) Scene.CameraJoueur2.ignore([Fond, Texte]);
 }
 
 // E presse sur l'ecran de mort : nettoie fond + texte et redemarre la MEME
