@@ -191,7 +191,7 @@ export class SceneJeu extends Phaser.Scene {
   }
 
   update(Temps, TempsEcoule) {
-    if (this.LargeurMondeCarte) MettreAJourCamera(this);
+    if (this.LargeurMondeCarte) MettreAJourCamera(this, TempsEcoule);
 
     // Toutes les features de la carte active (gare/train, tele, herbe,
     // tunnel, textes de zone, dialogue PNJ) — voir src/js/features/.
