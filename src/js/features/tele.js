@@ -101,6 +101,7 @@ export const Tele = {
       Cible: Scene.SpriteTele,
       Icone: Scene.IconeInteractionTele,
       EstActive: () => !Scene.TeleHS,
+      PourJoueur2: true,
       OnDeclenchement: () => AppuyerSurTele(Scene),
     });
   },

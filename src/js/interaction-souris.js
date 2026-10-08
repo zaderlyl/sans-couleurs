@@ -54,6 +54,13 @@ const IntensiteTremblementSurvol = 1;
 export function InstallerInteractionSouris(Scene) {
   Scene.InteractionsSouris = [];
   Scene.SourisVientDeCliquer = false;
+  Scene.ToucheEVientDAppuyer = false;
+
+  // Le joueur 2 (clavier) interagit avec E, comme le joueur 1 le fait au clic :
+  // meme principe d'evenement (voir ci-dessous) pour ne jamais rater un appui.
+  Scene.input.keyboard.on('keydown-E', () => {
+    Scene.ToucheEVientDAppuyer = true;
+  });
 
   // Evenement plutot que lecture au vol : un clic est instantane (down puis
   // souvent up dans la meme frame ou la suivante), le lire via un evenement
@@ -71,7 +78,7 @@ export function ConsommerClicSouris(Scene) {
   return true;
 }
 
-export function EnregistrerInteractionSouris(Scene, { Zone, Cible, Icone, OnDeclenchement, EstActive, EchelleSurvol }) {
+export function EnregistrerInteractionSouris(Scene, { Zone, Cible, Icone, OnDeclenchement, EstActive, EchelleSurvol, PourJoueur2 }) {
   Scene.InteractionsSouris.push({
     Zone,
     Cible,
@@ -79,6 +86,7 @@ export function EnregistrerInteractionSouris(Scene, { Zone, Cible, Icone, OnDecl
     OnDeclenchement,
     EstActive: EstActive || (() => true),
     EchelleSurvol: EchelleSurvol || 1,
+    PourJoueur2: !!PourJoueur2, // le joueur clavier peut-il aussi la declencher (touche E dans Zone) ?
     EnCours: false, // verrou pendant l'anim "E qui eclate", entre le clic et OnDeclenchement
   });
 }
@@ -204,6 +212,8 @@ function ArreterTremblement(Interaction) {
 export function MettreAJourInteractionsSouris(Scene) {
   const Clic = Scene.SourisVientDeCliquer;
   Scene.SourisVientDeCliquer = false; // consomme ici, une seule fois, pour tout le monde
+  const AppuiE = Scene.ToucheEVientDAppuyer;
+  Scene.ToucheEVientDAppuyer = false;
 
   const Fige =
     Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || !!Scene.GlitchEtatFin;
@@ -270,7 +280,7 @@ export function MettreAJourInteractionsSouris(Scene) {
         Interaction.Icone.once('animationcomplete', () => {
           Interaction.Icone.setVisible(false);
           Interaction.EnCours = false;
-          Interaction.OnDeclenchement();
+          Interaction.OnDeclenchement(Scene.Personnage); // l'acteur : le joueur souris
         });
       }, () => {
         Interaction.EnCours = false; // le joueur a clique ailleurs avant d'arriver
@@ -286,8 +296,40 @@ export function MettreAJourInteractionsSouris(Scene) {
     AfficherRepereDestination(Scene, X, PointMonde.y);
   }
 
+  InteractionsClavier(Scene, AppuiE);
+
   // Le curseur "main" est l'indice visuel qu'un element est cliquable —
   // l'icone E ne suffit plus a elle seule a le dire (elle reste dessinee
   // comme une touche clavier, en attendant une icone dediee a la souris).
   Scene.game.canvas.style.cursor = SurvolTrouve ? 'pointer' : 'default';
+}
+
+
+// Joueur 2 (clavier) : quand il se tient dans la Zone d'une interaction qui
+// l'accepte (PourJoueur2), l'icone "E" apparait ; appuyer sur E joue l'anim
+// puis declenche l'action POUR LUI (l'acteur passe a OnDeclenchement).
+function InteractionsClavier(Scene, AppuiE) {
+  const J2 = Scene.Joueur2;
+  if (!J2 || !J2.active) return;
+
+  for (const Interaction of Scene.InteractionsSouris) {
+    if (!Interaction.PourJoueur2 || Interaction.EnCours || !Interaction.EstActive()) continue;
+    if (EstDetruit(Interaction.Icone) || EstDetruit(Interaction.Cible)) continue;
+
+    const Zone = BornesSurvol(Interaction.Zone);
+    Phaser.Geom.Rectangle.Inflate(Zone, 0, 4); // le centre du joueur est un peu au-dessus de la case
+    if (!Phaser.Geom.Rectangle.Contains(Zone, J2.x, J2.y)) continue;
+
+    Interaction.Icone.setVisible(true);
+    Interaction.Icone.play('iconeAttente', true);
+    if (!AppuiE) continue;
+
+    Interaction.EnCours = true;
+    Interaction.Icone.play('iconePressee');
+    Interaction.Icone.once('animationcomplete', () => {
+      Interaction.Icone.setVisible(false);
+      Interaction.EnCours = false;
+      Interaction.OnDeclenchement(J2);
+    });
+  }
 }

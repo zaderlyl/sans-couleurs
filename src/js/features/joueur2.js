@@ -1,14 +1,15 @@
-// features/joueur2.js — un second joueur, controle avec les fleches gauche /
-// droite (le joueur 1 passe sur A/Q et D, voir controle.js).
+// features/joueur2.js — le joueur CLAVIER : fleches gauche / droite pour marcher,
+// E pour interagir. (Le joueur 1, lui, ne joue qu'a la souris : clic = marcher
+// ou interagir, voir interaction-souris.js et auto-marche.js.)
 //
 // Meme personnage que le joueur 1 mais aux couleurs INVERSEES : on fabrique
 // une copie du spritesheet dont les canaux R, G, B sont inverses (l'alpha ne
 // change pas). Le joueur 2 est independant (sa propre physique, son propre
 // deplacement) et les deux joueurs se bloquent l'un l'autre.
 //
-// La camera ne suit que le joueur 1 : le joueur 2 ne peut pas sortir de
-// l'ecran, et s'il est laisse trop loin derriere (ou si le joueur 1 se
-// teleporte), il est ramene a cote du joueur 1.
+// Il interagit avec la touche E (portails, tele ; voir PourJoueur2 dans
+// interaction-souris.js). La camera ne suit que le joueur 1 pour l'instant :
+// le joueur 2 peut sortir de l'ecran (l'ecran separe en deux viendra apres).
 
 import {
   ClePersonnage, FramePersoImmobile, FramePersoMarcheDebut, FramePersoMarcheFin,
@@ -19,8 +20,6 @@ import { CreerAnim } from '../util.js';
 
 const ClePersonnage2 = 'personnage2';
 const DecalageDepartX = 24;  // px a droite du joueur 1 au depart / au rattrapage (> largeur d'un perso : pas colle)
-const MargeEcran = 6;        // px : le joueur 2 reste a l'interieur de l'ecran
-const DistanceRattrapage = 40; // px au-dela de l'ecran : on le ramene au joueur 1
 
 
 export const Joueur2 = {
@@ -60,21 +59,8 @@ export const Joueur2 = {
     }
 
     const Entrees = LireDeplacementJoueur2(Scene);
-    const Vue = Scene.cameras.main.worldView;
-
-    // Trop loin de l'ecran (joueur 1 teleporte ou parti loin) : retour a cote de lui.
-    if (J2.x < Vue.left - DistanceRattrapage || J2.x > Vue.right + DistanceRattrapage ||
-        J2.y < Vue.top - DistanceRattrapage || J2.y > Vue.bottom + DistanceRattrapage) {
-      J2.setPosition(Scene.Personnage.x + DecalageDepartX, Scene.Personnage.y);
-      J2.body.setVelocity(0, 0);
-      return;
-    }
-
-    // Ne sort pas de l'ecran : on coupe l'elan vers le bord.
-    const AuBordGauche = J2.x <= Vue.left + MargeEcran;
-    const AuBordDroit = J2.x >= Vue.right - MargeEcran;
-    const VeutGauche = Entrees.Gauche && !AuBordGauche;
-    const VeutDroite = Entrees.Droite && !AuBordDroit && !Entrees.Gauche;
+    const VeutGauche = Entrees.Gauche;
+    const VeutDroite = Entrees.Droite && !Entrees.Gauche;
 
     if (VeutGauche || VeutDroite) {
       J2.body.setVelocityX(VeutGauche ? -VitesseMarchePersonnage : VitesseMarchePersonnage);

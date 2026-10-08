@@ -45,14 +45,16 @@ export const Portails = {
         Cible: ZoneSurvolPortail(CaseA, Duo.colonneA, Duo.rangeeA, Duo.iconeEnBas),
         Icone: IconeA,
         EstActive: () => !Scene.PortailEnCours,
-        OnDeclenchement: () => DeclencherPortail(Scene, IconeA, B),
+        PourJoueur2: true,
+        OnDeclenchement: (Acteur) => DeclencherPortail(Scene, IconeA, B, Acteur),
       });
       EnregistrerInteractionSouris(Scene, {
         Zone: CaseB,
         Cible: ZoneSurvolPortail(CaseB, Duo.colonneB, Duo.rangeeB, Duo.iconeEnBas),
         Icone: IconeB,
         EstActive: () => !Scene.PortailEnCours,
-        OnDeclenchement: () => DeclencherPortail(Scene, IconeB, A),
+        PourJoueur2: true,
+        OnDeclenchement: (Acteur) => DeclencherPortail(Scene, IconeB, A, Acteur),
       });
 
       return { A, B, IconeA, IconeB };
@@ -104,20 +106,22 @@ function ZoneSurvolPortail(Case, Colonne, Rangee, EnBas) {
 // joueur peut repartir aussitot dans l'autre sens (meme mecanique, cote
 // oppose). L'anim "E qui eclate" est deja jouee par interaction-souris.js
 // avant d'appeler cette fonction.
-function DeclencherPortail(Scene, IconeDepart, Destination) {
+// `Acteur` : le joueur qui voyage (joueur souris par defaut, ou le joueur 2).
+function DeclencherPortail(Scene, IconeDepart, Destination, Acteur = Scene.Personnage) {
   Scene.PortailEnCours = true;
 
   Scene.cameras.main.fadeOut(DureeFonduPortail, 0, 0, 0);
   Scene.cameras.main.once('camerafadeoutcomplete', () => {
-    Scene.Personnage.setPosition(
+    Acteur.setPosition(
       (Destination.Colonne + 0.5) * TailleTuile,
       Destination.Rangee * TailleTuile,
     );
-    Scene.Personnage.body.setVelocity(0, 0);
+    Acteur.body.setVelocity(0, 0);
     // Recadrage instantane (X et Y) : sans ca, la camera glisserait
     // doucement vers le joueur et le laisserait hors champ un instant
     // (les 2 cases d'un portail peuvent etre tres eloignees).
-    Scene.CameraDoitSauter = true;
+    // (la camera ne suit que le joueur souris : inutile de sauter pour le joueur 2)
+    Scene.CameraDoitSauter = Acteur === Scene.Personnage;
 
     Scene.cameras.main.fadeIn(DureeFonduPortail, 0, 0, 0);
     Scene.cameras.main.once('camerafadeincomplete', () => {
