@@ -18,29 +18,33 @@ import {
   VitesseSuiviCameraX, VitesseSuiviCameraY, DecalageVerticalCadrageCamera,
   DecalageAnticipationCameraMax,
 } from './config.js';
+import { MettreAJourEcranSepare } from './camera-separee.js';
 
-// --- Quel point la camera doit-elle regarder ? -----------------------
+// --- Quel point la camera principale doit-elle regarder ? ------------
 //
 // Avec UN seul joueur : le joueur lui-meme (le personnage souris).
-// Avec DEUX joueurs : le MILIEU entre les deux, pour que les deux restent
-// visibles tant qu'ils ne sont pas trop eloignes. (Quand ils s'eloigneront
-// trop, l'ecran se separera en deux : etape suivante, pas encore faite.)
+// Avec DEUX joueurs proches : le MILIEU entre les deux, pour que les deux
+// restent visibles.
+// Avec DEUX joueurs eloignes (ecran separe en deux, voir camera-separee.js) :
+// la camera principale ne suit QUE le joueur 1 ; la 2e camera suit le joueur 2.
 //
 // Renvoie { X, Y, AMarcheSeul } :
-//   - X, Y        : le point du monde a mettre au centre de l'ecran ;
-//   - AMarcheSeul : true s'il n'y a qu'un joueur, car l'"anticipation" (la
-//                   camera qui regarde un peu devant le joueur, voir plus
-//                   bas) n'a de sens que pour un seul joueur.
-function PointSuiviCamera(Scene) {
+//   - X, Y        : le point du monde a mettre au centre de la camera ;
+//   - AMarcheSeul : true quand la camera ne regarde qu'UN joueur, car
+//                   l'"anticipation" (la camera qui regarde un peu devant le
+//                   joueur, voir SuivrePointAvecCamera) n'a de sens que dans
+//                   ce cas.
+function PointSuiviCameraPrincipale(Scene) {
   const Joueur1 = Scene.Personnage;
   const Joueur2 = Scene.Joueur2;
 
-  // Pas de joueur 2 sur cette carte (ou pas encore cree) : on suit le joueur 1.
-  if (!Joueur2 || !Joueur2.active) {
+  // Pas de joueur 2 sur cette carte (ou pas encore cree), ou ecran separe :
+  // la camera principale ne regarde que le joueur 1.
+  if (!Joueur2 || !Joueur2.active || Scene.EcranSepare) {
     return { X: Joueur1.x, Y: Joueur1.y, AMarcheSeul: true };
   }
 
-  // Deux joueurs : le point au milieu = la moyenne de leurs positions.
+  // Deux joueurs, un seul ecran : le point au milieu = la moyenne de leurs positions.
   return {
     X: (Joueur1.x + Joueur2.x) / 2,
     Y: (Joueur1.y + Joueur2.y) / 2,
@@ -48,8 +52,17 @@ function PointSuiviCamera(Scene) {
   };
 }
 
-export function MettreAJourCamera(Scene) {
-  const Cam = Scene.cameras.main;
+
+// --- Faire regarder un point du monde a UNE camera ---------------------
+//
+// Sert a la camera principale ET a la 2e camera (ecran separe). Tout le
+// calcul de scroll est ici, a un seul endroit.
+//
+//   Cam          : la camera a deplacer.
+//   Point        : { X, Y, AMarcheSeul } (voir plus haut).
+//   SautDirect   : true = placer la camera d'un coup sur le point (sinon elle
+//                  glisse doucement vers lui, "lerp").
+function SuivrePointAvecCamera(Scene, Cam, Point, SautDirect) {
   const LargeurVueMonde = Cam.width / Cam.zoom;
   const HauteurVueMonde = Cam.height / Cam.zoom;
 
@@ -62,17 +75,14 @@ export function MettreAJourCamera(Scene) {
   // convertit en scroll avec la formule inverse — sinon, a fort zoom, la
   // camera vise une zone vide du monde (ecran noir garanti).
 
-  // Le point regarde par la camera : un joueur, ou le milieu des deux.
-  const Point = PointSuiviCamera(Scene);
-
   // Anticipation : centre vise decale dans le sens du regard pendant la
   // marche. Scene.IntensiteMarche (0 a l'arret/en l'air, 1 en pleine marche)
   // sert de fondu — le lerp sur scrollX ci-dessous suffit a lisser.
-  // Elle ne s'applique qu'avec un seul joueur (sinon on decalerait le milieu
-  // des deux dans le sens de marche du joueur 1 seulement, ce qui n'aurait
-  // aucun sens).
+  // Elle ne s'applique que quand la camera regarde UN seul joueur (le joueur
+  // 1) : decaler le milieu de deux joueurs selon le sens de marche d'un seul
+  // n'aurait aucun sens, et la 2e camera n'en a pas non plus.
   const SensRegard = Scene.Orientation === 'gauche' ? -1 : 1;
-  const Anticipation = Point.AMarcheSeul
+  const Anticipation = Point.AMarcheSeul && Cam === Scene.cameras.main
     ? SensRegard * DecalageAnticipationCameraMax * (Scene.IntensiteMarche || 0)
     : 0;
 
@@ -82,9 +92,9 @@ export function MettreAJourCamera(Scene) {
     Math.max(0, Scene.LargeurMondeCarte - LargeurVueMonde),
   );
   const ScrollXVoulu = VueXVoulue + (LargeurVueMonde - Cam.width) / 2;
-  // Saut instantane pendant le voyage en train ou un portail (Scene.CameraDoitSauter),
+  // Saut instantane (voyage en train, portail, 2e camera qui vient d'apparaitre),
   // suivi doux sinon.
-  Cam.scrollX = Scene.CameraDoitSauter
+  Cam.scrollX = SautDirect
     ? ScrollXVoulu
     : Phaser.Math.Linear(Cam.scrollX, ScrollXVoulu, VitesseSuiviCameraX);
 
@@ -94,7 +104,30 @@ export function MettreAJourCamera(Scene) {
     Math.max(0, Scene.HauteurMondeCarte - HauteurVueMonde),
   );
   const ScrollYVoulu = VueYVoulue + (HauteurVueMonde - Cam.height) / 2;
-  Cam.scrollY = Scene.CameraDoitSauter
+  Cam.scrollY = SautDirect
     ? ScrollYVoulu
     : Phaser.Math.Linear(Cam.scrollY, ScrollYVoulu, VitesseSuiviCameraY);
+}
+
+
+// --- Appele une fois par frame (scene-jeu.js, debut de update) -------------
+
+export function MettreAJourCamera(Scene) {
+  // 1) Faut-il separer l'ecran (ou le rejoindre) ? Sans effet s'il n'y a pas
+  //    de joueur 2 sur la carte.
+  MettreAJourEcranSepare(Scene);
+
+  // 2) Camera principale : le joueur 1, ou le milieu des deux joueurs.
+  //    Saut instantane pendant un voyage en train ou un portail
+  //    (Scene.CameraDoitSauter), suivi doux sinon.
+  SuivrePointAvecCamera(Scene, Scene.cameras.main, PointSuiviCameraPrincipale(Scene), Scene.CameraDoitSauter);
+
+  // 3) 2e camera (seulement quand l'ecran est separe) : le joueur 2. Elle se
+  //    place d'un coup la toute premiere frame de la separation.
+  if (Scene.CameraJoueur2 && Scene.EcranSepare) {
+    const Joueur2 = Scene.Joueur2;
+    const PointJoueur2 = { X: Joueur2.x, Y: Joueur2.y, AMarcheSeul: true };
+    SuivrePointAvecCamera(Scene, Scene.CameraJoueur2, PointJoueur2, Scene.Camera2DoitSauter || Scene.CameraDoitSauter);
+    Scene.Camera2DoitSauter = false;
+  }
 }

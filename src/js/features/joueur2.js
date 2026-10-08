@@ -17,6 +17,7 @@ import {
 } from '../playerConfig.js';
 import { LireDeplacementJoueur2 } from '../controle.js';
 import { CreerAnim } from '../util.js';
+import { InstallerCameraSeparee } from '../camera-separee.js';
 
 const ClePersonnage2 = 'personnage2';
 const DecalageDepartX = 24;  // px a droite du joueur 1 au depart / au rattrapage (> largeur d'un perso : pas colle)
@@ -44,6 +45,10 @@ export const Joueur2 = {
 
     Scene.physics.add.collider(Scene.Joueur2, Scene.CalqueCollision);
     // Pas de collider entre les deux joueurs : ils se traversent, sans se cogner.
+
+    // 2e camera + ligne de separation, pour l'ecran coupe en deux quand les
+    // joueurs s'eloignent (voir camera-separee.js).
+    InstallerCameraSeparee(Scene);
   },
 
   miseAJour(Scene) {

@@ -22,6 +22,7 @@ import { CreerAnimsIconeInteraction } from './js/icone-interaction.js';
 import { InstallerInteractionSouris, MettreAJourInteractionsSouris } from './js/interaction-souris.js';
 import { InstallerAutoMarche, MettreAJourAutoMarche } from './js/auto-marche.js';
 import { MettreAJourCamera } from './js/camera.js';
+import { AppliquerDispositionCameras } from './js/camera-separee.js';
 import { CreerPersonnage, MettreAJourDeplacement } from './js/player.js';
 import { InstallerControles } from './js/controle.js';
 import { DemarrerSonAmbiance } from './js/sons.js';
@@ -61,6 +62,9 @@ export class SceneJeu extends Phaser.Scene {
     this.cameras.main.setSize(this.scale.width, this.scale.height);
     this.scale.on('resize', (TailleJeu) => {
       this.cameras.main.setSize(TailleJeu.width, TailleJeu.height);
+      // Remet aussi les 2 moities d'ecran a la bonne taille si l'ecran est
+      // separe (voir camera-separee.js ; sans effet s'il n'y a pas de joueur 2).
+      AppliquerDispositionCameras(this);
     });
 
     let Sol; // le collider du sol/decor, quel que soit le mode
