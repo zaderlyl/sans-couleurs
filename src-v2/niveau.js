@@ -25,6 +25,20 @@ export default class niveau extends Phaser.Scene {
     this.nom_carte = nom_carte;
   }
 
+  // Appelee par Phaser avant preload(), a chaque fois que la scene demarre.
+  // `donnees` = ce qu'on a passe a this.scene.start("niveauX", donnees) : ici,
+  // si on arrive en train ({ arrivee_en_train: true }), et avec l'ecran de
+  // texte du voyage ({ avec_transition: true }). Voir gare.js.
+  init(donnees) {
+    this.arrivee_en_train = donnees.arrivee_en_train == true;
+    this.avec_transition = donnees.avec_transition == true;
+    // Piege de Phaser : si on demarre une scene SANS donnees, il lui redonne
+    // celles du demarrage precedent. On les efface ici, pour qu'une scene
+    // demarree sans donnees (depuis l'accueil, un passage...) ne rejoue pas
+    // l'arrivee en train d'une visite d'avant.
+    this.sys.settings.data = {};
+  }
+
   preload() {
     // l'image des tuiles, la carte Tiled (au format JSON) et les personnages
     this.load.image("img_tuiles", "assets/tilesets/Tileset.png");
@@ -45,6 +59,11 @@ export default class niveau extends Phaser.Scene {
     this.load.spritesheet("img_icone_e", "assets/ui/E_animated.png", {
       frameWidth: 16,
       frameHeight: 16
+    });
+    // la gare et son train : 64 images de 256 x 256 (voir gare.js)
+    this.load.spritesheet("img_gare", "assets/sprites/environment/gare.png", {
+      frameWidth: 256,
+      frameHeight: 256
     });
     // les personnages non joueurs (feuille de 4 enfants, voir pnj.js)
     this.load.spritesheet("img_pnj", "assets/sprites/characters/other_child.png", {
@@ -148,9 +167,9 @@ export default class niveau extends Phaser.Scene {
   }
 
   update(temps, delta) {
-    // --- un dialogue est ouvert : les deux joueurs sont figes ---
+    // --- un dialogue est ouvert, ou le train est en route : les joueurs sont figes ---
     // (le reste de update continue : cameras, ce qui est propre au niveau...)
-    if (this.dialogue_ouvert == true) {
+    if (this.est_fige() == true) {
       this.destination_x = null;
       this.apres_arrivee = null;
       this.joueur_souris.setVelocityX(0);
@@ -198,7 +217,7 @@ export default class niveau extends Phaser.Scene {
     }
 
     // --- le joueur clavier : les fleches gauche et droite ---
-    if (this.dialogue_ouvert == true) {
+    if (this.est_fige() == true) {
       // fige (voir plus haut)
     } else if (this.clavier.left.isDown) {
       this.joueur_clavier.setVelocityX(-70);
@@ -230,6 +249,12 @@ export default class niveau extends Phaser.Scene {
   creer_particularites() {}
   mettre_a_jour_particularites(temps, delta) {}
 
+  // true quand les joueurs ne doivent plus bouger ni tirer : un dialogue est
+  // ouvert (voir dialogue.js) ou le train est en route (voir gare.js)
+  est_fige() {
+    return this.dialogue_ouvert == true || this.etat_gare == "enCours";
+  }
+
   // Le joueur souris va jusqu'a l'abscisse x, puis fait `action` (une fonction,
   // ou null) en arrivant. Sert aux clics sur un portail, une porte...
   aller_vers(x, action) {
@@ -240,8 +265,8 @@ export default class niveau extends Phaser.Scene {
   // appelee a chaque clic de souris ; `sous_la_souris` = la liste des objets
   // cliquables (setInteractive) qui sont sous la souris
   cliquer(pointeur, sous_la_souris) {
-    // un dialogue est ouvert : la souris ne sert qu'a placer les mots
-    if (this.dialogue_ouvert == true) {
+    // fige (dialogue, voyage en train) : la souris ne sert pas a marcher ni a tirer
+    if (this.est_fige() == true) {
       return;
     }
 

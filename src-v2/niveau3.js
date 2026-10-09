@@ -1,10 +1,12 @@
 // niveau3.js — le niveau 3 : le college (la carte "map-3-debut-college").
 // Tout ce qui est commun a tous les niveaux est dans niveau.js. Ici : ce qui
-// est propre au college : les portails et les faux casiers.
+// est propre au college : les portails, les faux casiers, et la gare (on y
+// arrive en train, mais on ne peut pas repartir).
 
 import niveau from "./niveau.js";
 import { creer_portails, mettre_a_jour_portails } from "./portails.js";
 import { creer_casiers_faux, mettre_a_jour_casiers_faux } from "./casiers_faux.js";
+import { creer_gare, mettre_a_jour_gare } from "./gare.js";
 
 // Les portails du college : chaque ligne est une paire de cases reliees (un
 // portail de A vers B, et de B vers A). colonne / rangee = la position de la
@@ -32,10 +34,12 @@ export default class niveau3 extends niveau {
   creer_particularites() {
     creer_portails(this, portails_du_college);
     creer_casiers_faux(this); // apres les portails : les casiers de portail ne changent pas
+    creer_gare(this, { niveau_suivant: null, sortie_active: false });
   }
 
   mettre_a_jour_particularites(temps, delta) {
     mettre_a_jour_portails(this);
     mettre_a_jour_casiers_faux(this);
+    mettre_a_jour_gare(this);
   }
 }

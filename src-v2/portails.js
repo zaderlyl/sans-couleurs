@@ -76,7 +76,7 @@ function creer_case(scene, colonne, rangee) {
     if (est_un_clic_de_tir(pointeur) == true) {
       return; // Ctrl / Cmd : c'est un tir, pas un clic sur le portail
     }
-    if (scene.portail_en_cours == true || portail.pressee == true) {
+    if (scene.portail_en_cours == true || portail.pressee == true || scene.est_fige() == true) {
       return;
     }
     scene.aller_vers(portail.x, function () {
@@ -99,7 +99,7 @@ export function mettre_a_jour_portails(scene) {
 
     // il appuie sur E : il prend le portail
     if (clavier_dessus == true && Phaser.Input.Keyboard.JustDown(scene.touche_e) == true) {
-      if (scene.portail_en_cours == false && portail.pressee == false) {
+      if (scene.portail_en_cours == false && portail.pressee == false && scene.est_fige() == false) {
         prendre_le_portail(scene, scene.joueur_clavier, portail);
       }
     }

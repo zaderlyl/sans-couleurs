@@ -115,8 +115,8 @@ export function tirer_a_la_souris(scene, x_ecran, y_ecran) {
 
 // un projectile part de `joueur` vers le point (cible_x, cible_y) du monde
 function tirer_vers(scene, joueur, cible_x, cible_y) {
-  // pas de tir pendant un dialogue, ni avant la fin du delai entre deux tirs
-  if (scene.dialogue_ouvert == true || joueur.peutTirer == false) {
+  // pas de tir pendant un dialogue ou un voyage, ni avant la fin du delai entre deux tirs
+  if (scene.est_fige() == true || joueur.peutTirer == false) {
     return;
   }
   joueur.peutTirer = false;
