@@ -2,6 +2,10 @@
 // Etape 1 : la carte, un personnage et le deplacement a la souris
 // (on clique quelque part, le personnage y marche).
 // Etape 2 : un 2e personnage (couleurs inversees) qui se deplace au clavier.
+// Etape 3 : l'ecran se separe en deux quand les joueurs s'eloignent
+// (tout le detail est dans ecran_separe.js).
+
+import { creer_ecran_separe, mettre_a_jour_ecran_separe, point_monde } from "./ecran_separe.js";
 
 export default class niveau1 extends Phaser.Scene {
   // constructeur de la classe : on donne a la scene son identifiant
@@ -82,9 +86,11 @@ export default class niveau1 extends Phaser.Scene {
       });
     }
 
-    // --- la camera ---
+    // --- les cameras ---
     // pixel art de 16 pixels : on zoome x5, sinon tout est minuscule
     this.cameras.main.setZoom(5);
+    // une 2e camera et la separation de l'ecran (voir ecran_separe.js)
+    creer_ecran_separe(this);
 
     // --- le clic de souris ---
     // la ou le personnage doit aller (null = il n'y va nulle part)
@@ -92,7 +98,7 @@ export default class niveau1 extends Phaser.Scene {
     this.input.on("pointerdown", this.cliquer, this);
   }
 
-  update() {
+  update(temps, delta) {
     // --- le personnage marche vers la destination ---
     if (this.destination_x !== null) {
       // ecart > 0 : la destination est a droite ; ecart < 0 : a gauche
@@ -138,32 +144,22 @@ export default class niveau1 extends Phaser.Scene {
       this.joueur_clavier.setFrame(3); // l'image "debout"
     }
 
-    // --- la camera ---
-    // elle regarde le MILIEU entre les deux joueurs, pour que les deux restent
-    // a l'ecran (quand ils s'eloigneront trop, l'ecran se separera en deux :
-    // etape suivante).
-    var milieu_x = (this.joueur_souris.x + this.joueur_clavier.x) / 2;
-    var milieu_y = (this.joueur_souris.y + this.joueur_clavier.y) / 2;
-
-    // on garde la camera dans la carte : on ne voit jamais le noir autour.
-    // La camera voit (largeur / zoom) pixels de monde ; son centre ne doit pas
-    // s'approcher du bord a moins de la moitie de cette largeur.
-    var camera = this.cameras.main;
-    var demi_largeur = camera.width / camera.zoom / 2;
-    var demi_hauteur = camera.height / camera.zoom / 2;
-    var centre_x = Phaser.Math.Clamp(milieu_x, demi_largeur, this.carte.widthInPixels - demi_largeur);
-    var centre_y = Phaser.Math.Clamp(milieu_y, demi_hauteur, this.carte.heightInPixels - demi_hauteur);
-    camera.centerOn(centre_x, centre_y);
+    // --- les cameras ---
+    // un seul ecran quand les joueurs sont proches, deux quand ils s'eloignent :
+    // le calcul est dans ecran_separe.js
+    mettre_a_jour_ecran_separe(this, delta);
   }
 
   // appelee a chaque clic de souris
   cliquer(pointeur) {
-    // pointeur.worldX / worldY : l'endroit du MONDE ou on a clique
-    // (pas du ecran : la camera est zoomee et decalee)
-    this.destination_x = pointeur.worldX;
+    // pointeur.x / pointeur.y : l'endroit de l'ECRAN ou on a clique. On le
+    // convertit en endroit du MONDE (la camera est zoomee et decalee, et
+    // l'ecran peut etre separe en deux cameras : voir ecran_separe.js).
+    var clic = point_monde(this, pointeur.x, pointeur.y);
+    this.destination_x = clic.x;
 
     // un petit anneau montre ou on a clique : il grossit et s'efface
-    var anneau = this.add.circle(pointeur.worldX, pointeur.worldY, 3);
+    var anneau = this.add.circle(clic.x, clic.y, 3);
     anneau.setStrokeStyle(1, 0xffffff);
     this.tweens.add({
       targets: anneau,
