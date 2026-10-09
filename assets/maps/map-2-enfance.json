@@ -190,6 +190,11 @@
                          "value":"Il sont {} , et {} ."
                         }, 
                         {
+                         "name":"repliques",
+                         "type":"string",
+                         "value":"blanc: Blanc ? Les ours sont bruns... Tu vois bizarrement. | froid: Froid ? Ce n'est pas une couleur... T'es bizarre."
+                        }, 
+                        {
                          "name":"sprite",
                          "type":"string",
                          "value":"other_child"
@@ -227,6 +232,11 @@
                          "name":"phrase",
                          "type":"string",
                          "value":"Oui, elle sont {} et rendent {}."
+                        }, 
+                        {
+                         "name":"repliques",
+                         "type":"string",
+                         "value":"rouge: Rouge... tu dis ça comme si tu n'en avais jamais vu. | aimable: Aimable ? Une carotte ? ... Euh."
                         }, 
                         {
                          "name":"sprite",
@@ -268,6 +278,11 @@
                          "value":"Je n'est pas de {}...."
                         }, 
                         {
+                         "name":"repliques",
+                         "type":"string",
+                         "value":"doudou: Pas de doudou ?! T'es vraiment bizarre..."
+                        }, 
+                        {
                          "name":"sprite",
                          "type":"string",
                          "value":"other_child"
@@ -305,6 +320,11 @@
                          "name":"phrase",
                          "type":"string",
                          "value":"J' {} ça"
+                        }, 
+                        {
+                         "name":"repliques",
+                         "type":"string",
+                         "value":"aime: Tu aimes ça ?! Beurk... Personne ne fait ça."
                         }, 
                         {
                          "name":"sprite",

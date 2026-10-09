@@ -13,6 +13,11 @@
 // mot pose le renvoie dans la liste). Chaque geste a son petit bip, qui monte
 // d'une note a chaque trou rempli.
 //
+// Les PNJ apparaissent UN A LA FOIS : au depart seul le premier est la ; une
+// fois son dialogue termine (il disparait), le suivant apparait. L'ordre est
+// celui de la propriete Tiled "ordre" (optionnelle), a defaut de gauche a
+// droite (position x sur la carte).
+//
 // Avancer d'une page de dialogue se fait au clic gauche une fois la page
 // remplie : ce n'est pas un element du monde a survoler, juste "continuer".
 //
@@ -26,6 +31,13 @@
 //     courante ET clique).
 //   - mots (string) : les mots a glisser, separes par des virgules, dans
 //     l'ordre des trous (puis des pages).
+//   - repliques (string, optionnel) : ce que le PNJ murmure, gene, selon le
+//     mot que le joueur a place en dernier. Format : "mot: reponse | mot:
+//     reponse" (ex. "froid: Tu dis ca bizarrement... | blanc: Pourquoi tu
+//     parles comme ca ?"). Un mot sans replique, ou pas de propriete du tout :
+//     replique generale au hasard (voir RepliquesGenerales).
+//   - ordre (int, optionnel) : rang d'apparition (le plus petit d'abord ;
+//     par defaut la position x, donc de gauche a droite).
 //   - sprite (string, optionnel) : cle d'un personnage de SpritesPNJConnus
 //     (par defaut le premier).
 //   - frame (int, optionnel) : frame du spritesheet (par defaut 0).
@@ -40,6 +52,15 @@ import { ConsommerClicSouris, EnregistrerInteractionSouris } from '../interactio
 import { NomCoucheObjets, ValeurNombreTiled } from '../maps/cartes.js';
 import { StyleTexteDeZone, StyleMotDialogue } from '../config.js';
 import { JouerSonMotPris, JouerSonMotPose, JouerSonMotRefuse } from '../sons.js';
+
+// Repliques de malaise quand aucune replique n'est ecrite pour le mot choisi.
+// "{mot}" est remplace par le mot que le joueur a place.
+const RepliquesGenerales = [
+  '« {mot} » ? Tu dis ca bizarrement...',
+  'Pourquoi tu parles comme ca ?',
+  '« {mot} »... Euh... d\'accord.',
+  'Personne ne dit « {mot} » comme ca...',
+];
 
 const SpritesPNJConnus = [
   { Cle: 'other_child', Chemin: 'assets/sprites/characters/other_child.png', LargeurFrame: 16, HauteurFrame: 16 },
@@ -57,6 +78,10 @@ export const DialoguePNJ = {
     Scene.DialogueOuvert = false;
     Scene.PageDialogueEnAttente = false;
     CreerPNJs(Scene, Ctx.Carte);
+    // Un seul PNJ visible au depart : le premier de la file.
+    Scene.PNJs.forEach((PNJ, Index) => {
+      PNJ.Sprite.setVisible(Index === 0);
+    });
     // Clic ou glisser ? en dessous de ce deplacement (px ecran) c'est un clic.
     Scene.input.dragDistanceThreshold = 3;
     InstallerGlisserDeposer(Scene);
@@ -70,7 +95,7 @@ export const DialoguePNJ = {
         Zone: PNJ.Zone,
         Cible: PNJ.Sprite,
         Icone: PNJ.Icone,
-        EstActive: () => !PNJ.Termine && !Scene.DialogueOuvert,
+        EstActive: () => PNJ === PNJActuel(Scene) && !Scene.DialogueOuvert,
         OnDeclenchement: () => OuvrirDialoguePNJ(Scene, PNJ),
       });
     });
@@ -143,10 +168,55 @@ function CreerPNJs(Scene, Carte) {
           YMin: Objet.y - Sprite.height - 16,
           YMax: Objet.y + 16,
         },
-        Dialogue: { LigneNPJ: Lire('ligneNPJ', ''), Intro: Lire('intro', ''), Pages },
+        Ordre: ValeurNombreTiled(Lire('ordre', Objet.x), Objet.x),
+        Dialogue: {
+          LigneNPJ: Lire('ligneNPJ', ''),
+          Intro: Lire('intro', ''),
+          Pages,
+          Repliques: LireRepliques(Lire('repliques', '')),
+        },
         Termine: false,
       };
-    });
+    })
+    .sort((A, B) => A.Ordre - B.Ordre);
+}
+
+// "mot: reponse | mot: reponse" -> { mot: reponse } (mots en minuscules).
+function LireRepliques(Texte) {
+  const Repliques = {};
+  Texte.split('|').forEach((Morceau) => {
+    const Coupure = Morceau.indexOf(':');
+    if (Coupure === -1) return;
+    const Mot = Morceau.slice(0, Coupure).trim().toLowerCase();
+    const Reponse = Morceau.slice(Coupure + 1).trim();
+    if (Mot && Reponse) Repliques[Mot] = Reponse;
+  });
+  return Repliques;
+}
+
+// Replique du PNJ pour le dernier mot place : celle ecrite dans Tiled, sinon
+// une replique generale au hasard.
+function ChoisirReplique(PNJ, Mot) {
+  const Ecrite = Mot ? PNJ.Dialogue.Repliques[Mot.toLowerCase()] : null;
+  if (Ecrite) return Ecrite;
+  const General = RepliquesGenerales[Phaser.Math.Between(0, RepliquesGenerales.length - 1)];
+  return General.replace('{mot}', Mot || '...');
+}
+
+// Le PNJ qu'on peut voir/interroger maintenant : le premier pas encore termine.
+function PNJActuel(Scene) {
+  return Scene.PNJs.find((PNJ) => !PNJ.Termine) || null;
+}
+
+// Le PNJ suivant surgit en grandissant (petit "pop" avec le meme bip que les
+// mots poses). Rien s'il n'en reste plus.
+function FaireApparaitrePNJSuivant(Scene) {
+  const Suivant = PNJActuel(Scene);
+  if (!Suivant) return;
+  Suivant.Sprite.setVisible(true);
+  Suivant.Sprite.setScale(0);
+  Scene.tweens.add({ targets: Suivant.Sprite, scale: 1, duration: 350, ease: 'Back.easeOut' });
+  JouerSonMotPose(2);
 }
 
 
@@ -310,6 +380,8 @@ function ArreterBalancementMot(Scene, Mot) {
 function OuvrirDialoguePNJ(Scene, PNJ) {
   Scene.DialogueOuvert = true;
   Scene.PNJActif = PNJ;
+  Scene.FinDialogueProgrammee = false;
+  Scene.MotsChoisis = []; // mots places par le joueur, dans l'ordre, toutes pages
   Scene.Personnage.body.setVelocity(0, 0);
   Scene.Personnage.body.enable = false;
 
@@ -497,8 +569,16 @@ function AvancerPageDialogue(Scene) {
   Scene.PageDialogueEnAttente = false;
   Scene.RetirerElementDialogue(Scene.IndicateurAvanceeDialogue);
   Scene.IndicateurAvanceeDialogue = null;
+  NoterMotsChoisis(Scene);
   [...Scene.ElementsLigneJoueur, ...Scene.MotsDialogue].forEach((Objet) => Scene.RetirerElementDialogue(Objet));
   AfficherPageDialogue(Scene, Scene.IndexPageDialogue + 1);
+}
+
+// Ajoute les mots poses dans les trous de la page en cours a Scene.MotsChoisis.
+function NoterMotsChoisis(Scene) {
+  Scene.TrousDialogue.forEach((Trou) => {
+    if (Trou.MotDedans) Scene.MotsChoisis.push(Trou.MotDedans.text);
+  });
 }
 
 // Tous les trous remplis ? Si oui : page suivante (E) s'il en reste, sinon on
@@ -519,53 +599,62 @@ function VerifierDialogueComplet(Scene) {
     return;
   }
 
+  // Une seule reaction, et les mots ne bougent plus : sinon re-cliquer un mot
+  // pendant ce court delai relancerait la verification (double reaction).
+  if (Scene.FinDialogueProgrammee) return;
+  Scene.FinDialogueProgrammee = true;
+  Scene.MotsDialogue.forEach((Mot) => Mot.disableInteractive());
   Scene.time.delayedCall(600, () => {
     if (Scene.DialogueOuvert) JouerReactionFinDialogue(Scene);
   });
 }
 
-// La reponse du joueur tremble et rougit un instant, puis tout disparait — la
-// phrase, les mots, la ligne du PNJ et le PNJ lui-meme. PNJ.Termine reste vrai
-// pour toujours.
+// Le PNJ est mal a l'aise : le joueur lui parait bizarre, quoi qu'il ait
+// repondu (c'est le point du jeu — le joueur est "different"). La reponse du
+// joueur s'estompe, le PNJ recule d'un pas et une bulle "..." puis une
+// replique (selon le mot choisi) apparait ; ensuite la phrase, les mots et la
+// bulle disparaissent et le PNJ s'eloigne en marchant (voir FairePartirPNJ).
+// PNJ.Termine reste vrai pour toujours.
 function JouerReactionFinDialogue(Scene) {
   const PNJ = Scene.PNJActif;
-  const ElementsSecoues = [...Scene.ElementsLigneJoueur, ...Scene.MotsDialogue];
-  // Stoppe balancements/pops en cours pour que la secousse parte de positions fixes.
-  ElementsSecoues.forEach((Objet) => {
+  const ElementsJoueur = [...Scene.ElementsLigneJoueur, ...Scene.MotsDialogue];
+  // Stoppe balancements/pops en cours, puis la phrase du joueur s'estompe
+  // (le silence gene).
+  ElementsJoueur.forEach((Objet) => {
     Scene.tweens.killTweensOf(Objet);
     Objet.setAngle(0);
     Objet.setScale(1);
   });
-  const PositionsInitiales = ElementsSecoues.map((Objet) => ({ x: Objet.x, y: Objet.y }));
+  Scene.tweens.add({ targets: ElementsJoueur, alpha: 0.4, duration: 300 });
 
-  ElementsSecoues.forEach((Objet) => {
-    if (Objet.setColor) Objet.setColor('#ff0000');
+  // Recule d'un pas, a l'oppose du joueur.
+  const Sens = PNJ.Sprite.x >= Scene.Personnage.x ? 1 : -1;
+  const Recul = 8;
+  Scene.tweens.add({ targets: PNJ.Sprite, x: PNJ.Sprite.x + Sens * Recul, duration: 250, ease: 'Sine.easeOut' });
+
+  // Bulle de malaise au-dessus du PNJ : d'abord "...", puis sa replique selon
+  // le DERNIER mot que le joueur a place.
+  NoterMotsChoisis(Scene);
+  const Replique = ChoisirReplique(PNJ, Scene.MotsChoisis[Scene.MotsChoisis.length - 1]);
+  const Bulle = Scene.CreerTexteMondeDialogue('...');
+  Bulle.setOrigin(0.5, 1);
+  Bulle.setPosition(PNJ.Sprite.x + Sens * Recul, PNJ.Sprite.y - PNJ.Sprite.height - 6);
+  Scene.time.delayedCall(700, () => {
+    if (!Bulle.active) return;
+    Bulle.setWordWrapWidth(120);
+    Bulle.setAlign('center');
+    Bulle.setText(Replique);
   });
 
-  const DureeSecousse = 500;
-  const Intensite = 2;
-  const MinuteurSecousse = Scene.time.addEvent({
-    delay: 40,
-    loop: true,
-    callback: () => {
-      const DecalageX = Phaser.Math.Between(-Intensite, Intensite);
-      const DecalageY = Phaser.Math.Between(-Intensite, Intensite);
-      ElementsSecoues.forEach((Objet, Index) => {
-        Objet.x = PositionsInitiales[Index].x + DecalageX;
-        Objet.y = PositionsInitiales[Index].y + DecalageY;
-      });
-    },
-  });
-
-  Scene.time.delayedCall(DureeSecousse, () => {
-    MinuteurSecousse.remove();
+  // Le temps de lire la replique (plus elle est longue, plus on attend).
+  const DureeReaction = Math.max(1600, 700 + 50 * Replique.length);
+  Scene.time.delayedCall(DureeReaction, () => {
     Scene.ElementsDialogue.forEach((Objet) => {
       Scene.tweens.killTweensOf(Objet);
       Objet.destroy();
     });
-    PNJ.Sprite.destroy();
     PNJ.Icone.destroy();
-    PNJ.Termine = true;
+    PNJ.Termine = true; // plus interrogeable des maintenant, meme s'il part encore
 
     Scene.ElementsDialogue = [];
     Scene.ElementsLigneJoueur = [];
@@ -575,5 +664,31 @@ function JouerReactionFinDialogue(Scene) {
     Scene.PageDialogueEnAttente = false;
     Scene.PNJActif = null;
     Scene.Personnage.body.enable = true;
+
+    // Le PNJ s'eloigne en marchant (le joueur peut deja bouger) ; le suivant
+    // n'apparait qu'une fois celui-ci parti.
+    FairePartirPNJ(Scene, PNJ, Sens);
+  });
+}
+
+// Le PNJ tourne le dos au joueur et s'eloigne a petits pas (petits sauts de
+// marche, le spritesheet n'a pas d'animation de marche) en s'effacant, puis
+// le PNJ suivant apparait.
+function FairePartirPNJ(Scene, PNJ, Sens) {
+  const Sprite = PNJ.Sprite;
+  Sprite.setFlipX(Sens < 0); // regarde dans le sens ou il part (sprites dessines tournes vers la droite)
+  const DureeDepart = 1400;
+  const DistanceDepart = 36;
+
+  Scene.tweens.add({
+    targets: Sprite, y: Sprite.y - 1, duration: 120, yoyo: true, repeat: Math.floor(DureeDepart / 240),
+  });
+  Scene.tweens.add({
+    targets: Sprite, x: Sprite.x + Sens * DistanceDepart, alpha: 0, duration: DureeDepart, ease: 'Sine.easeIn',
+    onComplete: () => {
+      Scene.tweens.killTweensOf(Sprite);
+      Sprite.destroy();
+      FaireApparaitrePNJSuivant(Scene);
+    },
   });
 }
