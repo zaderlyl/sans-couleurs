@@ -90,6 +90,8 @@ export default class niveau extends Phaser.Scene {
     var depart = this.carte.findObject("Calque d'Objets 1", function (objet) {
       return objet.name === "spawn";
     });
+    // (on retient ce point : le glitch y renvoie le joueur, voir glitch.js)
+    this.point_depart = { x: depart.x, y: depart.y };
     this.joueur_souris = this.physics.add.sprite(depart.x, depart.y, "img_perso");
     this.physics.add.collider(this.joueur_souris, this.calque_sol);
 
@@ -250,9 +252,10 @@ export default class niveau extends Phaser.Scene {
   mettre_a_jour_particularites(temps, delta) {}
 
   // true quand les joueurs ne doivent plus bouger ni tirer : un dialogue est
-  // ouvert (voir dialogue.js) ou le train est en route (voir gare.js)
+  // ouvert (voir dialogue.js), le train est en route (voir gare.js) ou l'ecran
+  // de mort du glitch est affiche (voir glitch.js)
   est_fige() {
-    return this.dialogue_ouvert == true || this.etat_gare == "enCours";
+    return this.dialogue_ouvert == true || this.etat_gare == "enCours" || this.glitch_fin != null;
   }
 
   // Le joueur souris va jusqu'a l'abscisse x, puis fait `action` (une fonction,

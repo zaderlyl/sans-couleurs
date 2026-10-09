@@ -3,7 +3,7 @@
 // Le joueur souris clique sur la gare : il y marche, le train clignote, tremble,
 // demarre, l'ecran devient noir, puis on passe au niveau suivant (ou, si ce
 // niveau n'a pas de suite, le joueur revient ou il etait).
-// Dans le niveau d'arrivee, un ecran noir affiche quelques phrases ("Le train
+// Dans le niveau d'arrivee, un ecran noir (voir ecran_texte.js) affiche quelques phrases ("Le train
 // quitte la gare..."), puis le train arrive en douceur et les joueurs descendent.
 //
 // La gare n'est pas placee a la main : on la retrouve dans la carte Tiled, grace
@@ -19,6 +19,8 @@
 //
 // Etat garde sur la scene : scene.etat_gare vaut "attente" (rien ne se passe) ou
 // "enCours" (le train est en route : les joueurs sont figes, voir niveau.js).
+
+import { afficher_phrases } from "./ecran_texte.js";
 
 // --- Reglages : la calibration de l'image du train ---------------------------
 //
@@ -45,7 +47,6 @@ var phrases_du_voyage = [
   "Les paysages defilent derriere la vitre.",
   "Quelques instants plus tard..."
 ];
-var delai_par_lettre = 70; // ms : l'effet "machine a ecrire" de l'ecran du voyage
 
 
 // --- 1. Mise en place (dans create) ---------------------------------------------
@@ -287,7 +288,7 @@ function arriver_en_train(scene) {
   scene.camera2.fadeOut(0, 0, 0, 0);
 
   if (scene.avec_transition == true) {
-    afficher_les_phrases(scene, phrases_du_voyage, function () {
+    afficher_phrases(scene, phrases_du_voyage, function () {
       jouer_l_arrivee(scene);
     });
   } else {
@@ -313,82 +314,7 @@ function jouer_l_arrivee(scene) {
 }
 
 
-// --- 5. L'ecran de texte du voyage ----------------------------------------------------------
-//
-// Un grand rectangle noir (un <div> HTML pose sur le jeu) avec une phrase qui
-// s'ecrit lettre par lettre. Un clic termine la phrase en cours, puis passe a
-// la suivante ; apres la derniere, on appelle `quand_fini`. Un <div> plutot
-// qu'un objet du jeu : il couvre tout l'ecran, quelle que soit la camera.
-
-function afficher_les_phrases(scene, phrases, quand_fini) {
-  var ecran = document.getElementById("ecran-texte");
-  if (ecran == null) {
-    ecran = document.createElement("div");
-    ecran.id = "ecran-texte";
-    ecran.style.position = "absolute";
-    ecran.style.top = "0";
-    ecran.style.left = "0";
-    ecran.style.right = "0";
-    ecran.style.bottom = "0";
-    ecran.style.background = "#000000";
-    ecran.style.color = "#ffffff";
-    ecran.style.display = "flex";
-    ecran.style.alignItems = "center";
-    ecran.style.justifyContent = "center";
-    ecran.style.textAlign = "center";
-    ecran.style.fontFamily = "DeltaruneExtended, monospace";
-    ecran.style.fontSize = "28px";
-    ecran.style.padding = "40px";
-    ecran.style.cursor = "pointer";
-    scene.game.canvas.parentElement.style.position = "relative";
-    scene.game.canvas.parentElement.appendChild(ecran);
-  }
-  ecran.style.display = "flex";
-  ecran.textContent = "";
-
-  var indice_phrase = 0; // quelle phrase
-  var nombre_de_lettres = 0; // combien de lettres sont deja ecrites
-
-  // toutes les 70 ms : une lettre de plus
-  var minuteur = scene.time.addEvent({
-    delay: delai_par_lettre,
-    loop: true,
-    callback: function () {
-      if (nombre_de_lettres < phrases[indice_phrase].length) {
-        nombre_de_lettres = nombre_de_lettres + 1;
-        ecran.textContent = phrases[indice_phrase].slice(0, nombre_de_lettres);
-      }
-    }
-  });
-
-  // un clic : finit la phrase en cours, ou passe a la suivante
-  ecran.onclick = function () {
-    if (nombre_de_lettres < phrases[indice_phrase].length) {
-      nombre_de_lettres = phrases[indice_phrase].length;
-      ecran.textContent = phrases[indice_phrase];
-      return;
-    }
-    indice_phrase = indice_phrase + 1;
-    nombre_de_lettres = 0;
-    ecran.textContent = "";
-    if (indice_phrase >= phrases.length) {
-      // plus de phrase : on referme l'ecran noir
-      minuteur.remove();
-      ecran.style.display = "none";
-      ecran.onclick = null;
-      quand_fini();
-    }
-  };
-
-  // si la scene s'arrete avant la fin, on referme l'ecran
-  scene.events.once("shutdown", function () {
-    ecran.style.display = "none";
-    ecran.onclick = null;
-  });
-}
-
-
-// --- 6. Outils ---------------------------------------------------------------------------------------
+// --- 5. Outils ---------------------------------------------------------------------------------------
 
 // Boite des tuiles non vides d'un calque : { col_min, col_max, rangee_min, rangee_max }, ou null
 function boite_des_tuiles(carte, nom_calque) {
