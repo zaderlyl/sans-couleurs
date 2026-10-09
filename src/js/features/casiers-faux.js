@@ -44,6 +44,7 @@ export const CasiersFaux = {
     }
     // Pas de changement pendant un voyage, un dialogue ou l'ecran de fin.
     if (Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || Scene.GlitchEtatFin || Scene.PortailEnCours) return;
+    if (Scene.ModeTir) return; // Ctrl / Cmd maintenu : la souris sert a viser, pas a changer les casiers
 
     const PointMonde = PointMondeSouris(Scene); // bonne camera si l'ecran est separe
     const Tuile = Scene.CalqueCasiers.getTileAtWorldXY(PointMonde.x, PointMonde.y);

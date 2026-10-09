@@ -136,3 +136,13 @@ export function JouerSonMotPose(Rang) {
 export function JouerSonMotRefuse() {
   JouerNote(150, 90, 0.12, 0.07, 'sawtooth');
 }
+
+
+// --- Tir : un "pew" montant-descendant au depart, un "plop" a l'impact ---
+export function JouerSonTir() {
+  JouerNote(820, 320, 0.09, 0.06, 'square');
+}
+
+export function JouerSonImpactTir() {
+  JouerNote(260, 90, 0.12, 0.08, 'triangle');
+}

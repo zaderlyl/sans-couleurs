@@ -66,7 +66,23 @@ export function InstallerInteractionSouris(Scene) {
   // Evenement plutot que lecture au vol : un clic est instantane (down puis
   // souvent up dans la meme frame ou la suivante), le lire via un evenement
   // garantit qu'on ne le rate jamais, quelle que soit la duree de l'appui.
+  //
+  // Deux sortes de clics, selon qu'on maintient Ctrl (ou Cmd sur Mac) :
+  //   - sans touche : clic "normal" = marcher / interagir (le reste de ce fichier) ;
+  //   - avec Ctrl ou Cmd : clic de TIR = on envoie un projectile a l'endroit
+  //     clique (voir features/tir.js). On retient le point d'ecran du clic.
+  // (Ctrl + clic est un clic droit sur Mac : on accepte donc aussi le bouton
+  // droit quand Ctrl est maintenu.)
+  Scene.TirDemande = null;
   Scene.input.on('pointerdown', (Pointeur) => {
+    const Evenement = Pointeur.event;
+    const ModificateurTir = !!Evenement && (Evenement.ctrlKey || Evenement.metaKey);
+    if (ModificateurTir) {
+      if (Pointeur.leftButtonDown() || Pointeur.rightButtonDown()) {
+        Scene.TirDemande = { EcranX: Pointeur.x, EcranY: Pointeur.y };
+      }
+      return;
+    }
     if (Pointeur.leftButtonDown()) Scene.SourisVientDeCliquer = true;
   });
 }
@@ -216,15 +232,17 @@ export function MettreAJourInteractionsSouris(Scene) {
   const AppuiE = Scene.ToucheEVientDAppuyer;
   Scene.ToucheEVientDAppuyer = false;
 
+  // Mode tir (Ctrl / Cmd maintenu, voir features/tir.js) : on ne survole plus
+  // les elements du monde, la souris sert a viser.
   const Fige =
-    Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || !!Scene.GlitchEtatFin;
+    Scene.EtatGare === 'enCours' || Scene.DialogueOuvert || !!Scene.GlitchEtatFin || !!Scene.ModeTir;
   if (Fige) {
     Scene.InteractionsSouris.forEach((Interaction) => {
       if (Interaction.EnCours || EstDetruit(Interaction.Icone) || EstDetruit(Interaction.Cible)) return;
       Interaction.Icone.setVisible(false);
       ArreterTremblement(Interaction);
     });
-    Scene.game.canvas.style.cursor = 'default';
+    Scene.game.canvas.style.cursor = Scene.ModeTir ? 'crosshair' : 'default';
     return;
   }
 

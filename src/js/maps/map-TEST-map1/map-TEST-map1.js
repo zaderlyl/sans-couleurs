@@ -16,11 +16,12 @@ import { Glitch } from '../../features/glitch.js';
 import { DialoguePNJ } from '../../features/dialogue-pnj.js';
 import { Tele } from '../../features/tele.js';
 import { Joueur2 } from '../../features/joueur2.js';
+import { Tir } from '../../features/tir.js';
 
 EnregistrerCarte({
   cle: 'map-TEST-map1',
   numero: 'TEST',
   nom: 'map1',
   // pas de carte suivante
-  features: [Gare, TextesDeZone, Tele, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ, Glitch, Joueur2],
+  features: [Gare, TextesDeZone, Tele, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ, Glitch, Joueur2, Tir],
 });

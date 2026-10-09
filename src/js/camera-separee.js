@@ -406,27 +406,36 @@ function RegleVisibilite(Objet, Camera, Visible) {
 // clique, il faut donc d'abord trouver LA camera qui est sous la souris, puis
 // convertir avec cette camera-la.
 
-// La camera dont la zone d'affichage contient la souris (la principale si
-// l'ecran n'est pas separe, ou si on ne trouve rien).
-export function CameraSousLaSouris(Scene) {
-  const Souris = Scene.input.activePointer;
+// La camera dont la zone d'affichage contient le point d'ecran (EcranX, EcranY)
+// (la principale si l'ecran n'est pas separe, ou si on ne trouve rien).
+function CameraSousLePoint(Scene, EcranX, EcranY) {
   const Camera2 = Scene.CameraJoueur2;
 
-  // Seule la 2e camera visible (= ecran separe) peut etre sous la souris.
-  if (Camera2 && Camera2.visible && SourisDansCamera(Souris, Camera2)) return Camera2;
+  // Seule la 2e camera visible (= ecran separe) peut etre sous le point.
+  if (Camera2 && Camera2.visible
+      && EcranX >= Camera2.x && EcranX < Camera2.x + Camera2.width
+      && EcranY >= Camera2.y && EcranY < Camera2.y + Camera2.height) {
+    return Camera2;
+  }
   return Scene.cameras.main;
 }
 
-// true si le point (Souris.x, Souris.y) est dans le rectangle d'affichage de la camera.
-function SourisDansCamera(Souris, Camera) {
-  return Souris.x >= Camera.x && Souris.x < Camera.x + Camera.width
-      && Souris.y >= Camera.y && Souris.y < Camera.y + Camera.height;
+// L'endroit du MONDE qui est affiche au point d'ecran (EcranX, EcranY), vu par
+// la bonne camera. Sert aussi a viser : on retient le point d'ecran du clic, puis
+// on le convertit plus tard. (Camera.getWorldPoint accepte directement des
+// coordonnees d'ecran : pas besoin de retirer le decalage de la moitie droite.)
+export function PointMondeEcran(Scene, EcranX, EcranY) {
+  return CameraSousLePoint(Scene, EcranX, EcranY).getWorldPoint(EcranX, EcranY);
+}
+
+// La camera sous la souris (voir CameraSousLePoint).
+export function CameraSousLaSouris(Scene) {
+  const Souris = Scene.input.activePointer;
+  return CameraSousLePoint(Scene, Souris.x, Souris.y);
 }
 
 // L'endroit du MONDE sous la souris, vu par la bonne camera.
-// (Camera.getWorldPoint accepte directement les coordonnees d'ecran de la
-// souris : pas besoin de retirer le decalage de la moitie droite.)
 export function PointMondeSouris(Scene) {
   const Souris = Scene.input.activePointer;
-  return CameraSousLaSouris(Scene).getWorldPoint(Souris.x, Souris.y);
+  return PointMondeEcran(Scene, Souris.x, Souris.y);
 }
