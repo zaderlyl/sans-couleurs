@@ -4,8 +4,12 @@
 // Etape 2 : un 2e personnage (couleurs inversees) qui se deplace au clavier.
 // Etape 3 : l'ecran se separe en deux quand les joueurs s'eloignent
 // (tout le detail est dans ecran_separe.js).
+// Etape 4 : le tir (souris : Ctrl/Cmd + clic ; clavier : espace) et des cibles
+// a toucher (tir.js et cibles.js).
 
 import { creer_ecran_separe, mettre_a_jour_ecran_separe, point_monde } from "./ecran_separe.js";
+import { creer_tir, mettre_a_jour_tir, est_un_clic_de_tir, tirer_a_la_souris } from "./tir.js";
+import { creer_cibles } from "./cibles.js";
 
 export default class niveau1 extends Phaser.Scene {
   // constructeur de la classe : on donne a la scene son identifiant
@@ -28,6 +32,9 @@ export default class niveau1 extends Phaser.Scene {
       frameWidth: 16,
       frameHeight: 16
     });
+    // la goutte du tir, et les taches grises a toucher
+    this.load.image("img_goutte", "assets/sprites/props/goutte.png");
+    this.load.image("img_cible", "assets/sprites/props/cible.png");
   }
 
   create() {
@@ -92,6 +99,10 @@ export default class niveau1 extends Phaser.Scene {
     // une 2e camera et la separation de l'ecran (voir ecran_separe.js)
     creer_ecran_separe(this);
 
+    // --- le tir et les cibles ---
+    creer_tir(this);
+    creer_cibles(this);
+
     // --- le clic de souris ---
     // la ou le personnage doit aller (null = il n'y va nulle part)
     this.destination_x = null;
@@ -148,10 +159,19 @@ export default class niveau1 extends Phaser.Scene {
     // un seul ecran quand les joueurs sont proches, deux quand ils s'eloignent :
     // le calcul est dans ecran_separe.js
     mettre_a_jour_ecran_separe(this, delta);
+
+    // --- le tir ---
+    mettre_a_jour_tir(this);
   }
 
   // appelee a chaque clic de souris
   cliquer(pointeur) {
+    // Ctrl (ou Cmd) maintenu : c'est un clic de TIR, pas un clic pour marcher
+    if (est_un_clic_de_tir(pointeur) == true) {
+      tirer_a_la_souris(this, pointeur.x, pointeur.y);
+      return;
+    }
+
     // pointeur.x / pointeur.y : l'endroit de l'ECRAN ou on a clique. On le
     // convertit en endroit du MONDE (la camera est zoomee et decalee, et
     // l'ecran peut etre separe en deux cameras : voir ecran_separe.js).
