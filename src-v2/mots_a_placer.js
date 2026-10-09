@@ -8,6 +8,8 @@
 //     pres d'un trou y est aspire (pas besoin de viser au pixel).
 // Les mots de la liste se balancent doucement et grossissent au survol.
 //
+import { jouer_son_mot_pris, jouer_son_mot_pose, jouer_son_mot_refuse } from "./sons.js";
+
 // Les mots et les trous sont crees par dialogue.js. Ce fichier ne s'occupe que
 // de leurs gestes. L'etat du dialogue est dans scene.dialogue (voir dialogue.js) :
 //   scene.dialogue.trous                   : la liste des trous de la page
@@ -35,6 +37,7 @@ export function creer_gestes_des_mots(scene) {
     arreter_balancement(objet);
     objet.setDepth(30); // au-dessus des autres mots
     scene.tweens.add({ targets: objet, scale: 1.3, angle: 6, duration: 90 });
+    jouer_son_mot_pris();
   });
 
   // on glisse : le mot suit la souris
@@ -71,6 +74,7 @@ export function creer_gestes_des_mots(scene) {
       // trou deja occupe : le mot retourne ou il etait
       style_du_trou(trou, "normal");
       renvoyer_le_mot(scene, objet, objet.x_repos, objet.y_repos, null);
+      jouer_son_mot_refuse();
       return;
     }
     poser_le_mot(scene, objet, trou);
@@ -159,6 +163,15 @@ function poser_le_mot(scene, mot, trou) {
   mot.trou_actuel = trou;
   style_du_trou(trou, "rempli");
 
+  // le "pop" : de plus en plus haut a chaque trou rempli
+  var nombre_de_trous_remplis = 0;
+  for (var i = 0; i < scene.dialogue.trous.length; i++) {
+    if (scene.dialogue.trous[i].mot_dedans != null) {
+      nombre_de_trous_remplis = nombre_de_trous_remplis + 1;
+    }
+  }
+  jouer_son_mot_pose(nombre_de_trous_remplis - 1);
+
   mot.setScale(1.35);
   scene.tweens.add({
     targets: mot, x: milieu_x, y: milieu_y, scale: 1, angle: 0,
@@ -193,6 +206,7 @@ function clic_sur_un_mot(scene, mot) {
         balancer_le_mot(scene, mot, 0);
       }
     });
+    jouer_son_mot_pris();
     return;
   }
 
@@ -204,6 +218,7 @@ function clic_sur_un_mot(scene, mot) {
       return;
     }
   }
+  jouer_son_mot_refuse(); // plus de trou libre
 }
 
 // le trou libre (ou deja le sien) le plus proche du mot, a moins de `distance_max`

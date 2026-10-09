@@ -15,6 +15,8 @@
 
 import { creer_ecran_separe, mettre_a_jour_ecran_separe, point_monde } from "./ecran_separe.js";
 import { creer_tir, mettre_a_jour_tir, est_un_clic_de_tir, tirer_a_la_souris } from "./tir.js";
+import { creer_chute } from "./chute.js";
+import { jouer_son_pas, jouer_son_atterrissage } from "./sons.js";
 
 export default class niveau extends Phaser.Scene {
   // cle = l'identifiant de la scene ; nom_carte = le fichier Tiled (sans .json)
@@ -107,6 +109,12 @@ export default class niveau extends Phaser.Scene {
     this.physics.add.collider(this.joueur_clavier, this.calque_sol);
     this.joueur_clavier.setCollideWorldBounds(true);
 
+    // pour les bruits de pas et d'atterrissage (voir faire_les_bruits)
+    this.joueur_souris.delai_pas = 0;
+    this.joueur_souris.etait_au_sol = true;
+    this.joueur_clavier.delai_pas = 0;
+    this.joueur_clavier.etait_au_sol = true;
+
     // les fleches du clavier, et la touche E (pour interagir)
     this.clavier = this.input.keyboard.createCursorKeys();
     this.touche_e = this.input.keyboard.addKey("E");
@@ -156,6 +164,9 @@ export default class niveau extends Phaser.Scene {
 
     // --- le tir ---
     creer_tir(this);
+
+    // --- la chute dans le vide (les bords du monde) ---
+    creer_chute(this);
 
     // --- ce qui est propre a ce niveau (portails, cibles, ...) ---
     this.creer_particularites();
@@ -235,6 +246,10 @@ export default class niveau extends Phaser.Scene {
       this.joueur_clavier.setFrame(3); // l'image "debout"
     }
 
+    // --- les bruits des joueurs (pas, atterrissage) ---
+    this.faire_les_bruits(this.joueur_souris, delta);
+    this.faire_les_bruits(this.joueur_clavier, delta);
+
     // --- les cameras ---
     // un seul ecran quand les joueurs sont proches, deux quand ils s'eloignent :
     // le calcul est dans ecran_separe.js
@@ -250,6 +265,29 @@ export default class niveau extends Phaser.Scene {
   // Ces deux methodes sont vides : un niveau les remplace par les siennes.
   creer_particularites() {}
   mettre_a_jour_particularites(temps, delta) {}
+
+  // Les bruits d'un joueur : un pas a intervalles reguliers quand il marche sur
+  // le sol, et un "thud" quand il retouche le sol apres un saut ou une chute.
+  faire_les_bruits(joueur, delta) {
+    var au_sol = joueur.body.blocked.down;
+    var marche = joueur.body.velocity.x != 0 && au_sol == true && joueur.visible == true;
+
+    if (marche == true) {
+      joueur.delai_pas = joueur.delai_pas - delta;
+      if (joueur.delai_pas <= 0) {
+        jouer_son_pas();
+        joueur.delai_pas = 260; // un pas toutes les 260 ms
+      }
+    } else {
+      joueur.delai_pas = 0; // le prochain pas est joue des qu'il repart
+    }
+
+    // il vient de toucher le sol (avant il ne le touchait pas)
+    if (joueur.etait_au_sol == false && au_sol == true && joueur.visible == true) {
+      jouer_son_atterrissage();
+    }
+    joueur.etait_au_sol = au_sol;
+  }
 
   // true quand les joueurs ne doivent plus bouger ni tirer : un dialogue est
   // ouvert (voir dialogue.js), le train est en route (voir gare.js) ou l'ecran

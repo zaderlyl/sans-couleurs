@@ -18,6 +18,7 @@
 // (les fleches, avec la barre espace), this.calque_sol et this.carte.
 
 import { point_monde } from "./ecran_separe.js";
+import { jouer_son_tir, jouer_son_impact } from "./sons.js";
 
 
 // --- Reglages ------------------------------------------------------------
@@ -148,6 +149,7 @@ function tirer_vers(scene, joueur, cible_x, cible_y) {
 
   // couleur suivante : rouge, vert, bleu, rouge...
   scene.couleur_tir = (scene.couleur_tir + 1) % couleurs_tir.length;
+  jouer_son_tir();
 }
 
 // le projectile disparait et laisse une petite tache qui grossit en s'effacant
@@ -166,5 +168,6 @@ export function eclater(scene, projectile) {
       tache.destroy();
     }
   });
+  jouer_son_impact();
   projectile.destroy();
 }

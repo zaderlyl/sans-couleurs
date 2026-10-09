@@ -1,6 +1,8 @@
 // accueil.js — la page d'accueil : le titre du jeu et des boutons pour
 // choisir le niveau.
 
+import { demarrer_la_musique } from "./sons.js";
+
 export default class accueil extends Phaser.Scene {
   // constructeur de la classe : on donne a la scene son identifiant
   constructor() {
@@ -41,6 +43,7 @@ export default class accueil extends Phaser.Scene {
 
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.clavier.space) == true) {
+      demarrer_la_musique(); // un appui de touche autorise aussi le son
       this.scene.start("niveau1");
     }
   }
@@ -71,6 +74,9 @@ export default class accueil extends Phaser.Scene {
 
     // clic sur le bouton : on lance le niveau
     bouton.on("pointerdown", function () {
+      // la musique de fond demarre au premier clic (un navigateur interdit les
+      // sons avant un geste du joueur)
+      demarrer_la_musique();
       this.scene.start(cle_niveau);
     }, this);
 

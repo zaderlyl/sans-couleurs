@@ -16,6 +16,7 @@
 
 import { est_un_clic_de_tir } from "./tir.js";
 import { camera_du_joueur } from "./ecran_separe.js";
+import { jouer_son_portail } from "./sons.js";
 
 var taille_tuile = 16;
 var duree_fondu = 250; // millisecondes : le voyage est instantane, juste un fondu court
@@ -147,6 +148,7 @@ function prendre_le_portail(scene, joueur, portail) {
 // fondu au noir sur l'ecran du joueur, deplacement instantane, retour du fond
 function voyager(scene, joueur, destination) {
   scene.portail_en_cours = true;
+  jouer_son_portail();
 
   // le fondu est sur l'ecran du joueur qui voyage (sa moitie si l'ecran est separe)
   var camera = camera_du_joueur(scene, joueur);
