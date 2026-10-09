@@ -26,6 +26,7 @@
 
 import { ouvrir_dialogue } from "./dialogue.js";
 import { est_un_clic_de_tir } from "./tir.js";
+import { rendre_cliquable_sur_les_pixels } from "./zone_cliquable.js";
 
 
 // --- 1. Mise en place (dans create) ------------------------------------------
@@ -68,9 +69,9 @@ function creer_un_pnj(scene, objet) {
   pnj.sprite = scene.add.sprite(objet.x, objet.y, "img_pnj", Number(lire_propriete(objet, "frame", 0)));
   pnj.sprite.setOrigin(0.5, 1);
   pnj.sprite.setDepth(4);
-  // "pixelPerfect" : seuls les pixels dessines du personnage reagissent a la
-  // souris, pas le carre transparent autour de lui
-  pnj.sprite.setInteractive({ pixelPerfect: true, useHandCursor: true });
+  // seuls les pixels dessines du personnage reagissent a la souris, pas le
+  // carre transparent autour de lui (voir zone_cliquable.js)
+  rendre_cliquable_sur_les_pixels(pnj.sprite);
 
   // l'icone "E", au-dessus de sa tete
   pnj.icone = scene.add.sprite(objet.x, objet.y - 32, "img_icone_e", 0);

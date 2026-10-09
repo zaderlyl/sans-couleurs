@@ -21,6 +21,7 @@
 // "enCours" (le train est en route : les joueurs sont figes, voir niveau.js).
 
 import { afficher_phrases } from "./ecran_texte.js";
+import { rendre_cliquable_sur_les_pixels } from "./zone_cliquable.js";
 
 // --- Reglages : la calibration de l'image du train ---------------------------
 //
@@ -88,8 +89,9 @@ export function creer_gare(scene, options) {
   gare.sprite.setOrigin(ancrage_x / taille_image, ancrage_y / taille_image);
   gare.sprite.setDepth(5);
   gare.sprite.setFlipX(flippe);
-  // "pixelPerfect" : seul le dessin reagit a la souris, pas le grand carre transparent
-  gare.sprite.setInteractive({ pixelPerfect: true, useHandCursor: true });
+  // seul le dessin reagit a la souris, pas le grand carre transparent (et ca
+  // marche aussi quand l'image est retournee : voir zone_cliquable.js)
+  rendre_cliquable_sur_les_pixels(gare.sprite);
   gare.x_sprite = gare.sprite.x;
   gare.y_sprite = gare.sprite.y;
 
