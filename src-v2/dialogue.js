@@ -28,34 +28,10 @@
 // est true tant qu'il dure (les joueurs sont alors figes, voir niveau.js).
 
 import { creer_gestes_des_mots, preparer_le_mot } from "./mots_a_placer.js";
+import { style_texte, style_mot } from "./styles.js";
 
 
 // --- Reglages ------------------------------------------------------------
-
-// l'aspect des textes poses dans le monde (petite police, agrandie par le zoom :
-// "resolution" = le zoom, sinon le texte est flou)
-var style_texte = {
-  fontFamily: "DeltaruneExtended, monospace",
-  fontSize: "6px",
-  color: "#ffffff",
-  stroke: "#000000",
-  strokeThickness: 2,
-  align: "center",
-  wordWrap: { width: 120 },
-  resolution: 5
-};
-
-// l'aspect d'un mot a placer : un petit fond derriere, comme une etiquette
-var style_mot = {
-  fontFamily: "DeltaruneExtended, monospace",
-  fontSize: "6px",
-  color: "#ffffff",
-  stroke: "#000000",
-  strokeThickness: 1,
-  backgroundColor: "rgba(0, 0, 0, 0.55)",
-  padding: { x: 2, y: 1 },
-  resolution: 5
-};
 
 // les repliques du PNJ quand aucune n'est ecrite pour le mot choisi
 // ("{mot}" est remplace par le mot que le joueur a place)

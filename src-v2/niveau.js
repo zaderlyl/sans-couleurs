@@ -16,6 +16,8 @@
 import { creer_ecran_separe, mettre_a_jour_ecran_separe, point_monde } from "./ecran_separe.js";
 import { creer_tir, mettre_a_jour_tir, est_un_clic_de_tir, tirer_a_la_souris } from "./tir.js";
 import { creer_chute } from "./chute.js";
+import { creer_decor, mettre_a_jour_decor } from "./decor.js";
+import { creer_textes_de_zone, mettre_a_jour_textes_de_zone } from "./textes_de_zone.js";
 import { jouer_son_pas, jouer_son_atterrissage } from "./sons.js";
 
 export default class niveau extends Phaser.Scene {
@@ -62,6 +64,11 @@ export default class niveau extends Phaser.Scene {
       frameWidth: 16,
       frameHeight: 16
     });
+    // l'herbe qui plie au passage des joueurs : 4 sortes de brins, 3 images chacune (voir decor.js)
+    this.load.spritesheet("img_herbe", "assets/sprites/environment/animated_grass.png", {
+      frameWidth: 16,
+      frameHeight: 16
+    });
     // la gare et son train : 64 images de 256 x 256 (voir gare.js)
     this.load.spritesheet("img_gare", "assets/sprites/environment/gare.png", {
       frameWidth: 256,
@@ -79,6 +86,7 @@ export default class niveau extends Phaser.Scene {
     this.carte = this.make.tilemap({ key: this.nom_carte });
     // "Tileset" = le nom du jeu de tuiles dans Tiled, "img_tuiles" = l'image chargee
     var tuiles = this.carte.addTilesetImage("Tileset", "img_tuiles");
+    this.tuiles = tuiles; // (retenu : decor.js en a besoin pour le calque "tunnel")
 
     // les calques, du plus loin au plus proche (le dernier cree est dessus)
     this.calque_bg = this.carte.createLayer("bg", tuiles, 0, 0);
@@ -86,6 +94,10 @@ export default class niveau extends Phaser.Scene {
     this.calque_sol = this.carte.createLayer("sol", tuiles, 0, 0);
     // toute tuile non vide du calque "sol" est solide
     this.calque_sol.setCollisionByExclusion([-1]);
+
+    // --- le decor : le tunnel (devant les joueurs) et l'herbe ---
+    // (avant les joueurs : l'herbe est dessinee derriere eux)
+    creer_decor(this);
 
     // --- le personnage (joueur souris) ---
     // il apparait au point "spawn" pose dans Tiled
@@ -167,6 +179,9 @@ export default class niveau extends Phaser.Scene {
 
     // --- la chute dans le vide (les bords du monde) ---
     creer_chute(this);
+
+    // --- les textes de zone (poses dans Tiled) ---
+    creer_textes_de_zone(this);
 
     // --- ce qui est propre a ce niveau (portails, cibles, ...) ---
     this.creer_particularites();
@@ -257,6 +272,10 @@ export default class niveau extends Phaser.Scene {
 
     // --- le tir ---
     mettre_a_jour_tir(this);
+
+    // --- le decor (tunnel, herbe) et les textes de zone ---
+    mettre_a_jour_decor(this);
+    mettre_a_jour_textes_de_zone(this);
 
     // --- ce qui est propre a ce niveau ---
     this.mettre_a_jour_particularites(temps, delta);
