@@ -4,6 +4,7 @@
 // chargement des scenes (une scene = un fichier)
 import accueil from "./accueil.js";
 import niveau1 from "./niveau1.js";
+import niveau3 from "./niveau3.js";
 
 // configuration generale du jeu
 var config = {
@@ -28,7 +29,7 @@ var config = {
     }
   },
   // la premiere scene de la liste est lancee automatiquement
-  scene: [accueil, niveau1]
+  scene: [accueil, niveau1, niveau3]
 };
 
 // On attend que la police du jeu soit chargee avant de creer le jeu, sinon les

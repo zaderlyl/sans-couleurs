@@ -64,6 +64,7 @@ export function mettre_a_jour_tir(scene) {
   // le curseur devient un viseur tant que Ctrl ou Cmd est maintenu
   var en_mode_tir = scene.touche_ctrl.isDown || scene.touche_cmd_gauche.isDown || scene.touche_cmd_droite.isDown;
   scene.input.setDefaultCursor(en_mode_tir ? "crosshair" : "default");
+  scene.en_mode_tir = en_mode_tir; // les autres fichiers (portails...) peuvent le lire
 
   // le joueur clavier tire avec la barre espace (JustDown : un tir par appui)
   if (Phaser.Input.Keyboard.JustDown(scene.clavier.space) == true) {

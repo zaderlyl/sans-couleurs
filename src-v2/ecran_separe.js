@@ -71,6 +71,7 @@ export function creer_ecran_separe(scene) {
   scene.bande_a_gauche = false; // la bande apparait-elle a gauche (sinon a droite) ?
   scene.historique_x = []; // les positions recentes des joueurs (pour savoir qui s'eloigne)
   scene.forcer_ecran_entier = false;
+  scene.sauter_camera = false; // true = les cameras se placent d'un coup (apres un portail...)
 
   // la ligne noire entre les deux moities : un <div> HTML pose sur le jeu
   var ligne = document.getElementById(id_ligne);
@@ -304,9 +305,9 @@ function deplacer_la_camera(scene, camera, point) {
   var voulu_x = Phaser.Math.Clamp(point.x, demi_largeur, Math.max(demi_largeur, scene.carte.widthInPixels - demi_largeur));
   var voulu_y = Phaser.Math.Clamp(point.y + decalage_vertical, demi_hauteur, Math.max(demi_hauteur, scene.carte.heightInPixels - demi_hauteur));
 
-  // la toute premiere fois, on se place d'un coup (sinon la camera glisserait
-  // depuis le coin de la carte jusqu'au joueur)
-  if (camera.centre_x === undefined) {
+  // la toute premiere fois (ou apres un portail : scene.sauter_camera), on se
+  // place d'un coup, sinon la camera glisserait depuis son ancienne place
+  if (camera.centre_x === undefined || scene.sauter_camera == true) {
     camera.centre_x = voulu_x;
     camera.centre_y = voulu_y;
   }
@@ -387,4 +388,18 @@ export function point_monde(scene, x_ecran, y_ecran) {
     camera = camera2;
   }
   return camera.getWorldPoint(x_ecran, y_ecran);
+}
+
+
+// --- 9. Quelle camera montre ce joueur ? ------------------------------------
+//
+// Sert a faire un fondu "sur l'ecran du joueur" (quand il prend un portail) :
+// la camera 2 pour le joueur clavier si l'ecran est separe a plus de moitie
+// (c'est elle qui le montre), la camera principale sinon.
+
+export function camera_du_joueur(scene, joueur) {
+  if (joueur == scene.joueur_clavier && scene.part_separation >= 0.5) {
+    return scene.camera2;
+  }
+  return scene.cameras.main;
 }
