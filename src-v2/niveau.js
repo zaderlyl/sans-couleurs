@@ -41,8 +41,13 @@ export default class niveau extends Phaser.Scene {
     // la goutte du tir, et les taches grises a toucher
     this.load.image("img_goutte", "assets/sprites/props/goutte.png");
     this.load.image("img_cible", "assets/sprites/props/cible.png");
-    // l'icone "E" : 11 images de 16 x 16 (voir portails.js)
+    // l'icone "E" : 11 images de 16 x 16 (voir portails.js et pnj.js)
     this.load.spritesheet("img_icone_e", "assets/ui/E_animated.png", {
+      frameWidth: 16,
+      frameHeight: 16
+    });
+    // les personnages non joueurs (feuille de 4 enfants, voir pnj.js)
+    this.load.spritesheet("img_pnj", "assets/sprites/characters/other_child.png", {
       frameWidth: 16,
       frameHeight: 16
     });
@@ -105,6 +110,23 @@ export default class niveau extends Phaser.Scene {
       });
     }
 
+    // --- les animations de l'icone "E" (communes a tout ce qui est interactif) ---
+    // l'invite (images 0 a 2, en boucle), puis le E qui eclate (images 3 a 10, une fois)
+    if (this.anims.exists("anim_icone_attente") == false) {
+      this.anims.create({
+        key: "anim_icone_attente",
+        frames: this.anims.generateFrameNumbers("img_icone_e", { start: 0, end: 2 }),
+        frameRate: 4,
+        repeat: -1
+      });
+      this.anims.create({
+        key: "anim_icone_pressee",
+        frames: this.anims.generateFrameNumbers("img_icone_e", { start: 3, end: 10 }),
+        frameRate: 14,
+        repeat: 0
+      });
+    }
+
     // --- les cameras ---
     // pixel art de 16 pixels : on zoome x5, sinon tout est minuscule
     this.cameras.main.setZoom(5);
@@ -126,6 +148,19 @@ export default class niveau extends Phaser.Scene {
   }
 
   update(temps, delta) {
+    // --- un dialogue est ouvert : les deux joueurs sont figes ---
+    // (le reste de update continue : cameras, ce qui est propre au niveau...)
+    if (this.dialogue_ouvert == true) {
+      this.destination_x = null;
+      this.apres_arrivee = null;
+      this.joueur_souris.setVelocityX(0);
+      this.joueur_souris.anims.stop();
+      this.joueur_souris.setFrame(3);
+      this.joueur_clavier.setVelocityX(0);
+      this.joueur_clavier.anims.stop();
+      this.joueur_clavier.setFrame(3);
+    }
+
     // --- le joueur souris marche vers la destination ---
     if (this.destination_x !== null) {
       // ecart > 0 : la destination est a droite ; ecart < 0 : a gauche
@@ -163,7 +198,9 @@ export default class niveau extends Phaser.Scene {
     }
 
     // --- le joueur clavier : les fleches gauche et droite ---
-    if (this.clavier.left.isDown) {
+    if (this.dialogue_ouvert == true) {
+      // fige (voir plus haut)
+    } else if (this.clavier.left.isDown) {
       this.joueur_clavier.setVelocityX(-70);
       this.joueur_clavier.setFlipX(true); // regarde a gauche
       this.joueur_clavier.anims.play("anim_marche2", true);
@@ -203,6 +240,11 @@ export default class niveau extends Phaser.Scene {
   // appelee a chaque clic de souris ; `sous_la_souris` = la liste des objets
   // cliquables (setInteractive) qui sont sous la souris
   cliquer(pointeur, sous_la_souris) {
+    // un dialogue est ouvert : la souris ne sert qu'a placer les mots
+    if (this.dialogue_ouvert == true) {
+      return;
+    }
+
     // Ctrl (ou Cmd) maintenu : c'est un clic de TIR, pas un clic pour marcher
     if (est_un_clic_de_tir(pointeur) == true) {
       tirer_a_la_souris(this, pointeur.x, pointeur.y);

@@ -12,7 +12,7 @@
 //   mettre_a_jour_portails(this);   // dans mettre_a_jour_particularites
 //
 // colonne / rangee = la position de la case dans la carte Tiled (une tuile
-// fait 16 pixels). La scene doit avoir "img_icone_e" (voir niveau.js).
+// fait 16 pixels). L'image "img_icone_e" et ses animations sont dans niveau.js.
 
 import { est_un_clic_de_tir } from "./tir.js";
 import { camera_du_joueur } from "./ecran_separe.js";
@@ -26,22 +26,6 @@ var duree_fondu = 250; // millisecondes : le voyage est instantane, juste un fon
 export function creer_portails(scene, duos) {
   scene.portail_en_cours = false; // un seul voyage a la fois
   scene.portails = []; // toutes les cases de portail (2 par duo)
-
-  // les animations de l'icone "E" : l'invite (en boucle), puis le E qui eclate
-  if (scene.anims.exists("anim_icone_attente") == false) {
-    scene.anims.create({
-      key: "anim_icone_attente",
-      frames: scene.anims.generateFrameNumbers("img_icone_e", { start: 0, end: 2 }),
-      frameRate: 4,
-      repeat: -1
-    });
-    scene.anims.create({
-      key: "anim_icone_pressee",
-      frames: scene.anims.generateFrameNumbers("img_icone_e", { start: 3, end: 10 }),
-      frameRate: 14,
-      repeat: 0
-    });
-  }
 
   // pour chaque duo, deux cases ; chacune envoie vers l'autre
   for (var i = 0; i < duos.length; i++) {
