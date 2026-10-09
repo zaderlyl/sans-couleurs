@@ -11,9 +11,11 @@
 //          centree entre eux.
 //   1   -> les joueurs sont loin : l'ecran est coupe en DEUX moities egales,
 //          chaque camera centree sur "son" joueur.
-//   0 < x < 1 -> entre les deux : la camera du joueur de DROITE apparait par
-//          le bord droit de l'ecran et grandit petit a petit, pendant que la
-//          camera du joueur de GAUCHE se retrecit. Ce que chaque camera regarde
+//   0 < x < 1 -> entre les deux : la camera du joueur QUI S'ELOIGNE apparait
+//          par le bord de l'ecran vers lequel il s'eloigne (a droite s'il part
+//          vers la droite, a gauche s'il part vers la gauche) et grandit petit
+//          a petit, pendant que la camera de l'autre joueur (celui qui reste)
+//          se retrecit. Ce que chaque camera regarde
 //          (raccord avec l'ecran unique au debut, joueur toujours visible,
 //          centrage sur son joueur a la fin) est decide dans camera.js
 //          (voir PointSuiviParCamera).
@@ -30,11 +32,17 @@
 // Etat garde sur la scene :
 //   Scene.CameraJoueur2   : la 2e camera (creee au depart, voir joueur2.js).
 //   Scene.PartSeparation  : la valeur 0..1 decrite ci-dessus.
-//   Scene.Joueur1ACote    : quand l'ecran commence a se separer, true si le
-//                           joueur 1 est a GAUCHE dans le monde (donc sa camera
-//                           est la moitie gauche), false s'il est a droite.
-//                           Fige pendant toute la separation, pour que les
-//                           cameras ne s'echangent pas si les joueurs se croisent.
+//   Scene.JoueurBande     : le joueur QUI S'ELOIGNE quand la separation demarre.
+//                           Sa camera est la "bande" qui apparait par un bord
+//                           de l'ecran et grandit. L'autre joueur garde la
+//                           grande camera, qui se retrecit.
+//   Scene.BandeAGauche    : true si la bande apparait a GAUCHE de l'ecran (le
+//                           joueur qui s'eloigne part vers la gauche), false
+//                           si elle apparait a DROITE.
+//                           Ces deux valeurs sont fixees au debut de la
+//                           separation et ne changent plus tant que l'ecran
+//                           reste separe, pour que les cameras ne s'echangent
+//                           pas si les joueurs se croisent.
 
 import { ZoomCamera } from './config.js';
 
@@ -81,7 +89,9 @@ export function InstallerCameraSeparee(Scene) {
   if (Scene.SpriteGlitch) Camera2.ignore(Scene.SpriteGlitch);
 
   Scene.PartSeparation = 0;
-  Scene.Joueur1ACote = true;
+  Scene.JoueurBande = Scene.Joueur2;
+  Scene.BandeAGauche = false;
+  Scene.HistoriquePositionsX = []; // pour savoir qui s'eloigne (voir DeciderQuiSEloigne)
 
   CreerLigneSeparation(Scene);
   AppliquerDispositionCameras(Scene);
@@ -162,14 +172,60 @@ export function MettreAJourEcranSepare(Scene, TempsEcoule) {
   Scene.PartSeparation += (Voulue - Scene.PartSeparation) * Part;
   if (Scene.PartSeparation < 0.001) Scene.PartSeparation = 0; // evite de trainer "presque 0" pour toujours
 
-  // Qui est a gauche ? On le decide au moment ou la separation demarre (on
-  // passe de 0 a "un peu plus que 0") et on ne le change plus ensuite, pour
-  // que les deux cameras ne s'echangent pas d'un coup si les joueurs se croisent.
+  // On retient les positions recentes des joueurs : elles servent a savoir
+  // lequel des deux s'eloigne quand la separation demarre.
+  NoterPositionsRecentes(Scene);
+
+  // Quel joueur s'eloigne, et de quel cote ? On le decide au moment ou la
+  // separation demarre (on passe de 0 a "un peu plus que 0") et on ne le
+  // change plus ensuite, pour que les cameras ne s'echangent pas d'un coup si
+  // les joueurs se croisent.
   if (AvantPart === 0 && Scene.PartSeparation > 0) {
-    Scene.Joueur1ACote = Scene.Personnage.x <= J2.x;
+    DeciderQuiSEloigne(Scene);
   }
 
   AppliquerDispositionCameras(Scene);
+}
+
+// --- Qui s'eloigne ? ----------------------------------------------------
+//
+// Quand la separation demarre, la nouvelle camera (la "bande") doit apparaitre
+// du cote vers lequel PART le joueur qui s'eloigne : s'il s'en va vers la
+// droite, la bande arrive par la droite ; vers la gauche, par la gauche.
+// Pour savoir qui s'eloigne, on regarde lequel des deux joueurs a le plus
+// BOUGE pendant la derniere demi-seconde (celui qui est reste sur place est
+// celui qui "attend").
+
+const NombreImagesHistorique = 30; // ~ une demi-seconde a 60 images par seconde
+
+// Garde les positions x des deux joueurs sur les dernieres images.
+function NoterPositionsRecentes(Scene) {
+  const Historique = Scene.HistoriquePositionsX;
+  Historique.push({ J1: Scene.Personnage.x, J2: Scene.Joueur2.x });
+  if (Historique.length > NombreImagesHistorique) Historique.shift();
+}
+
+// Remplit Scene.JoueurBande et Scene.BandeAGauche (voir l'en-tete du fichier).
+function DeciderQuiSEloigne(Scene) {
+  const J1 = Scene.Personnage;
+  const J2 = Scene.Joueur2;
+
+  // Distance parcourue par chacun entre la plus ancienne position gardee et
+  // maintenant. (Un portail qui teleporte un joueur donne une tres grande
+  // distance : c'est bien lui qui "s'eloigne".)
+  const Ancienne = Scene.HistoriquePositionsX[0];
+  const DistanceJ1 = Math.abs(J1.x - Ancienne.J1);
+  const DistanceJ2 = Math.abs(J2.x - Ancienne.J2);
+
+  // Le joueur qui s'eloigne : celui qui a le plus bouge. A egalite (les deux
+  // bougent autant, ou aucun), on prend le joueur 2.
+  Scene.JoueurBande = DistanceJ1 > DistanceJ2 ? J1 : J2;
+  const Autre = Scene.JoueurBande === J1 ? J2 : J1;
+
+  // La bande est du cote vers lequel il s'eloigne, c'est-a-dire du cote ou il
+  // se trouve par rapport a l'autre joueur : a gauche s'il est a gauche de
+  // l'autre, a droite sinon.
+  Scene.BandeAGauche = Scene.JoueurBande.x < Autre.x;
 }
 
 // true pendant les scenes qui doivent occuper tout l'ecran et ne concernent
@@ -204,12 +260,13 @@ export function CameraDuJoueur(Scene, Joueur) {
 // redimensionnement de la fenetre (par scene-jeu.js). Elle traduit
 // PartSeparation en tailles de cameras :
 //
-//   PartSeparation = 0   : [ camera gauche : TOUT l'ecran ][ droite : rien ]
-//   PartSeparation = 0.5 : [ camera gauche : 75 %   ][ droite : 25 % ]
-//   PartSeparation = 1   : [ camera gauche : 50 %  ][ droite : 50 % ]
+//   PartSeparation = 0   : [ l'autre camera : TOUT l'ecran ][ bande : rien ]
+//   PartSeparation = 0.5 : [ l'autre camera : 75 %   ][ bande : 25 % ]
+//   PartSeparation = 1   : [ l'autre camera : 50 %  ][ bande : 50 % ]
 //
-// La camera "gauche" est celle du joueur le plus a gauche dans le monde
-// (voir Scene.Joueur1ACote).
+// La "bande" est la camera du joueur qui s'eloigne (Scene.JoueurBande) ; elle
+// est collee au bord de l'ecran vers lequel il part (Scene.BandeAGauche). Sur
+// ce schema elle est a droite ; a gauche, c'est le meme dessin en miroir.
 
 export function AppliquerDispositionCameras(Scene) {
   const Principale = Scene.cameras.main;
@@ -234,16 +291,26 @@ export function AppliquerDispositionCameras(Scene) {
     return;
   }
 
-  // Largeur de la camera de gauche : tout l'ecran (Part = 0) -> la moitie (Part = 1).
-  const LargeurGauche = Math.round(Largeur * (1 - 0.5 * Part));
-  const LargeurDroite = Largeur - LargeurGauche;
-
-  const CameraGauche = Scene.Joueur1ACote ? Principale : Camera2;
-  const CameraDroite = Scene.Joueur1ACote ? Camera2 : Principale;
+  // La camera "bande" est celle du joueur qui s'eloigne (Scene.JoueurBande) :
+  // elle grandit de rien (Part = 0) jusqu'a la moitie de l'ecran (Part = 1).
+  // L'autre camera prend tout le reste de l'ecran.
+  const CameraBande = Scene.JoueurBande === Scene.Personnage ? Principale : Camera2;
+  const CameraAutre = CameraBande === Principale ? Camera2 : Principale;
+  const LargeurBande = Math.max(1, Math.round(Largeur * 0.5 * Part));
+  const LargeurAutre = Largeur - LargeurBande;
 
   // setViewport(x, y, largeur, hauteur) = ou la camera dessine sur l'ecran.
-  CameraGauche.setViewport(0, 0, LargeurGauche, Hauteur);
-  CameraDroite.setViewport(LargeurGauche, 0, Math.max(LargeurDroite, 1), Hauteur);
+  // La bande est collee au bord de l'ecran vers lequel le joueur s'eloigne.
+  let FrontiereX; // position de la ligne de separation (en pixels d'ecran)
+  if (Scene.BandeAGauche) {
+    CameraBande.setViewport(0, 0, LargeurBande, Hauteur);
+    CameraAutre.setViewport(LargeurBande, 0, LargeurAutre, Hauteur);
+    FrontiereX = LargeurBande;
+  } else {
+    CameraAutre.setViewport(0, 0, LargeurAutre, Hauteur);
+    CameraBande.setViewport(LargeurAutre, 0, LargeurBande, Hauteur);
+    FrontiereX = LargeurAutre;
+  }
   Camera2.setVisible(true);
 
   // La ligne suit la frontiere entre les deux cameras, et apparait en fondu :
@@ -251,9 +318,83 @@ export function AppliquerDispositionCameras(Scene) {
   // separation est bien entamee.
   if (Ligne) {
     Ligne.style.display = 'block';
-    Ligne.style.left = `${LargeurGauche - EpaisseurLigneSeparation / 2}px`;
+    Ligne.style.left = `${FrontiereX - EpaisseurLigneSeparation / 2}px`;
     Ligne.style.opacity = String(Math.min(1, Part * 4));
   }
+}
+
+
+// --- Un joueur ne doit jamais apparaitre deux fois -----------------------
+//
+// Pendant la separation, un meme joueur peut se trouver dans le champ des deux
+// cameras en meme temps : par exemple celui qui s'eloigne est visible a la fois
+// au bord de la grande camera ET dans sa propre bande. On le verrait alors
+// deux fois a l'ecran (ou, pire, un morceau de lui dans la bande fine et lui en
+// entier dans la grande camera).
+//
+// Regle, pour chaque joueur (sa camera = "la sienne", l'autre = "l'autre") :
+//   - la SIENNE le dessine s'il est ENTIEREMENT dans son champ, ou s'il n'est
+//     dans le champ de l'autre camera non plus (il faut bien le dessiner
+//     quelque part) ;
+//   - l'AUTRE camera ne le dessine PAS s'il est entierement dans le champ de
+//     la sienne.
+// Resultat : au debut, quand la bande est trop fine pour contenir le joueur, il
+// reste dessine par la grande camera ; des que la bande le contient en entier,
+// la grande camera arrete de le dessiner. On ne le voit jamais deux fois.
+//
+// A appeler une fois par frame, apres le deplacement des deux cameras.
+
+// Demi-largeur et demi-hauteur d'un joueur (le sprite fait 16 x 16 pixels).
+const DemiTailleJoueur = 8;
+
+export function MasquerJoueursEnDouble(Scene) {
+  const J2 = Scene.Joueur2;
+  const Camera2 = Scene.CameraJoueur2;
+  if (!Camera2 || !J2 || !J2.active) return;
+
+  const Principale = Scene.cameras.main;
+  const Separe = Scene.PartSeparation > 0;
+
+  RegleDoublon(Scene.Personnage, Principale, Camera2, Separe); // joueur 1 : sa camera = la principale
+  RegleDoublon(J2, Camera2, Principale, Separe);               // joueur 2 : sa camera = la 2e
+}
+
+// Applique la regle ci-dessus a un joueur.
+function RegleDoublon(Joueur, CameraSienne, CameraAutre, Separe) {
+  // Pas separe : la 2e camera est cachee, personne a masquer (on remet tout a "visible").
+  if (!Separe) {
+    RegleVisibilite(Joueur, CameraSienne, true);
+    RegleVisibilite(Joueur, CameraAutre, true);
+    return;
+  }
+
+  const EntierDansSienne = DansLaVue(CameraSienne, Joueur, -DemiTailleJoueur); // sprite en entier dedans
+  const VisibleDansAutre = DansLaVue(CameraAutre, Joueur, DemiTailleJoueur);   // au moins un bout dedans
+
+  RegleVisibilite(Joueur, CameraSienne, EntierDansSienne || !VisibleDansAutre);
+  RegleVisibilite(Joueur, CameraAutre, !EntierDansSienne);
+}
+
+// true si le CENTRE de l'objet est dans le champ de la camera, avec une marge :
+//   marge > 0 : champ agrandi (un bout du sprite suffit : "au moins un bout") ;
+//   marge < 0 : champ reduit  (tout le sprite doit etre dedans : "en entier").
+// On se base sur le centre memorise de la camera (voir camera.js) plutot que
+// sur worldView, qui n'est mis a jour qu'au moment du dessin.
+function DansLaVue(Camera, Objet, Marge) {
+  const CentreX = Camera.CentreXMemo !== undefined ? Camera.CentreXMemo : Camera.scrollX + Camera.width / 2;
+  const CentreY = Camera.CentreYMemo !== undefined ? Camera.CentreYMemo : Camera.scrollY + Camera.height / 2;
+  const DemiLargeur = Camera.width / Camera.zoom / 2 + Marge;
+  const DemiHauteur = Camera.height / Camera.zoom / 2 + Marge;
+  return Math.abs(Objet.x - CentreX) <= DemiLargeur && Math.abs(Objet.y - CentreY) <= DemiHauteur;
+}
+
+// Fait dessiner (Visible = true) ou non (false) l'objet par cette camera.
+// Phaser garde pour chaque objet un masque de bits des cameras qui l'ignorent
+// (cameraFilter) : mettre le bit de la camera = elle l'ignore ; le retirer = elle
+// le dessine.
+function RegleVisibilite(Objet, Camera, Visible) {
+  if (Visible) Objet.cameraFilter &= ~Camera.id;
+  else Objet.cameraFilter |= Camera.id;
 }
 
 

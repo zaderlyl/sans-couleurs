@@ -20,7 +20,7 @@ import {
   VitesseSuiviCameraX, VitesseSuiviCameraY, DecalageVerticalCadrageCamera,
   DecalageAnticipationCameraMax, ZoomCamera,
 } from './config.js';
-import { MettreAJourEcranSepare, EcranEntierObligatoire } from './camera-separee.js';
+import { MettreAJourEcranSepare, EcranEntierObligatoire, MasquerJoueursEnDouble } from './camera-separee.js';
 
 // Vitesse de suivi des cameras (lerp, comme VitesseSuiviCameraX/Y de config.js)
 // quand l'ecran est separe. Plus vive que le suivi normal : pendant que la 2e
@@ -53,8 +53,10 @@ const VitesseSuiviCameraSeparee = 0.35;
 //   Puis, vers la fin de la separation, la camera glisse doucement pour
 //   CENTRER son joueur (c'est l'etat final a PartSeparation = 1).
 //
-// `SonJoueur` est le joueur que cette camera suit (Scene.Personnage pour la
-// camera principale, Scene.Joueur2 pour la 2e).
+// `Cam` est la camera dont on calcule le point (sa position et sa taille a
+// l'ecran sont deja a jour, voir MettreAJourEcranSepare) ; `SonJoueur` est le
+// joueur qu'elle suit (Scene.Personnage pour la camera principale,
+// Scene.Joueur2 pour la 2e).
 //
 // Renvoie { X, Y, Anticipation } :
 //   - X, Y         : le point du monde a mettre au centre de la camera ;
@@ -63,7 +65,7 @@ const VitesseSuiviCameraSeparee = 0.35;
 //                    SuivrePointAvecCamera). Avec un seul joueur c'est 1 ;
 //                    entre deux joueurs proches c'est 0 (decaler le milieu de
 //                    deux joueurs selon la marche d'un seul n'a aucun sens).
-function PointSuiviParCamera(Scene, SonJoueur) {
+function PointSuiviParCamera(Scene, Cam, SonJoueur) {
   const Joueur1 = Scene.Personnage;
   const Joueur2 = Scene.Joueur2;
 
@@ -81,30 +83,27 @@ function PointSuiviParCamera(Scene, SonJoueur) {
   // Un seul ecran : on regarde simplement le milieu.
   if (Part <= 0) return { X: MilieuX, Y: MilieuY, Anticipation: 0 };
 
-  // Cette camera est-elle celle de GAUCHE ou de DROITE de l'ecran ? (La camera
-  // de gauche est celle du joueur le plus a gauche dans le monde, voir
-  // Scene.Joueur1ACote dans camera-separee.js.)
-  const EstCameraGauche = SonJoueur === Joueur1 ? Scene.Joueur1ACote : !Scene.Joueur1ACote;
-
   // Taille du monde visible quand l'ecran est ENTIER (en pixels du monde).
   const LargeurMondeEntier = Scene.scale.width / ZoomCamera;
   const HauteurMondeEntiere = Scene.scale.height / ZoomCamera;
 
   // REGLE 1 (raccord) : le centre que cette camera aurait si l'ecran unique,
-  // centre sur le milieu, etait simplement decoupe. La camera de gauche occupe
-  // la partie gauche de l'ecran (elle se retrecit de Part/2 vers la droite),
-  // celle de droite le reste a droite : leurs centres sont decales du milieu.
-  const DecalageRaccord = EstCameraGauche
-    ? -LargeurMondeEntier * Part / 4
-    :  LargeurMondeEntier * (0.5 - Part / 4);
+  // centre sur le milieu, etait simplement decoupe. La camera occupe une
+  // region de l'ecran : son milieu a l'ecran est a (Cam.x + Cam.width / 2).
+  // Par rapport au milieu de l'ecran entier (Scene.scale.width / 2), le
+  // decalage en pixels d'ecran, divise par le zoom, donne le decalage dans le
+  // monde. Ca marche quelle que soit la region (a gauche, a droite, large ou
+  // etroite) : il n'y a pas de cas a distinguer.
+  const MilieuRegionEcran = Cam.x + Cam.width / 2;
+  const DecalageRaccord = (MilieuRegionEcran - Scene.scale.width / 2) / ZoomCamera;
   let X = MilieuX + DecalageRaccord;
   let Y = MilieuY;
 
   // REGLE 2 (jamais perdu) : on ne laisse pas le centre s'eloigner du joueur
   // de plus de 70 % de la demi-taille de la camera, donc le joueur reste dans
-  // le cadre, avec une marge. La camera de droite est une bande etroite au
-  // debut : la marge y est petite, mais elle grandit avec la bande.
-  const DemiLargeurCamera = LargeurMondeEntier * (EstCameraGauche ? 1 - Part / 2 : Part / 2) / 2;
+  // le cadre, avec une marge. La bande est etroite au debut : la marge y est
+  // petite, mais elle grandit avec la bande.
+  const DemiLargeurCamera = Cam.width / ZoomCamera / 2;
   const DemiHauteurCamera = HauteurMondeEntiere / 2;
   const LimiteX = 0.7 * DemiLargeurCamera;
   const LimiteY = 0.7 * DemiHauteurCamera;
@@ -218,7 +217,7 @@ export function MettreAJourCamera(Scene, TempsEcoule) {
   //    des joueurs, selon PartSeparation). Saut instantane pendant un voyage en
   //    train ou un portail (Scene.CameraDoitSauter), suivi doux sinon.
   SuivrePointAvecCamera(
-    Scene, Scene.cameras.main, PointSuiviParCamera(Scene, Scene.Personnage), Scene.CameraDoitSauter,
+    Scene, Scene.cameras.main, PointSuiviParCamera(Scene, Scene.cameras.main, Scene.Personnage), Scene.CameraDoitSauter,
   );
 
   // 3) 2e camera : elle suit le joueur 2 de la meme facon. On la met a jour
@@ -226,7 +225,11 @@ export function MettreAJourCamera(Scene, TempsEcoule) {
   //    qu'elle soit deja bien placee au moment ou elle apparait.
   if (Scene.CameraJoueur2 && Scene.Joueur2 && Scene.Joueur2.active) {
     SuivrePointAvecCamera(
-      Scene, Scene.CameraJoueur2, PointSuiviParCamera(Scene, Scene.Joueur2), Scene.CameraDoitSauter,
+      Scene, Scene.CameraJoueur2, PointSuiviParCamera(Scene, Scene.CameraJoueur2, Scene.Joueur2), Scene.CameraDoitSauter,
     );
   }
+
+  // 4) Un joueur visible dans SA camera n'est pas dessine une 2e fois par
+  //    l'autre camera (voir MasquerJoueursEnDouble dans camera-separee.js).
+  MasquerJoueursEnDouble(Scene);
 }
