@@ -1,6 +1,7 @@
 // niveau1.js — le niveau 1 (la carte "map-1-debut", faite avec Tiled).
 // Etape 1 : la carte, un personnage et le deplacement a la souris
 // (on clique quelque part, le personnage y marche).
+// Etape 2 : un 2e personnage (couleurs inversees) qui se deplace au clavier.
 
 export default class niveau1 extends Phaser.Scene {
   // constructeur de la classe : on donne a la scene son identifiant
@@ -15,6 +16,11 @@ export default class niveau1 extends Phaser.Scene {
     this.load.image("img_tuiles", "assets/tilesets/Tileset.png");
     this.load.tilemapTiledJSON("carte_map1", "assets/maps/map-1-debut.json");
     this.load.spritesheet("img_perso", "assets/sprites/characters/player.png", {
+      frameWidth: 16,
+      frameHeight: 16
+    });
+    // le meme personnage, avec les couleurs inversees : c'est le joueur clavier
+    this.load.spritesheet("img_perso2", "assets/sprites/characters/player_inverse.png", {
       frameWidth: 16,
       frameHeight: 16
     });
@@ -45,12 +51,32 @@ export default class niveau1 extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, this.carte.widthInPixels, this.carte.heightInPixels);
     this.joueur_souris.setCollideWorldBounds(true);
 
+    // --- le joueur clavier (2e personnage) ---
+    // meme chose que le joueur souris, mais un peu a droite, avec l'image
+    // inversee. Les deux joueurs se traversent : on ne declare aucune
+    // collision entre eux.
+    this.joueur_clavier = this.physics.add.sprite(depart.x + 24, depart.y, "img_perso2");
+    this.physics.add.collider(this.joueur_clavier, this.calque_sol);
+    this.joueur_clavier.setCollideWorldBounds(true);
+
+    // les fleches du clavier
+    this.clavier = this.input.keyboard.createCursorKeys();
+
     // --- l'animation de marche (images 4 et 5 de la feuille du personnage) ---
     // les animations sont partagees par tout le jeu : on ne la cree qu'une fois
     if (this.anims.exists("anim_marche") == false) {
       this.anims.create({
         key: "anim_marche",
         frames: this.anims.generateFrameNumbers("img_perso", { start: 4, end: 5 }),
+        frameRate: 8,
+        repeat: -1
+      });
+    }
+    // la meme animation pour le joueur clavier (avec son image inversee)
+    if (this.anims.exists("anim_marche2") == false) {
+      this.anims.create({
+        key: "anim_marche2",
+        frames: this.anims.generateFrameNumbers("img_perso2", { start: 4, end: 5 }),
         frameRate: 8,
         repeat: -1
       });
@@ -97,15 +123,36 @@ export default class niveau1 extends Phaser.Scene {
       this.joueur_souris.setFrame(3); // l'image "debout"
     }
 
-    // --- la camera suit le personnage ---
+    // --- le joueur clavier : les fleches gauche et droite ---
+    if (this.clavier.left.isDown) {
+      this.joueur_clavier.setVelocityX(-70);
+      this.joueur_clavier.setFlipX(true); // regarde a gauche
+      this.joueur_clavier.anims.play("anim_marche2", true);
+    } else if (this.clavier.right.isDown) {
+      this.joueur_clavier.setVelocityX(70);
+      this.joueur_clavier.setFlipX(false); // regarde a droite
+      this.joueur_clavier.anims.play("anim_marche2", true);
+    } else {
+      this.joueur_clavier.setVelocityX(0);
+      this.joueur_clavier.anims.stop();
+      this.joueur_clavier.setFrame(3); // l'image "debout"
+    }
+
+    // --- la camera ---
+    // elle regarde le MILIEU entre les deux joueurs, pour que les deux restent
+    // a l'ecran (quand ils s'eloigneront trop, l'ecran se separera en deux :
+    // etape suivante).
+    var milieu_x = (this.joueur_souris.x + this.joueur_clavier.x) / 2;
+    var milieu_y = (this.joueur_souris.y + this.joueur_clavier.y) / 2;
+
     // on garde la camera dans la carte : on ne voit jamais le noir autour.
     // La camera voit (largeur / zoom) pixels de monde ; son centre ne doit pas
     // s'approcher du bord a moins de la moitie de cette largeur.
     var camera = this.cameras.main;
     var demi_largeur = camera.width / camera.zoom / 2;
     var demi_hauteur = camera.height / camera.zoom / 2;
-    var centre_x = Phaser.Math.Clamp(this.joueur_souris.x, demi_largeur, this.carte.widthInPixels - demi_largeur);
-    var centre_y = Phaser.Math.Clamp(this.joueur_souris.y, demi_hauteur, this.carte.heightInPixels - demi_hauteur);
+    var centre_x = Phaser.Math.Clamp(milieu_x, demi_largeur, this.carte.widthInPixels - demi_largeur);
+    var centre_y = Phaser.Math.Clamp(milieu_y, demi_hauteur, this.carte.heightInPixels - demi_hauteur);
     camera.centerOn(centre_x, centre_y);
   }
 
