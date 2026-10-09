@@ -1,11 +1,20 @@
 // features/dialogue-pnj.js — mini-jeu de dialogue avec les PNJ.
 //
 // Chaque PNJ est defini depuis Tiled (un objet sur le calque objets, avec une
-// propriete "ligneNPJ"). Le joueur s'approche, appuie sur E : le PNJ dit sa
-// phrase, puis le joueur "repond" avec une phrase a trous — il glisse les
-// mots proposes dans les trous. Peu importe les mots choisis, la reaction est
-// toujours la meme (secousse + rougissement), puis le PNJ disparait pour de
-// bon.
+// propriete "ligneNPJ"). Le joueur s'approche, clique sur l'icone : le PNJ
+// dit sa phrase, puis le joueur "repond" avec une phrase a trous — il glisse
+// les mots proposes dans les trous (a la souris, comme avant). Peu importe
+// les mots choisis, la reaction est toujours la meme (secousse +
+// rougissement), puis le PNJ disparait pour de bon.
+//
+// Maniement "instinctif" des mots : on peut les glisser (le trou vise
+// s'illumine, et un mot lache pres d'un trou y est aspire), OU simplement
+// cliquer dessus (il vole tout seul vers le 1er trou libre ; recliquer sur un
+// mot pose le renvoie dans la liste). Chaque geste a son petit bip, qui monte
+// d'une note a chaque trou rempli.
+//
+// Avancer d'une page de dialogue se fait au clic gauche une fois la page
+// remplie : ce n'est pas un element du monde a survoler, juste "continuer".
 //
 // Format des proprietes Tiled (sur un objet du calque objets) :
 //   - ligneNPJ (string, obligatoire) : la phrase du PNJ, et le marqueur "ceci
@@ -14,7 +23,7 @@
 //     la phrase a trous (ex. "Oui !").
 //   - phrase (string) : la reponse du joueur, "{}" par trou. Un saut de ligne
 //     coupe en "pages" (la suivante n'apparait qu'apres avoir rempli la page
-//     courante ET appuye sur E).
+//     courante ET clique).
 //   - mots (string) : les mots a glisser, separes par des virgules, dans
 //     l'ordre des trous (puis des pages).
 //   - sprite (string, optionnel) : cle d'un personnage de SpritesPNJConnus
@@ -27,8 +36,10 @@
 
 import { ChargerFeuille } from '../loading.js';
 import { CleIconeInteraction, TailleIconeInteraction } from '../icone-interaction.js';
+import { ConsommerClicSouris, EnregistrerInteractionSouris } from '../interaction-souris.js';
 import { NomCoucheObjets, ValeurNombreTiled } from '../maps/cartes.js';
 import { StyleTexteDeZone, StyleMotDialogue } from '../config.js';
+import { JouerSonMotPris, JouerSonMotPose, JouerSonMotRefuse } from '../sons.js';
 
 const SpritesPNJConnus = [
   { Cle: 'other_child', Chemin: 'assets/sprites/characters/other_child.png', LargeurFrame: 16, HauteurFrame: 16 },
@@ -46,50 +57,29 @@ export const DialoguePNJ = {
     Scene.DialogueOuvert = false;
     Scene.PageDialogueEnAttente = false;
     CreerPNJs(Scene, Ctx.Carte);
+    // Clic ou glisser ? en dessous de ce deplacement (px ecran) c'est un clic.
+    Scene.input.dragDistanceThreshold = 3;
     InstallerGlisserDeposer(Scene);
+
+    // Interaction souris (voir interaction-souris.js) : cible = le PNJ
+    // lui-meme (PNJ.Sprite), pas la petite icone. Un PNJ ne propose plus
+    // rien une fois son dialogue termine, ni tant qu'un autre dialogue est
+    // deja ouvert (un seul a la fois).
+    Scene.PNJs.forEach((PNJ) => {
+      EnregistrerInteractionSouris(Scene, {
+        Zone: PNJ.Zone,
+        Cible: PNJ.Sprite,
+        Icone: PNJ.Icone,
+        EstActive: () => !PNJ.Termine && !Scene.DialogueOuvert,
+        OnDeclenchement: () => OuvrirDialoguePNJ(Scene, PNJ),
+      });
+    });
   },
 
   miseAJour(Scene) {
-    // Pas d'interaction PNJ pendant l'ecran de fin d'un glitch2 (joueur fige).
-    if (Scene.GlitchEtatFin) return;
-
-    // Icone qui suit + E pour lancer. Aucun PNJ ne reagit si un dialogue est
-    // deja ouvert.
-    if (Scene.PNJs && !Scene.DialogueOuvert) {
-      Scene.PNJs.forEach((PNJ) => {
-        // Termine : deja repondu. EnAttenteOuverture : E vient d'etre presse,
-        // l'anim "iconePressee" joue — verrou immediat, sinon la ligne
-        // "play('iconeAttente', true)" ci-dessous la relancerait chaque frame
-        // et le dialogue ne s'ouvrirait jamais.
-        if (PNJ.Termine || PNJ.EnAttenteOuverture) return;
-
-        const DansZone =
-          Scene.Personnage.x > PNJ.Zone.XMin &&
-          Scene.Personnage.x < PNJ.Zone.XMax &&
-          Scene.Personnage.y > PNJ.Zone.YMin &&
-          Scene.Personnage.y < PNJ.Zone.YMax;
-
-        if (!DansZone) {
-          PNJ.Icone.setVisible(false);
-          return;
-        }
-
-        PNJ.Icone.setVisible(true);
-        PNJ.Icone.play('iconeAttente', true);
-
-        if (Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) {
-          PNJ.EnAttenteOuverture = true;
-          PNJ.Icone.play('iconePressee');
-          PNJ.Icone.once('animationcomplete', () => {
-            PNJ.Icone.setVisible(false);
-            OuvrirDialoguePNJ(Scene, PNJ);
-          });
-        }
-      });
-    }
-
-    // Une page vient d'etre completee et il en reste : E affiche la suivante.
-    if (Scene.PageDialogueEnAttente && Phaser.Input.Keyboard.JustDown(Scene.ToucheInteraction)) {
+    // Une page vient d'etre completee et il en reste : le clic affiche la suivante.
+    // Pas un element du monde a survoler (juste "continuer").
+    if (Scene.PageDialogueEnAttente && ConsommerClicSouris(Scene)) {
       AvancerPageDialogue(Scene);
     }
   },
@@ -155,7 +145,6 @@ function CreerPNJs(Scene, Carte) {
         },
         Dialogue: { LigneNPJ: Lire('ligneNPJ', ''), Intro: Lire('intro', ''), Pages },
         Termine: false,
-        EnAttenteOuverture: false,
       };
     });
 }
@@ -167,38 +156,150 @@ function CreerPNJs(Scene, Carte) {
 // n'ont rien a faire le reste du temps.
 
 function InstallerGlisserDeposer(Scene) {
+  Scene.input.on('dragstart', (Pointeur, Objet) => {
+    Objet.EstGlisse = true;
+    ArreterBalancementMot(Scene, Objet);
+    Objet.setDepth(30); // au-dessus des autres mots pendant le geste
+    Scene.tweens.add({ targets: Objet, scale: 1.3, angle: 6, duration: 90 });
+    JouerSonMotPris();
+  });
+
   Scene.input.on('drag', (Pointeur, Objet, X, Y) => {
     Objet.x = X;
     Objet.y = Y;
   });
 
+  // Le trou survole s'illumine : on voit ou le mot va tomber.
+  Scene.input.on('dragenter', (Pointeur, Objet, Trou) => {
+    if (!Trou.MotDedans || Trou.MotDedans === Objet) StyleTrou(Trou, 'vise');
+  });
+  Scene.input.on('dragleave', (Pointeur, Objet, Trou) => StyleTrou(Trou));
+
   Scene.input.on('drop', (Pointeur, Objet, Trou) => {
     if (Trou.MotDedans && Trou.MotDedans !== Objet) {
       // Trou deja occupe : refuse, le mot revient d'ou il vient.
-      Objet.setPosition(Objet.PositionOrigineX, Objet.PositionOrigineY);
+      StyleTrou(Trou);
+      RenvoyerMot(Scene, Objet, Objet.PositionOrigineX, Objet.PositionOrigineY);
+      JouerSonMotRefuse();
       return;
     }
-    if (Objet.EmplacementActuel && Objet.EmplacementActuel !== Trou) {
-      Objet.EmplacementActuel.MotDedans = null; // libere l'ancien trou
-    }
-    // Le mot vient d'une liste posee en coordonnees monde (voir
-    // AfficherPageDialogue) ; setScrollFactor(1) au cas ou, pour qu'il reste
-    // au bon endroit quand la camera bouge.
-    Objet.setScrollFactor(1);
-    // Trou a pour origine (0, 0.5) : Trou.x est son bord gauche -> + largeur/2
-    // pour centrer le mot (origine 0.5, 0.5).
-    const CentreX = Trou.x + Trou.width / 2;
-    Objet.setPosition(CentreX, Trou.y);
-    Objet.PositionOrigineX = CentreX;
-    Objet.PositionOrigineY = Trou.y;
-    Trou.MotDedans = Objet;
-    Objet.EmplacementActuel = Trou;
-    VerifierDialogueComplet(Scene);
+    PlacerMotDansTrou(Scene, Objet, Trou);
   });
 
   Scene.input.on('dragend', (Pointeur, Objet, Depose) => {
-    if (!Depose) Objet.setPosition(Objet.PositionOrigineX, Objet.PositionOrigineY);
+    Objet.setDepth(25);
+    if (Depose) return;
+    // Lache dans le vide : s'il est pres d'un trou libre, il y est aspire
+    // (pas besoin de viser au pixel) ; sinon il retourne a sa place.
+    const Proche = TrouLibreLePlusProche(Scene, Objet, 16);
+    if (Proche) PlacerMotDansTrou(Scene, Objet, Proche);
+    else RenvoyerMot(Scene, Objet, Objet.PositionOrigineX, Objet.PositionOrigineY);
   });
+}
+
+// Etat visuel d'un trou : normal / vise (un mot est dessus) / rempli.
+function StyleTrou(Trou, Etat) {
+  if (Etat === 'vise') {
+    Trou.setFillStyle(0xffe600, 0.45);
+    Trou.setStrokeStyle(1, 0xffe600, 1);
+  } else if (Trou.MotDedans) {
+    Trou.setFillStyle(0xffffff, 0.05);
+    Trou.setStrokeStyle(1, 0xffffff, 0.25);
+  } else {
+    Trou.setFillStyle(0xffffff, 0.15);
+    Trou.setStrokeStyle(1, 0xffffff, 0.6);
+  }
+}
+
+function CentreDuTrou(Trou) {
+  // Trou a pour origine (0, 0.5) : x est son bord gauche.
+  return { x: Trou.x + Trou.width / 2, y: Trou.y };
+}
+
+function TrouLibreLePlusProche(Scene, Mot, DistanceMax) {
+  let Meilleur = null;
+  let MeilleureDistance = DistanceMax;
+  Scene.TrousDialogue.forEach((Trou) => {
+    if (Trou.MotDedans && Trou.MotDedans !== Mot) return;
+    const Centre = CentreDuTrou(Trou);
+    const Distance = Phaser.Math.Distance.Between(Mot.x, Mot.y, Centre.x, Centre.y);
+    if (Distance < MeilleureDistance) {
+      Meilleur = Trou;
+      MeilleureDistance = Distance;
+    }
+  });
+  return Meilleur;
+}
+
+// Glisse le mot vers (X, Y), taille/inclinaison normales.
+function RenvoyerMot(Scene, Mot, X, Y, ApresRetour) {
+  Scene.tweens.add({
+    targets: Mot, x: X, y: Y, scale: 1, angle: 0, duration: 140, ease: 'Cubic.easeOut',
+    onComplete: ApresRetour,
+  });
+}
+
+// Pose un mot dans un trou (libre, ou deja le sien) : petit "pop" + bip.
+function PlacerMotDansTrou(Scene, Mot, Trou) {
+  ArreterBalancementMot(Scene, Mot);
+  if (Mot.EmplacementActuel && Mot.EmplacementActuel !== Trou) {
+    Mot.EmplacementActuel.MotDedans = null; // libere l'ancien trou
+    StyleTrou(Mot.EmplacementActuel);
+  }
+  const Centre = CentreDuTrou(Trou);
+  Mot.setScrollFactor(1); // reste au bon endroit quand la camera bouge
+  Mot.PositionOrigineX = Centre.x;
+  Mot.PositionOrigineY = Centre.y;
+  Trou.MotDedans = Mot;
+  Mot.EmplacementActuel = Trou;
+  StyleTrou(Trou);
+
+  const Rang = Scene.TrousDialogue.filter((T) => T.MotDedans).length - 1;
+  JouerSonMotPose(Rang);
+
+  // Arrive en grossi puis se tasse sur le trou.
+  Mot.setScale(1.35);
+  Scene.tweens.add({
+    targets: Mot, x: Centre.x, y: Centre.y, scale: 1, angle: 0,
+    duration: 160, ease: 'Back.easeOut',
+  });
+  VerifierDialogueComplet(Scene);
+}
+
+// Clic simple sur un mot : s'il est dans un trou il retourne a la liste,
+// sinon il vole vers le premier trou libre (dans l'ordre de lecture).
+function ClicSurMot(Scene, Mot) {
+  if (Mot.EmplacementActuel) {
+    const Ancien = Mot.EmplacementActuel;
+    Ancien.MotDedans = null;
+    Mot.EmplacementActuel = null;
+    StyleTrou(Ancien);
+    Mot.PositionOrigineX = Mot.PositionListeX;
+    Mot.PositionOrigineY = Mot.PositionListeY;
+    RenvoyerMot(Scene, Mot, Mot.PositionListeX, Mot.PositionListeY, () => {
+      if (!Mot.EmplacementActuel && Mot.active) BalancerMot(Scene, Mot, 0);
+    });
+    JouerSonMotPris();
+    return;
+  }
+  const Libre = Scene.TrousDialogue.find((Trou) => !Trou.MotDedans);
+  if (Libre) PlacerMotDansTrou(Scene, Mot, Libre);
+  else JouerSonMotRefuse();
+}
+
+// Les mots de la liste se balancent doucement (angle) : ca donne envie de les
+// attraper. Arrete des qu'on les touche.
+function BalancerMot(Scene, Mot, Delai) {
+  Mot.Balancement = Scene.tweens.add({
+    targets: Mot, angle: { from: -3, to: 3 }, duration: 700, yoyo: true, repeat: -1,
+    ease: 'Sine.easeInOut', delay: Delai,
+  });
+}
+function ArreterBalancementMot(Scene, Mot) {
+  if (Mot.Balancement) {
+    Mot.Balancement.remove();
+    Mot.Balancement = null;
+  }
 }
 
 
@@ -227,6 +328,7 @@ function OuvrirDialoguePNJ(Scene, PNJ) {
   };
   const Retirer = (Objet) => {
     Scene.ElementsDialogue = Scene.ElementsDialogue.filter((O) => O !== Objet);
+    Scene.tweens.killTweensOf(Objet);
     Objet.destroy();
   };
   // Reutilises par AfficherPageDialogue / AvancerPageDialogue.
@@ -268,7 +370,6 @@ function AfficherPageDialogue(Scene, IndexPage) {
   const CreerTexteMonde = Scene.CreerTexteMondeDialogue;
 
   Scene.TrousDialogue = [];
-  const LargeurTrou = 18;
   const HauteurTrou = 8;
   const EspaceMot = 4;
   const HauteurLigne = 10;
@@ -277,6 +378,17 @@ function AfficherPageDialogue(Scene, IndexPage) {
   // fixe pour ne pas etirer la phrase sur un grand ecran.
   const Vue = Scene.cameras.main.worldView;
   const MaxLargeurLigne = Math.min(Vue.width - 20, 150);
+
+  // Les etiquettes de mots sont creees des maintenant : le trou prend la
+  // largeur du plus long mot, pour que n'importe quel mot y rentre.
+  Scene.MotsDialogue = [];
+  const MotsMelanges = Phaser.Utils.Array.Shuffle(Page.Mots.slice());
+  const Tuiles = MotsMelanges.map((Mot) => {
+    const Tuile = CreerTexteMonde(Mot, StyleMotDialogue);
+    Tuile.setOrigin(0.5, 0.5);
+    return Tuile;
+  });
+  const LargeurTrou = Math.max(18, ...Tuiles.map((T) => T.width + 4));
 
   // Chaque segment fixe est decoupe en mots -> retour a la ligne possible
   // n'importe ou.
@@ -340,19 +452,10 @@ function AfficherPageDialogue(Scene, IndexPage) {
   // Garde uniquement la ligne du joueur (pour la secousse de fin).
   Scene.ElementsLigneJoueur = Elements.map(({ Objet }) => Objet);
 
-  // Mots a glisser : liste horizontale centree, en bas de la zone visible.
-  Scene.MotsDialogue = [];
-  const MotsMelanges = Phaser.Utils.Array.Shuffle(Page.Mots.slice());
+  // Mots a glisser : liste horizontale centree, en bas de la zone visible
+  // (etiquettes deja creees plus haut, StyleMotDialogue ajoute un fond + une marge).
   const PaddingMots = 6;
   const YMots = Vue.bottom - 14;
-
-  // Cree d'abord toutes les etiquettes pour connaitre leur largeur reelle
-  // (StyleMotDialogue ajoute un fond + une marge), puis les repartit centrees.
-  const Tuiles = MotsMelanges.map((Mot) => {
-    const Tuile = CreerTexteMonde(Mot, StyleMotDialogue);
-    Tuile.setOrigin(0.5, 0.5);
-    return Tuile;
-  });
   const LargeurTotaleMots = Tuiles.reduce((Somme, T, i) => Somme + T.width + (i > 0 ? PaddingMots : 0), 0);
   let XMot = Vue.centerX - LargeurTotaleMots / 2;
 
@@ -360,9 +463,25 @@ function AfficherPageDialogue(Scene, IndexPage) {
     Tuile.setPosition(XMot + Tuile.width / 2, YMots);
     Tuile.PositionOrigineX = Tuile.x;
     Tuile.PositionOrigineY = Tuile.y;
+    Tuile.PositionListeX = Tuile.x; // place fixe dans la liste (PositionOrigine suit le trou)
+    Tuile.PositionListeY = Tuile.y;
     Tuile.EmplacementActuel = null;
     Tuile.setInteractive({ draggable: true, useHandCursor: true });
     Scene.input.setDraggable(Tuile);
+    // Survol : le mot grossit un peu ("attrape-moi") ; clic sans glisser :
+    // il vole tout seul au bon endroit (voir ClicSurMot).
+    Tuile.on('pointerover', () => {
+      if (!Tuile.EstGlisse) Scene.tweens.add({ targets: Tuile, scale: 1.15, duration: 80 });
+    });
+    Tuile.on('pointerout', () => {
+      if (!Tuile.EstGlisse) Scene.tweens.add({ targets: Tuile, scale: 1, duration: 80 });
+    });
+    Tuile.on('pointerdown', () => { Tuile.EstGlisse = false; });
+    Tuile.on('pointerup', () => {
+      if (Tuile.EstGlisse) { Tuile.EstGlisse = false; return; }
+      ClicSurMot(Scene, Tuile);
+    });
+    BalancerMot(Scene, Tuile, Scene.MotsDialogue.length * 120);
     Scene.MotsDialogue.push(Tuile);
     XMot += Tuile.width + PaddingMots;
   });
@@ -390,6 +509,8 @@ function VerifierDialogueComplet(Scene) {
   const DernierePage = Scene.IndexPageDialogue >= Scene.PNJActif.Dialogue.Pages.length - 1;
   if (!DernierePage) {
     Scene.PageDialogueEnAttente = true;
+    // Le clic qui vient de remplir le dernier trou ne doit pas aussi "continuer".
+    Scene.SourisVientDeCliquer = false;
     const Dernier = Scene.ElementsLigneJoueur[Scene.ElementsLigneJoueur.length - 1];
     const Indicateur = Scene.CreerTexteMondeDialogue(' ▶'); // petit triangle "continuer"
     Indicateur.setOrigin(0, 0.5);
@@ -409,6 +530,12 @@ function VerifierDialogueComplet(Scene) {
 function JouerReactionFinDialogue(Scene) {
   const PNJ = Scene.PNJActif;
   const ElementsSecoues = [...Scene.ElementsLigneJoueur, ...Scene.MotsDialogue];
+  // Stoppe balancements/pops en cours pour que la secousse parte de positions fixes.
+  ElementsSecoues.forEach((Objet) => {
+    Scene.tweens.killTweensOf(Objet);
+    Objet.setAngle(0);
+    Objet.setScale(1);
+  });
   const PositionsInitiales = ElementsSecoues.map((Objet) => ({ x: Objet.x, y: Objet.y }));
 
   ElementsSecoues.forEach((Objet) => {
@@ -432,7 +559,10 @@ function JouerReactionFinDialogue(Scene) {
 
   Scene.time.delayedCall(DureeSecousse, () => {
     MinuteurSecousse.remove();
-    Scene.ElementsDialogue.forEach((Objet) => Objet.destroy());
+    Scene.ElementsDialogue.forEach((Objet) => {
+      Scene.tweens.killTweensOf(Objet);
+      Objet.destroy();
+    });
     PNJ.Sprite.destroy();
     PNJ.Icone.destroy();
     PNJ.Termine = true;

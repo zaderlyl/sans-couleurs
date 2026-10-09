@@ -13,6 +13,9 @@ import { Tunnel } from '../../features/tunnel.js';
 import { Teleportation } from '../../features/teleportation.js';
 import { Portails } from '../../features/portails.js';
 import { Glitch } from '../../features/glitch.js';
+import { CasiersFaux } from '../../features/casiers-faux.js';
+import { Joueur2 } from '../../features/joueur2.js';
+import { Tir } from '../../features/tir.js';
 import { DialoguePNJ } from '../../features/dialogue-pnj.js';
 
 EnregistrerCarte({
@@ -43,5 +46,5 @@ EnregistrerCarte({
     { colonneA: 41, rangeeA: 8, colonneB: 93, rangeeB: 18, iconeEnBas: true },
     { colonneA: 8, rangeeA: 18, colonneB: 45, rangeeB: 8, iconeEnBas: true },
   ],
-  features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ, Glitch],
+  features: [Gare, TextesDeZone, Herbe, Tunnel, Teleportation, Portails, DialoguePNJ, Glitch, CasiersFaux, Joueur2, Tir],
 });

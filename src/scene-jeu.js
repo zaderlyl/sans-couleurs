@@ -19,7 +19,10 @@ import {
   LargeurMondeParDefaut, HauteurMondeParDefaut, HauteurSol, CouleurSol, CouleurAccent,
 } from './js/config.js';
 import { CreerAnimsIconeInteraction } from './js/icone-interaction.js';
+import { InstallerInteractionSouris, MettreAJourInteractionsSouris } from './js/interaction-souris.js';
+import { InstallerAutoMarche, MettreAJourAutoMarche } from './js/auto-marche.js';
 import { MettreAJourCamera } from './js/camera.js';
+import { AppliquerDispositionCameras } from './js/camera-separee.js';
 import { CreerPersonnage, MettreAJourDeplacement } from './js/player.js';
 import { InstallerControles } from './js/controle.js';
 import { DemarrerSonAmbiance } from './js/sons.js';
@@ -28,7 +31,7 @@ export class SceneJeu extends Phaser.Scene {
   // Appele avant preload(), au 1er lancement ET a chaque scene.restart(...)
   // (voir la feature gare). "data" est absent au 1er lancement -> carte de
   // depart, ou ?carte=<cle> en test (CleCarteDeDepart) ; il contient
-  // { carte, arrivee } quand on arrive d'une autre carte via le train.
+  // { carte, arrivee, transitionTrain } quand on arrive d'une autre carte via le train.
   // this.ArriveeParTrain declenche l'animation d'arrivee (feature gare).
   init(Donnees) {
     this.NomCarteActuelle = (Donnees && Donnees.carte) || CleCarteDeDepart();
@@ -40,6 +43,7 @@ export class SceneJeu extends Phaser.Scene {
     const ArriveeParUrl =
       PremierLancement && new URLSearchParams(window.location.search).get('arrivee') === '1';
     this.ArriveeParTrain = !!(Donnees && Donnees.arrivee) || ArriveeParUrl;
+    this.TransitionTrain = !!(Donnees && Donnees.transitionTrain);
   }
 
   preload() {
@@ -58,6 +62,9 @@ export class SceneJeu extends Phaser.Scene {
     this.cameras.main.setSize(this.scale.width, this.scale.height);
     this.scale.on('resize', (TailleJeu) => {
       this.cameras.main.setSize(TailleJeu.width, TailleJeu.height);
+      // Remet aussi les 2 moities d'ecran a la bonne taille si l'ecran est
+      // separe (voir camera-separee.js ; sans effet s'il n'y a pas de joueur 2).
+      AppliquerDispositionCameras(this);
     });
 
     let Sol; // le collider du sol/decor, quel que soit le mode
@@ -82,6 +89,12 @@ export class SceneJeu extends Phaser.Scene {
 
       // Animations de l'icone "E" (partagees gare / tele / PNJ).
       CreerAnimsIconeInteraction(this);
+      // Survol + clic souris (voir interaction-souris.js) : a installer AVANT
+      // les features, qui enregistrent leurs points interactifs pendant leur
+      // propre installer() juste en dessous. Auto-marche (voir auto-marche.js) :
+      // le joueur y court tout seul quand l'element clique est loin.
+      InstallerInteractionSouris(this);
+      InstallerAutoMarche(this);
 
       // Features de la carte active (voir sa config + src/js/features/).
       // Installees ICI, avant le personnage : elles posent leurs sprites
@@ -142,6 +155,7 @@ export class SceneJeu extends Phaser.Scene {
     // CreerPersonnage dans src/js/player.js.
     CreerPersonnage(this, PositionDepartX, PositionDepartY);
     this.physics.add.collider(this.Personnage, Sol);
+    this.CalqueCollision = Sol; // reutilise par le joueur 2 (feature joueur2)
 
     // Suivi de camera entierement manuel (voir MettreAJourCamera dans
     // update()), plutot que startFollow(...) : constate a l'usage que
@@ -177,11 +191,15 @@ export class SceneJeu extends Phaser.Scene {
   }
 
   update(Temps, TempsEcoule) {
-    if (this.LargeurMondeCarte) MettreAJourCamera(this);
+    if (this.LargeurMondeCarte) MettreAJourCamera(this, TempsEcoule);
 
     // Toutes les features de la carte active (gare/train, tele, herbe,
     // tunnel, textes de zone, dialogue PNJ) — voir src/js/features/.
     MettreAJourFeaturesCarte(this, Temps, TempsEcoule);
+
+    // Survol + clic souris sur tout ce que les features ont enregistre
+    // (gare, portails, PNJ...) — voir interaction-souris.js.
+    MettreAJourInteractionsSouris(this);
 
     // Aucun controle pendant le voyage en train (this.EtatGare, pose par la
     // feature gare), un dialogue PNJ (this.DialogueOuvert), ni l'ecran de fin
@@ -192,5 +210,9 @@ export class SceneJeu extends Phaser.Scene {
     if (this.EtatGare !== 'enCours' && !this.DialogueOuvert && !this.GlitchEtatFin) {
       MettreAJourDeplacement(this, Temps, TempsEcoule);
     }
+
+    // Arrivee au bout d'une auto-marche (voir auto-marche.js) : verifiee
+    // apres le deplacement, sur la position tout juste mise a jour.
+    MettreAJourAutoMarche(this, TempsEcoule);
   }
 }
