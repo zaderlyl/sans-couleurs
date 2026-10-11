@@ -38,6 +38,7 @@
 import { creer_gestes_des_mots, preparer_le_mot } from "./mots_a_placer.js";
 import { style_texte, style_mot } from "./styles.js";
 import { jouer_son_rire_moqueur, jouer_son_mot_pris } from "./sons.js";
+import { mode_solo_actif } from "./solo.js";
 import { t } from "./langue.js";
 
 
@@ -323,6 +324,9 @@ function demarrer_la_recolte(scene) {
   // un rappel au-dessus du joueur clavier : il marche avec les fleches
   d.indice_clavier = creer_texte(scene, "← →", style_texte);
   d.indice_clavier.setOrigin(0.5, 1);
+  if (mode_solo_actif() == true) {
+    d.indice_clavier.setVisible(false); // (J2 est invisible en mode solo)
+  }
 
   // TIMER RECURRENT : un mot se met a tomber, puis un autre, jusqu'a ce que tous soient attrapes
   lancer_un_mot_qui_tombe(scene);
@@ -370,6 +374,17 @@ export function mettre_a_jour_dialogue(scene, delta) {
   }
   var joueur = scene.joueur_clavier;
   d.indice_clavier.setPosition(joueur.x, joueur.y - 20);
+
+  // MODE SOLO : J2 va tout seul sous le mot qui tombe (le plus bas)
+  if (mode_solo_actif() == true && d.en_chute.length > 0) {
+    var plus_bas = d.en_chute[0];
+    for (var k = 1; k < d.en_chute.length; k++) {
+      if (d.en_chute[k].texte.y > plus_bas.texte.y) {
+        plus_bas = d.en_chute[k];
+      }
+    }
+    scene.cible_j2_x = plus_bas.texte.x;
+  }
 
   for (var i = d.en_chute.length - 1; i >= 0; i--) {
     var mot = d.en_chute[i];

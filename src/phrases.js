@@ -35,6 +35,7 @@
 
 import { style_texte } from "./styles.js";
 import { afficher_texte } from "./ecran_texte.js";
+import { mode_solo_actif } from "./solo.js";
 import { jouer_son_mot_refuse, jouer_son_mot_pose, jouer_son_sonnerie, peser_sur_la_musique } from "./sons.js";
 import { t } from "./langue.js";
 
@@ -103,9 +104,11 @@ export function creer_phrases(scene) {
   scene.physics.add.overlap(scene.groupe_phrases, scene.joueur_souris, function (a, b) {
     accrocher(scene, scene.joueur_souris, a.active == true && a.text != undefined ? a : b);
   });
-  scene.physics.add.overlap(scene.groupe_phrases, scene.joueur_clavier, function (a, b) {
-    accrocher(scene, scene.joueur_clavier, a.active == true && a.text != undefined ? a : b);
-  });
+  if (mode_solo_actif() == false) {
+    scene.physics.add.overlap(scene.groupe_phrases, scene.joueur_clavier, function (a, b) {
+      accrocher(scene, scene.joueur_clavier, a.active == true && a.text != undefined ? a : b);
+    });
+  }
 
   // TIMER RECURRENT : une vague toutes les 25 s (la premiere au bout de 8 s)
   scene.time.addEvent({

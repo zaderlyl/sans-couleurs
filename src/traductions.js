@@ -32,6 +32,7 @@ export var traductions = {
   "Oui": "Yes",
   "Non": "No",
   "Langue": "Language",
+  "Mode solo": "Solo mode",
   "Pourquoi on revient ici ?": "Why are we coming back here?",
   "Parce que tout a commencé là.": "Because it all started here.",
   "Je ne m'en souviens pas bien.": "I don't remember it well.",

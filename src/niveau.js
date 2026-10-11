@@ -19,6 +19,7 @@ import { creer_chute } from "./chute.js";
 import { creer_decor, mettre_a_jour_decor } from "./decor.js";
 import { creer_textes_de_zone, mettre_a_jour_textes_de_zone } from "./textes_de_zone.js";
 import { jouer_son_pas, jouer_son_atterrissage } from "./sons.js";
+import { mode_solo_actif, direction_de_j2 } from "./solo.js";
 
 export default class niveau extends Phaser.Scene {
   // cle = l'identifiant de la scene ; nom_carte = le fichier Tiled (sans .json)
@@ -145,6 +146,12 @@ export default class niveau extends Phaser.Scene {
     this.joueur_clavier = this.physics.add.sprite(depart.x + 24, depart.y, "img_perso2");
     this.physics.add.collider(this.joueur_clavier, this.calque_sol);
     this.joueur_clavier.setCollideWorldBounds(true);
+    // MODE SOLO : un seul personnage visible. J2 reste la, invisible : il suit J1 et fait
+    // ses gestes de coop tout seul (voir solo.js), pour que tout le jeu marche sans lui.
+    this.joueur_clavier.est_fantome = mode_solo_actif();
+    if (mode_solo_actif() == true) {
+      this.joueur_clavier.setVisible(false);
+    }
 
     // pour les bruits de pas et d'atterrissage (voir faire_les_bruits)
     this.joueur_souris.delai_pas = 0;
@@ -237,6 +244,12 @@ export default class niveau extends Phaser.Scene {
       }
     }
 
+    // MODE SOLO : appuyer sur une fleche annule la marche commencee avec la souris
+    if (mode_solo_actif() == true && (this.clavier.left.isDown || this.clavier.right.isDown)) {
+      this.destination_x = null;
+      this.apres_arrivee = null;
+    }
+
     // --- le joueur souris marche vers la destination ---
     if (this.destination_x !== null) {
       // ecart > 0 : la destination est a droite ; ecart < 0 : a gauche
@@ -266,22 +279,40 @@ export default class niveau extends Phaser.Scene {
       }
     }
 
-    // pas de destination : le joueur souris est immobile
+    // pas de destination : le joueur souris est immobile (en mode solo, les fleches le font marcher)
     if (this.destination_x === null) {
-      this.joueur_souris.setVelocityX(0);
-      this.joueur_souris.anims.stop();
-      this.joueur_souris.setFrame(3); // l'image "debout"
+      if (mode_solo_actif() == true && this.est_fige() == false && this.clavier.left.isDown) {
+        this.joueur_souris.setVelocityX(-70 * this.joueur_souris.facteur_vitesse);
+        this.joueur_souris.setFlipX(true);
+        this.joueur_souris.anims.play("anim_marche", true);
+      } else if (mode_solo_actif() == true && this.est_fige() == false && this.clavier.right.isDown) {
+        this.joueur_souris.setVelocityX(70 * this.joueur_souris.facteur_vitesse);
+        this.joueur_souris.setFlipX(false);
+        this.joueur_souris.anims.play("anim_marche", true);
+      } else {
+        this.joueur_souris.setVelocityX(0);
+        this.joueur_souris.anims.stop();
+        this.joueur_souris.setFrame(3); // l'image "debout"
+      }
     }
 
-    // --- le joueur clavier : les fleches gauche et droite ---
+    // --- le joueur clavier : les fleches gauche et droite (en mode solo : l'ordinateur) ---
+    var va_a_gauche = this.clavier.left.isDown;
+    var va_a_droite = this.clavier.right.isDown;
+    if (mode_solo_actif() == true) {
+      var direction = direction_de_j2(this);
+      va_a_gauche = direction < 0;
+      va_a_droite = direction > 0;
+    }
+    this.cible_j2_x = undefined; // (la gare ou le dialogue la remettent a chaque image, au besoin)
     // (sauf pendant la recolte des mots d'un dialogue : il attrape alors les mots qui tombent)
     if (this.est_fige() == true && this.clavier_libre != true) {
       // fige (voir plus haut)
-    } else if (this.clavier.left.isDown) {
+    } else if (va_a_gauche == true) {
       this.joueur_clavier.setVelocityX(-70 * this.joueur_clavier.facteur_vitesse);
       this.joueur_clavier.setFlipX(true); // regarde a gauche
       this.joueur_clavier.anims.play("anim_marche2", true);
-    } else if (this.clavier.right.isDown) {
+    } else if (va_a_droite == true) {
       this.joueur_clavier.setVelocityX(70 * this.joueur_clavier.facteur_vitesse);
       this.joueur_clavier.setFlipX(false); // regarde a droite
       this.joueur_clavier.anims.play("anim_marche2", true);
