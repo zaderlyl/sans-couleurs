@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>Sans Couleurs</title>
-<link rel="icon" href="data:,"> <!-- pas de favicon : evite la requete 404 -->
+<link rel="icon" href="data:,">
 <style>
-  /* Police pour les textes de zone (voir la feature textes-de-zone). Le nom
-     "DeltaruneExtended" est un choix libre (independant du nom du fichier),
-     reutilise tel quel comme fontFamily cote Phaser. */
+  /* Police du jeu. Le nom 'DeltaruneExtended' est libre : on le reutilise
+     tel quel comme fontFamily dans Phaser. */
   @font-face {
     font-family: 'DeltaruneExtended';
     src: url('assets/fonts/undertale-deltarune-extended-fixed.otf') format('opentype');
@@ -34,10 +33,10 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.70.0/phaser.min.js"></script>
 
-<!-- Le code du jeu est en modules ES : un seul point d'entree, le navigateur
-     suit ensuite le graphe d'import tout seul (voir src/js/index.js). Pendant
-     le dev, servir avec un serveur qui ne met pas en cache (VS Code Live
-     Server) ou recharger en force (Cmd/Ctrl + Maj + R). -->
-<script type="module" src="src/js/index.js"></script>
+<!-- Le code du jeu est ecrit simplement, une scene par fichier (comme dans les
+     tutoriels Phaser). Tout part de src/index.js (module : les "import" suivent
+     le reste). Pendant le dev, servir avec un serveur qui ne met pas en cache
+     ou recharger en force (Cmd/Ctrl + Maj + R). -->
+<script type="module" src="src/index.js"></script>
 </body>
 </html>
