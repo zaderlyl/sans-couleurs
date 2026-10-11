@@ -123,8 +123,10 @@ export default class niveau extends Phaser.Scene {
 
     // pour les bruits de pas et d'atterrissage (voir faire_les_bruits)
     this.joueur_souris.delai_pas = 0;
+    this.joueur_souris.facteur_vitesse = 1; // 1 = vitesse normale ; moins : ralenti (voir phrases.js)
     this.joueur_souris.etait_au_sol = true;
     this.joueur_clavier.delai_pas = 0;
+    this.joueur_clavier.facteur_vitesse = 1; // 1 = vitesse normale ; moins : ralenti (voir phrases.js)
     this.joueur_clavier.etait_au_sol = true;
 
     // les fleches du clavier, et la touche E (pour interagir)
@@ -227,11 +229,11 @@ export default class niveau extends Phaser.Scene {
           action.call(this);
         }
       } else if (ecart < 0) {
-        this.joueur_souris.setVelocityX(-70);
+        this.joueur_souris.setVelocityX(-70 * this.joueur_souris.facteur_vitesse);
         this.joueur_souris.setFlipX(true); // regarde a gauche
         this.joueur_souris.anims.play("anim_marche", true);
       } else {
-        this.joueur_souris.setVelocityX(70);
+        this.joueur_souris.setVelocityX(70 * this.joueur_souris.facteur_vitesse);
         this.joueur_souris.setFlipX(false); // regarde a droite
         this.joueur_souris.anims.play("anim_marche", true);
       }
@@ -248,11 +250,11 @@ export default class niveau extends Phaser.Scene {
     if (this.est_fige() == true) {
       // fige (voir plus haut)
     } else if (this.clavier.left.isDown) {
-      this.joueur_clavier.setVelocityX(-70);
+      this.joueur_clavier.setVelocityX(-70 * this.joueur_clavier.facteur_vitesse);
       this.joueur_clavier.setFlipX(true); // regarde a gauche
       this.joueur_clavier.anims.play("anim_marche2", true);
     } else if (this.clavier.right.isDown) {
-      this.joueur_clavier.setVelocityX(70);
+      this.joueur_clavier.setVelocityX(70 * this.joueur_clavier.facteur_vitesse);
       this.joueur_clavier.setFlipX(false); // regarde a droite
       this.joueur_clavier.anims.play("anim_marche2", true);
     } else {

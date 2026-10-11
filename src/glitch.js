@@ -24,6 +24,7 @@ import { afficher_texte } from "./ecran_texte.js";
 // --- Reglages ------------------------------------------------------------
 
 var duree_montee = 6000; // ms pour monter de 0 a 1 en restant dans une zone
+var duree_montee_phrases = 4500; // ms pour monter de 0 a 1 quand les phrases s'accumulent
 var duree_descente = 900; // ms pour redescendre de 1 a 0 en sortant
 var opacite_min = 0.12; // l'opacite du voile quand l'intensite est faible...
 var opacite_max = 0.85; // ... et quand elle est presque au maximum
@@ -98,7 +99,9 @@ function lire_les_zones(carte) {
 // --- 2. Mise a jour (dans update) -------------------------------------------------
 
 export function mettre_a_jour_glitch(scene, delta) {
-  if (scene.zones_glitch.length == 0) {
+  // le glitch peut aussi monter avec les phrases du niveau (voir phrases.js)
+  var par_phrases = scene.glitch_par_phrases == true;
+  if (scene.zones_glitch.length == 0 && par_phrases == false) {
     return;
   }
   var voile = document.getElementById(id_voile);
@@ -112,7 +115,7 @@ export function mettre_a_jour_glitch(scene, delta) {
   // le joueur souris est-il dans une zone ?
   var joueur = scene.joueur_souris;
   var zone = null;
-  for (var i = 0; i < scene.zones_glitch.length; i++) {
+  for (var i = 0; i < scene.zones_glitch.length && par_phrases == false; i++) {
     var z = scene.zones_glitch[i];
     if (joueur.x > z.x_min && joueur.x < z.x_max && joueur.y > z.y_min && joueur.y < z.y_max) {
       zone = z;
@@ -127,6 +130,13 @@ export function mettre_a_jour_glitch(scene, delta) {
   var vitesse = -1 / duree_descente; // il redescend...
   if (zone != null) {
     vitesse = 1 / duree_montee; // ... sauf s'il est dans une zone : il monte
+  }
+  if (par_phrases == true) {
+    // il monte vers la "pression" des phrases (0 a 1), et redescend si elle baisse
+    vitesse = -1 / duree_descente;
+    if (scene.intensite_glitch < scene.pression_phrases) {
+      vitesse = 1 / duree_montee_phrases;
+    }
   }
   scene.intensite_glitch = Phaser.Math.Clamp(scene.intensite_glitch + delta * vitesse, 0, 1);
 
@@ -229,7 +239,11 @@ function renvoyer_au_depart(scene, voile) {
   camera.fadeOut(duree_flash, 255, 255, 255); // flash blanc : plus "electrique" qu'un fondu au noir
   camera.once("camerafadeoutcomplete", function () {
     voile.style.display = "none";
-    scene.joueur_souris.setPosition(scene.point_depart.x, scene.point_depart.y);
+    var reprise = scene.point_depart;
+    if (scene.point_de_reprise != undefined) {
+      reprise = scene.point_de_reprise(); // le niveau peut choisir un endroit plus proche
+    }
+    scene.joueur_souris.setPosition(reprise.x, reprise.y);
     scene.sauter_camera = true; // les cameras se placent d'un coup
 
     camera.fadeIn(duree_flash, 255, 255, 255);

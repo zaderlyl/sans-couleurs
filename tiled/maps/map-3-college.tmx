@@ -106,16 +106,6 @@
   <object id="1" name="spawn" x="70.4136" y="112">
    <point/>
   </object>
-  <object id="9" x="480" y="40" width="320" height="104">
-   <properties>
-    <property name="name" value="glitch"/>
-   </properties>
-  </object>
-  <object id="10" x="1056" y="40" width="360" height="104">
-   <properties>
-    <property name="name" value="glitch2"/>
-   </properties>
-  </object>
  </objectgroup>
  <layer id="1" name="tunnel" width="120" height="20">
   <data encoding="csv">

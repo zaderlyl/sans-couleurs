@@ -146,6 +146,7 @@ function tirer_vers(scene, joueur, cible_x, cible_y) {
   projectile.arrivee_x = depart_x + Math.cos(angle) * distance;
   projectile.arrivee_y = depart_y + Math.sin(angle) * distance;
   projectile.couleur = couleurs_tir[scene.couleur_tir];
+  projectile.tireur = joueur; // qui a tire (les phrases du niveau 3 le demandent)
 
   // couleur suivante : rouge, vert, bleu, rouge...
   scene.couleur_tir = (scene.couleur_tir + 1) % couleurs_tir.length;
