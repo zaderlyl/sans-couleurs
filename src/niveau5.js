@@ -22,7 +22,7 @@
 import niveau from "./niveau.js";
 import { creer_pastilles, mettre_a_jour_pastilles } from "./pastilles.js";
 import { creer_pression, mettre_a_jour_pression, ajouter_pression } from "./pression.js";
-import { afficher_texte, afficher_phrases } from "./ecran_texte.js";
+import { afficher_texte, afficher_pensees } from "./ecran_texte.js";
 import { jouer_son_coup, jouer_son_sifflement, jouer_son_verre, jouer_son_tampon, jouer_son_marteau } from "./sons.js";
 import { style_texte, style_mot } from "./styles.js";
 import { pensees } from "./pensees.js";
@@ -66,6 +66,12 @@ var coups = [
     j1: [{ texte: "...", delai: 1400 }],
     j2: [{ qui: "emotionnelle", texte: "Je ne dis plus rien. Ça ne sert à rien.", delai: 1200 }, { qui: "rationnelle", texte: "Tu peux partir.", delai: 4200 }] }
 ];
+
+// Au tribunal, la camera recule et chaque personne parle dans SA ligne (hauteur du
+// bas du texte, en pixels du monde) : rien ne se recouvre.
+var zoom_du_tribunal = 3.6;
+var lignes_du_tribunal = { j1: 128, rationnelle: 82, emotionnelle: 82, avocat: 68, juge: 54 };
+var hauteur_de_la_pile = 120; // les accusations : la 1re est ici, les suivantes au-dessus (9 px chacune)
 
 var delai_entre_cauchemars = 7000; // ms (la nuit)
 var duree_pour_tenir = 6000; // ms a rester l'un a cote de l'autre pour finir la nuit
@@ -114,7 +120,7 @@ export default class niveau5 extends niveau {
     var scene = this;
     if (this.arrivee_en_train == true) {
       this.fige_par_le_niveau = true;
-      afficher_phrases(this, this.pensees || pensees.de_4_vers_5, function () {
+      afficher_pensees(this, this.pensees || pensees.de_4_vers_5, function () {
         scene.fige_par_le_niveau = false;
       });
     }
@@ -208,7 +214,9 @@ export default class niveau5 extends niveau {
       texte.setDepth(25);
       texte.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
       texte.setAlpha(0);
-      scene.textes_suivis.push({ texte: texte, cible: cible, age: 0, duree: duree_du_texte });
+      // au tribunal : une ligne fixe pour chacun (sinon, juste au-dessus de sa cible)
+      var y_fixe = scene.tribunal_actif == true ? lignes_du_tribunal[qui] : undefined;
+      scene.textes_suivis.push({ texte: texte, cible: cible, age: 0, duree: duree_du_texte, y_fixe: y_fixe });
     }, null, this);
   }
 
@@ -219,7 +227,12 @@ export default class niveau5 extends niveau {
       t.age = t.age + delta;
       var haut = t.cible.haut_texte == undefined ? 14 : t.cible.haut_texte;
       var montee = Math.min(10, t.age / 250);
-      t.texte.setPosition(t.cible.x, t.cible.y - haut - montee);
+      // le texte reste toujours entierement dans l'ecran (sur le bord, il se decale)
+      var vue = this.cameras.main.worldView;
+      var demi = t.texte.displayWidth / 2 + 3;
+      var x = Phaser.Math.Clamp(t.cible.x, vue.left + demi, vue.right - demi);
+      var y = t.y_fixe == undefined ? t.cible.y - haut - montee : t.y_fixe - montee / 2;
+      t.texte.setPosition(x, y);
       // en fondu a l'arrivee (300 ms), puis en fondu a la fin (600 ms)
       var alpha = Math.min(1, t.age / 300);
       if (t.age > t.duree - 600) {
@@ -349,7 +362,8 @@ export default class niveau5 extends niveau {
     var scene = this;
     var j = this.joueur_souris;
     this.figer_les_joueurs();
-    this.joueur_clavier.haut_texte = 66; // les voix de J2 plus haut : pour ne pas recouvrir les accusations
+    this.tribunal_actif = true;
+    this.tweens.add({ targets: this.cameras.main, zoom: zoom_du_tribunal, duration: 1000, ease: "Sine.easeInOut" }); // la camera recule
 
     // l'avocat apparait a cote du personnage
     this.avocat = this.add.sprite(j.x - 26, sol_y, "img_tribunal", 1);
@@ -369,7 +383,7 @@ export default class niveau5 extends niveau {
     var accusations = ["Il ment.", "Il est dangereux.", "Il l'a menacée.", "Il ne dit rien."];
     for (var k = 0; k < accusations.length; k++) {
       this.time.delayedCall(7600 + k * 1000, function (indice) {
-        var mot = scene.add.text(j.x, j.y - 40, accusations[indice], Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff" }));
+        var mot = scene.add.text(j.x, hauteur_de_la_pile - indice * 9, accusations[indice], Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff" }));
         mot.setOrigin(0.5, 1);
         mot.setDepth(25);
         mot.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
@@ -392,7 +406,7 @@ export default class niveau5 extends niveau {
 
     // le tampon : « CLASSE SANS SUITE »
     this.time.delayedCall(19600, function () {
-      var plaque = scene.add.text(j.x, j.y - 70, "CLASSÉ SANS SUITE", Object.assign({}, style_mot, { fontSize: "8px" }));
+      var plaque = scene.add.text(j.x, 42, "CLASSÉ SANS SUITE", Object.assign({}, style_mot, { fontSize: "8px" }));
       plaque.setOrigin(0.5, 1);
       plaque.setDepth(26);
       plaque.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
@@ -421,7 +435,8 @@ export default class niveau5 extends niveau {
         scene.piles_du_tribunal = [];
       } });
       scene.tweens.add({ targets: scene.avocat, alpha: 0, duration: 1500 });
-      scene.joueur_clavier.haut_texte = 30;
+      scene.tribunal_actif = false;
+      scene.tweens.add({ targets: scene.cameras.main, zoom: 5, duration: 1500, ease: "Sine.easeInOut" }); // la camera revient
       scene.liberer_les_joueurs();
     }, null, this);
   }
@@ -481,10 +496,10 @@ export default class niveau5 extends niveau {
     if (this.piles_du_tribunal != undefined) {
       for (var p = 0; p < this.piles_du_tribunal.length; p++) {
         var pile = this.piles_du_tribunal[p];
-        pile.texte.setPosition(this.joueur_souris.x, this.joueur_souris.y - 14 - pile.rang * 8);
+        pile.texte.setPosition(this.joueur_souris.x, hauteur_de_la_pile - pile.rang * 9);
       }
       if (this.plaque_du_tribunal != undefined && this.plaque_du_tribunal.active) {
-        this.plaque_du_tribunal.setPosition(this.joueur_souris.x, this.joueur_souris.y - 70);
+        this.plaque_du_tribunal.setPosition(this.joueur_souris.x, 42);
       }
     }
 

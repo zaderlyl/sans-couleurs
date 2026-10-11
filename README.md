@@ -115,8 +115,9 @@ portail de l'ecole...), dessines pour eux. Cote fichiers Tiled : la source `.tmx
 `tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`.
 
 Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (passage) → niveau 3 →
-(train) → niveau 4 → niveau 5. Entre deux niveaux, un ecran noir affiche les pensees du
-personnage (a ecrire dans `src/pensees.js`).
+(train) → niveau 4 → niveau 5. Entre deux niveaux, un ecran noir affiche une conversation
+entre J1 (a gauche) et J2 (a droite, en couleurs inversees) : les deux parts du
+personnage, qui sont la meme personne (a ecrire dans `src/pensees.js`).
 La position de la gare n'est pas codee en dur : elle est recalculee depuis le
 calque `gare` de la carte.
 

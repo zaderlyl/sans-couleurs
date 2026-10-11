@@ -15,7 +15,7 @@
 
 import niveau from "./niveau.js";
 import { creer_pastilles, mettre_a_jour_pastilles } from "./pastilles.js";
-import { afficher_phrases } from "./ecran_texte.js";
+import { afficher_pensees } from "./ecran_texte.js";
 import { changer_la_musique, jouer_un_bip, creer_ton_continu } from "./sons.js";
 import { est_un_clic_de_tir } from "./tir.js";
 import { pensees } from "./pensees.js";
@@ -188,7 +188,7 @@ export default class niveau4 extends niveau {
     };
     if (this.arrivee_en_train == true) {
       this.fige_par_le_niveau = true;
-      afficher_phrases(this, this.pensees || pensees.de_3_vers_4, function () {
+      afficher_pensees(this, this.pensees || pensees.de_3_vers_4, function () {
         scene.fige_par_le_niveau = false;
         commencer();
       });
