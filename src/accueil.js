@@ -28,14 +28,20 @@ var style_menu = {
 
 var lignes_credits = [
   "Un jeu de Lilian Cornet",
+  "Histoire vraie",
+  "",
+  "Inspiré par BPM (raitwag.itch.io/bpm)",
+  "pour son style pixel noir et blanc",
   "",
   "Fait avec Phaser 3 et Tiled",
   "Tuiles, sprites et code : Lilian Cornet",
+  "Police : Deltarune Extended (police de fans)",
   "",
   "Musiques d'ambiance :",
   "tunetank - dark ambient soundscape music",
   "cosmic scapes - soft brown noise",
-  "(morceaux de tiers, sous leur licence)"
+  "Bip : Beep of a cash register (BigSoundBank.com)",
+  "(sons de tiers, sous leur licence)"
 ];
 
 export default class accueil extends Phaser.Scene {
@@ -239,7 +245,8 @@ export default class accueil extends Phaser.Scene {
   creer_page_credits() {
     var page = this.creer_page("credits");
     this.creer_etiquette(page, "Crédits", -110, 24);
-    this.creer_etiquette(page, lignes_credits.join("\n"), 30, 20);
-    this.creer_bouton(page, "Retour", 230, function () { this.afficher_page("principale"); }, 200);
+    var texte_credits = this.creer_etiquette(page, lignes_credits.join("\n"), -85, 16);
+    texte_credits.setOrigin(0.5, 0); // le texte part du haut, sous le titre de la page
+    this.creer_bouton(page, "Retour", 275, function () { this.afficher_page("principale"); }, 200);
   }
 }
