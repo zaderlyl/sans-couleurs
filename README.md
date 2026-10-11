@@ -16,6 +16,7 @@ s'allegent que si les deux restent cote a cote).
 - [Cartes et niveaux](#cartes-et-niveaux)
 - [Le niveau 3 : porter les mots a deux](#le-niveau-3--porter-les-mots-a-deux)
 - [Le niveau 4 : la fin](#le-niveau-4--la-fin)
+- [Le niveau 5 : le lycee](#le-niveau-5--le-lycee)
 - [Commandes](#commandes)
 - [Systeme de dialogue](#systeme-de-dialogue)
 - [Signaler un bug ou proposer une idee](#signaler-un-bug-ou-proposer-une-idee)
@@ -72,6 +73,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage
 │   ├── niveau3.js              Niveau 3 (college) : mots a porter, pastilles, gare
 │   ├── niveau4.js              Niveau 4 (la fin) : plaine, epave du train, trois televisions
+│   ├── niveau5.js, pression.js Niveau 5 (le lycee) : pieces, coups suggeres, pression
 │   ├── pensees.js              Les pensees du personnage (ecrans noirs entre les niveaux)
 │   ├── camera.js               La camera : un seul ecran qui suit les deux joueurs
 │   ├── tir.js, cibles.js, tuto.js   Le tir (souris / clavier), la cible d'entrainement + timers, les panneaux du tuto
@@ -106,15 +108,16 @@ elle passe dans `assets/tilesets/` au moment ou on la branche.
 
 Chaque niveau est une scene Phaser (un fichier `niveauN.js`) qui herite de la
 classe de base `niveau.js` et ne contient que ce qui lui est propre. La carte
-Tiled est chargee par nom (`map-1-debut`, `map-2-enfance`, `map-3-college`, `map-4-fin`).
+Tiled est chargee par nom (`map-1-debut`, `map-2-enfance`, `map-3-college`, `map-4-fin`, `map-5-lycee`).
 Une carte peut avoir un deuxieme jeu de tuiles : le college a le sien (portes,
 horloge, bancs...) et l'enfance aussi (balancoire, toboggan, arbre, bac a sable,
 portail de l'ecole...), dessines pour eux. Cote fichiers Tiled : la source `.tmx` dans
 `tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`.
 
 Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (passage) → niveau 3 →
-(train) → niveau 4. Entre deux niveaux, un ecran noir affiche les pensees du
-personnage (a ecrire dans `src/pensees.js`).
+(train) → niveau 4 → niveau 5. Entre deux niveaux, un ecran noir affiche une conversation
+entre J1 (a gauche) et J2 (a droite, en couleurs inversees) : les deux parts du
+personnage, qui sont la meme personne (a ecrire dans `src/pensees.js`).
 La position de la gare n'est pas codee en dur : elle est recalculee depuis le
 calque `gare` de la carte.
 
@@ -174,6 +177,33 @@ sa propre ambiance sonore.
 Le jeu aborde des sujets sensibles : un ecran d'avertissement, avec le 3114
 (numero national de prevention du suicide), s'affiche tout au debut du jeu, avant
 l'accueil, et l'ecran final le rappelle.
+
+## Le niveau 5 : le lycee
+
+Une suite de pieces (une salle de cours, une chambre, la rue, un tribunal, la
+chambre la nuit) separees par de grands passages tout blancs (des tuiles
+blanches, rien d'autre). Dans chaque piece, une scene de violence que l'on ne
+montre jamais : on la fait ressentir. Une ombre arrive, on entend le choc, le
+personnage tombe, les oreilles sifflent, la piece garde la trace (un pupitre
+renverse, une lampe cassee, une vitre fendue). Le joueur ne subit rien de plus :
+au bout de quelques secondes, le personnage se releve. Les deux joueurs sont
+alors vraiment figes (physique coupee, ordres ignores).
+
+Les coups sont graduels : au debut c'est presque rien et il en rit ; puis c'est
+plus fort, il se pose des questions et trouve des excuses ; puis il ne dit plus
+rien, par habitude ; puis il pleure et ne sait plus quoi faire. Les textes sont
+separes par qui parle (J1, la voix rationnelle de J2, sa voix emotionnelle, le
+juge, l'avocat) et suivent leur personnage. Le tribunal est une vraie audience :
+un juge, un avocat, des accusations, un classement sans suite.
+
+La pression monte a chaque coup : un voile sombre et flou sur les bords de
+l'ecran, une musique plus lente et plus grave, des mouvements plus lents. Le
+joueur clavier est une part du personnage lui-meme, un allie interieur, qui a
+deux voix : une rationnelle, une emotionnelle. Quand les deux joueurs restent
+l'un a cote de l'autre, la pression redescend, mais jamais tout a fait : il reste
+des sequelles. Au tribunal, des accusations fausses s'accrochent au personnage,
+puis « Classe sans suite ». La derniere piece, la nuit, ramene les coups en
+ombres silencieuses : il faut rester ensemble pour tenir.
 
 ## Systeme de dialogue
 

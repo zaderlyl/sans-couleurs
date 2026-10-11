@@ -5,8 +5,8 @@
 import { demarrer_la_musique } from "./sons.js";
 import { afficher_texte } from "./ecran_texte.js";
 
-var texte_avertissement = "Ce jeu raconte des moments difficiles de la vie d'un personnage : le harcèlement, le mal-être, la violence, et l'envie d'en finir.\n\n" +
-  "Si tu traverses quelque chose de difficile, tu n'es pas seul. En France, le 3114 (numéro national de prévention du suicide) répond gratuitement, 24 h sur 24.\n\n" +
+var texte_avertissement = "Ce jeu raconte des moments difficiles de la vie d'un personnage : le harcèlement, le mal-être, la violence dans une relation, et l'envie d'en finir.\n\n" +
+  "Si tu traverses quelque chose de difficile, tu n'es pas seul. En France, le 3114 (numéro national de prévention du suicide) et le 116 006 (aide aux victimes) répondent gratuitement.\n\n" +
   "Clique pour continuer.";
 
 var avertissement_deja_vu = false; // l'ecran d'avertissement ne s'affiche qu'une fois
@@ -34,7 +34,8 @@ export default class accueil extends Phaser.Scene {
     this.bouton_jouer = this.creer_bouton("Jouer", "niveau1");
     this.bouton_enfance = this.creer_bouton("L'enfance", "niveau2");
     this.bouton_college = this.creer_bouton("Le college", "niveau3");
-    this.bouton_fin = this.creer_bouton("La fin", "niveau4");
+    this.bouton_fin = this.creer_bouton("La coupure", "niveau4");
+    this.bouton_lycee = this.creer_bouton("Le lycee", "niveau5");
 
     // tout au debut du jeu : l'avertissement (par-dessus l'accueil, jusqu'au clic)
     if (avertissement_deja_vu == false) {
@@ -108,5 +109,6 @@ export default class accueil extends Phaser.Scene {
     this.bouton_enfance.setPosition(milieu_x, milieu_y + 90);
     this.bouton_college.setPosition(milieu_x, milieu_y + 170);
     this.bouton_fin.setPosition(milieu_x, milieu_y + 250);
+    this.bouton_lycee.setPosition(milieu_x, milieu_y + 330);
   }
 }

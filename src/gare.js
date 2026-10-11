@@ -27,7 +27,7 @@
 // Etat garde sur la scene : scene.etat_gare vaut "attente" (rien ne se passe) ou
 // "enCours" (le train est en route : les joueurs sont figes, voir niveau.js).
 
-import { afficher_phrases } from "./ecran_texte.js";
+import { afficher_phrases, afficher_pensees } from "./ecran_texte.js";
 import { pensees } from "./pensees.js";
 import { rendre_cliquable_sur_les_pixels } from "./zone_cliquable.js";
 import { style_texte } from "./styles.js";
@@ -395,7 +395,7 @@ function arriver_en_train(scene) {
   scene.cameras.main.fadeOut(0, 0, 0, 0);
 
   if (scene.avec_transition == true) {
-    afficher_phrases(scene, scene.pensees || phrases_du_voyage, function () {
+    afficher_pensees(scene, scene.pensees || phrases_du_voyage, function () {
       jouer_l_arrivee(scene);
     });
   } else {
