@@ -204,7 +204,7 @@ joueur clavier est une part du personnage lui-meme, un allie interieur, qui a
 deux voix : une rationnelle, une emotionnelle. Quand les deux joueurs restent
 l'un a cote de l'autre, la pression redescend, mais jamais tout a fait : il reste
 des sequelles. Au tribunal, des accusations fausses s'accrochent au personnage,
-puis « Classe sans suite ». Dans la derniere piece, la nuit, on clique sur le lit : il s'y couche, elle
+puis « Classe sans suite ». Dans la derniere piece, la nuit, on clique sur le lit (il vibre sous la souris) : il s'y couche (une image du lit avec lui dedans), elle
 vient et le frappe quatre fois (sans rien montrer), puis c'est la fin du jeu.
 
 ## Systeme de dialogue

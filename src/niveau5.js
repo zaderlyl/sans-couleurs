@@ -93,7 +93,8 @@ var coups_du_lit = [
 var texte_de_fin = [
   t("Des rumeurs. Une plainte. Une audience. Des mots qui ne sont pas les tiens."),
   t("Le dossier a été classé sans suite : rien n'a été prouvé, rien n'a été réparé."),
-  t("Il reste les nuits."),
+  t("Les douleurs les plus dures arrivent bien plus tard. Les cicatrices ne se referment jamais vraiment."),
+  t("N'attends pas d'aller mal pour demander de l'aide : parle à quelqu'un autour de toi, un proche, un professionnel."),
   t("Si tu as vécu de la violence dans une relation, tu n'es pas seul. Le 116 006 (aide aux victimes) et le 3114 répondent gratuitement."),
   t("Clique pour revenir à l'accueil.")
 ].join("\n\n");
@@ -111,6 +112,8 @@ export default class niveau5 extends niveau {
       // l'ombre : 5 images (debout, 2 de marche, bras leve, bras tendu) ; le tribunal : juge, avocat
       this.load.spritesheet("img_ombre", "assets/sprites/characters/ombre.png", { frameWidth: 16, frameHeight: 32 });
       this.load.spritesheet("img_tribunal", "assets/sprites/characters/tribunal.png", { frameWidth: 16, frameHeight: 32 });
+      // le lit de la derniere piece : image 0 = vide, image 1 = lui dedans
+      this.load.spritesheet("img_lit", "assets/sprites/props/lit.png", { frameWidth: 64, frameHeight: 32 });
     }
   }
 
@@ -512,36 +515,67 @@ export default class niveau5 extends niveau {
     this.creer_le_lit();
   }
 
-  // le lit est cliquable : un petit texte l'indique. J1 y marche et se couche.
+  // le lit est cliquable : il vibre quand la souris est dessus, et un petit texte l'indique.
+  // C'est une image (le lit vide, puis le lit avec lui dedans), posee a la place des tuiles du lit.
   creer_le_lit() {
     var scene = this;
-    this.zone_du_lit = this.add.zone(x_du_lit, sol_y - 8, 66, 26);
-    this.zone_du_lit.setInteractive({ useHandCursor: true });
-    this.indice_du_lit = this.add.text(x_du_lit, sol_y - 30, t("Se coucher"), style_texte);
+    // on retire les tuiles du lit de la carte (colonnes 178 a 181, rangees 7 et 8)
+    for (var c = 178; c <= 181; c++) {
+      this.calque_bg2.removeTileAt(c, 7);
+      this.calque_bg2.removeTileAt(c, 8);
+    }
+    this.lit = this.add.sprite(178 * 16, 7 * 16, "img_lit", 0);
+    this.lit.setOrigin(0, 0);
+    this.lit.setDepth(4);
+    this.lit.setInteractive({ useHandCursor: true });
+    this.lit.survole = false;
+    this.lit.on("pointerover", function () { scene.lit.survole = true; });
+    this.lit.on("pointerout", function () { scene.lit.survole = false; });
+
+    this.indice_du_lit = this.add.text(x_du_lit, sol_y - 34, t("Se coucher"), style_texte);
     this.indice_du_lit.setOrigin(0.5, 1);
     this.indice_du_lit.setDepth(25);
     this.indice_du_lit.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
     this.tweens.add({ targets: this.indice_du_lit, alpha: 0.35, duration: 900, yoyo: true, repeat: -1 });
 
-    this.zone_du_lit.on("pointerdown", function (pointeur) {
+    this.lit.on("pointerdown", function (pointeur) {
       if (est_un_clic_de_tir(pointeur) == true || scene.lit_pris == true || scene.est_fige() == true) {
         return;
       }
       scene.lit_pris = true;
+      scene.lit.survole = false;
       scene.aller_vers(x_du_lit - 8, function () {
         scene.se_coucher();
       });
     });
   }
 
-  // J1 se couche dans le lit ; puis elle arrive et le frappe, quatre fois
+  // chaque image : le lit vibre (un petit tremblement) quand la souris est dessus
+  faire_vibrer_le_lit() {
+    if (this.lit == undefined || this.lit.active == false || this.lit.vibre_fort == true) {
+      return;
+    }
+    var x = 178 * 16;
+    var y = 7 * 16;
+    if (this.lit.survole == true) {
+      x = x + Phaser.Math.Between(-1, 1);
+      y = y + Phaser.Math.Between(-1, 1);
+    }
+    this.lit.setPosition(x, y);
+  }
+
+  // J1 se couche dans le lit (l'image du lit change : il est dedans) ; puis elle arrive et le frappe, quatre fois
   se_coucher() {
     var scene = this;
     var j = this.joueur_souris;
     this.figer_les_joueurs();
-    this.zone_du_lit.disableInteractive();
+    this.lit.disableInteractive();
     this.indice_du_lit.destroy();
-    this.tweens.add({ targets: j, x: x_du_lit - 12, y: sol_y - 9, angle: 85, duration: 700, ease: "Sine.easeInOut" });
+    // il est dans le lit : on ne voit plus le personnage, mais le lit avec lui dedans
+    // (ses larmes partent de sa tete, sur l'oreiller)
+    j.setPosition(x_du_lit - 22, sol_y - 12);
+    j.setVisible(false);
+    this.lit.setFrame(1);
     this.dire("j1", "Je n'ai plus la force.", 900, 2400);
 
     // elle arrive en marchant, depuis la droite, et s'arrete a cote du lit
@@ -564,7 +598,7 @@ export default class niveau5 extends niveau {
       });
       scene.tweens.add({
         targets: elle,
-        x: x_du_lit + 26,
+        x: x_du_lit + 44,
         duration: 2600,
         ease: "Sine.easeIn",
         onComplete: function () {
@@ -588,9 +622,13 @@ export default class niveau5 extends niveau {
         jouer_son_sifflement(1 + n);
       }
       scene.cameras.main.shake(180 + 160 * c.force, 0.005 + 0.01 * c.force);
-      j.setTintFill(0xffffff);
-      scene.time.delayedCall(90, function () { j.clearTint(); }, null, scene);
-      scene.tweens.add({ targets: j, y: j.y + 3, duration: 90, yoyo: true });
+      // le lit prend le coup : un flash blanc et il tremble
+      scene.lit.setTintFill(0xffffff);
+      scene.time.delayedCall(90, function () { scene.lit.clearTint(); }, null, scene);
+      scene.lit.vibre_fort = true;
+      scene.tweens.add({ targets: scene.lit, x: scene.lit.x + 2, duration: 40, yoyo: true, repeat: 4, onComplete: function () {
+        scene.lit.vibre_fort = false;
+      } });
       ajouter_pression(scene, c.pression);
       if (c.voix != null) {
         scene.dire(c.voix.qui, c.voix.texte, 800, 2400);
@@ -614,6 +652,7 @@ export default class niveau5 extends niveau {
 
   // chaque image (la nuit) : les accusations du tribunal suivent le personnage
   mettre_a_jour_la_nuit(delta) {
+    this.faire_vibrer_le_lit();
     // les accusations du tribunal suivent le personnage (empilees au-dessus de sa tete)
     if (this.piles_du_tribunal != undefined) {
       for (var p = 0; p < this.piles_du_tribunal.length; p++) {
