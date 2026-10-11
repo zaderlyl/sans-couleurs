@@ -1,18 +1,23 @@
 // phrases.js — les mots du college. Ils arrivent par VAGUES, comme la sonnerie :
 // toutes les 25 secondes, une cloche sonne, puis une vague de mots traverse le
-// couloir, UN MOT APRES L'AUTRE (pour qu'on lise chacun) ; entre deux vagues, c'est calme. On ne peut PAS les effacer : un mot qui touche un joueur s'accroche au-dessus de sa
-// tete et reste. Chaque mot accroche le ralentit un peu plus, jusqu'a ce qu'il
-// n'avance presque plus.
+// couloir, UN MOT APRES L'AUTRE (pour qu'on lise chacun) ; entre deux vagues,
+// c'est calme.
+//
+// Deux sortes de mots :
+//   - les mots CLAIRS : des moqueries legeres. Ils pesent 1 ;
+//   - les mots FONCES : des mots vraiment mechants, des insultes. Ils pesent 2.
+//
+// On ne peut PAS les effacer : un mot qui touche un joueur s'accroche au-dessus
+// de sa tete et reste. Chaque point de poids le ralentit un peu plus, jusqu'a ce
+// qu'il n'avance presque plus.
 //
 // Ce qui les fait partir : l'AUTRE joueur. Quand les deux joueurs restent l'un a
 // cote de l'autre, les mots se detachent un par un (chaque joueur en perd un a
-// chaque fois), et en partant un mot se change en une phrase plus douce.
+// chaque fois). Un mot fonce s'eclaircit d'abord (il devient une moquerie legere),
+// puis se detache ; en partant, un mot se change en une phrase plus douce.
 // Seul, le poids s'accumule. A deux, il s'allege. Il n'y a ni tir ni ennemi.
 //
-// Deux sortes de mots : les VOIX (en noir : ce qu'on lui dit) et les SILENCES (en
-// gris : ce qu'on ne lui dit pas). Elles pesent pareil.
-//
-// Plus un joueur porte de mots, plus SON ecran s'assombrit sur les bords (un
+// Plus un joueur porte de poids, plus SON ecran s'assombrit sur les bords (un
 // voile noir, flou et sans contraste) et plus la musique devient grave : le poids
 // se ressent sans texte.
 //
@@ -27,19 +32,27 @@ import { style_texte } from "./styles.js";
 import { camera_du_joueur } from "./ecran_separe.js";
 import { jouer_son_mot_refuse, jouer_son_mot_pose, jouer_son_sonnerie, peser_sur_la_musique } from "./sons.js";
 
-var voix = [
+// les mots clairs : des moqueries legeres
+var clairs = [
+  "T'es bizarre, quand même.",
   "Pourquoi tu es comme ça ?",
   "Tu fais exprès.",
-  "T'es bizarre, quand même.",
-  "Personne n'a demandé ton avis.",
-  "Encore toi."
-];
-var silences = [
-  "...",
+  "Encore toi.",
+  "Il parle jamais, lui.",
+  "Regardez-le, tout seul.",
   "Cette place est prise.",
-  "On ne t'a pas attendu.",
-  "Tout le monde a compris, sauf toi.",
-  "Personne ne se retourne."
+  "Il se croit où ?"
+];
+// les mots fonces : vraiment mechants
+var fonces = [
+  "T'es nul.",
+  "Tu sers à rien.",
+  "Personne ne t'aime.",
+  "Dégage.",
+  "T'es dégoûtant.",
+  "Tu fais pitié.",
+  "T'es de trop ici.",
+  "Ferme-la."
 ];
 // ce que devient un mot quand il se detache
 var douces = ["Je suis là.", "Tu n'es pas seul.", "Ça va aller.", "On avance."];
@@ -51,9 +64,10 @@ var mots_par_vague = 6;
 var delai_entre_mots = 1800; // ms entre deux mots d'une meme vague : ils arrivent UN PAR UN
 var distance_devant = 150; // un mot apparait a cette distance devant le joueur le plus avance
 var hauteurs = [126, 136]; // y du monde : deux lignes qui alternent, pour qu'on lise chaque mot
-var vitesse_vague = 36; // px/s : les mots avancent vers la gauche
-var maximum_portes = 6; // un joueur ne porte jamais plus de mots que ca
-var perte_de_vitesse = 0.16; // chaque mot porte retire ca a la vitesse (1 = normale)
+var vitesse_vague = 34; // px/s : les mots clairs avancent vers la gauche
+var vitesse_vague_foncee = 44; // px/s : les mots fonces vont plus vite
+var maximum_portes = 6; // un joueur ne porte jamais plus de poids que ca (clair = 1, fonce = 2)
+var perte_de_vitesse = 0.16; // chaque point de poids retire ca a la vitesse (1 = normale)
 var vitesse_minimum = 0.1; // il avance toujours un peu : jamais bloque pour de bon
 var distance_ensemble = 40; // pixels : "l'un a cote de l'autre"
 var delai_detache = 1000; // ms entre deux mots qui se detachent quand on est ensemble
@@ -119,16 +133,21 @@ function envoyer_un_mot(scene, i) {
   if (x > colonne_de_fin * 16) {
     return; // trop pres de la gare
   }
-  // une voix, puis un silence, puis une voix... sur deux lignes qui alternent
-  var est_une_voix = i % 2 == 0;
-  var liste = est_une_voix ? voix : silences;
-  var style = Object.assign({}, style_texte, { color: est_une_voix ? "#000000" : "#aaaaaa", stroke: est_une_voix ? "#ffffff" : "#000000" });
-  var mot = scene.add.text(x, est_une_voix ? hauteurs[0] : hauteurs[1], Phaser.Utils.Array.GetRandom(liste), style);
+  // un mot clair deux fois sur trois, un mot fonce une fois sur trois ; deux lignes qui alternent
+  var est_fonce = i % 3 == 2;
+  var liste = est_fonce ? fonces : clairs;
+  var style = Object.assign({}, style_texte, {
+    color: est_fonce ? "#000000" : "#ffffff",
+    stroke: est_fonce ? "#ffffff" : "#000000",
+    fontSize: est_fonce ? "7px" : "6px"
+  });
+  var mot = scene.add.text(x, hauteurs[i % 2], Phaser.Utils.Array.GetRandom(liste), style);
+  mot.poids = est_fonce ? 2 : 1;
   mot.setOrigin(0.5, 0.5);
   mot.setDepth(15);
   scene.groupe_phrases.add(mot);
   mot.body.setSize(mot.width, mot.height);
-  mot.body.setVelocity(-vitesse_vague, 0);
+  mot.body.setVelocity(est_fonce ? -vitesse_vague_foncee : -vitesse_vague, 0);
   mot.decalage = Phaser.Math.Between(0, 6000); // pour qu'il balance a son rythme une fois porte
 
   // il apparait en fondu
@@ -141,7 +160,7 @@ function envoyer_un_mot(scene, i) {
 
 // le mot s'accroche au-dessus de la tete du joueur (sauf s'il en porte deja le maximum)
 function accrocher(scene, joueur, mot) {
-  if (mot.accroche == true || joueur.mots.length >= maximum_portes) {
+  if (mot.accroche == true || poids_porte(joueur) >= maximum_portes) {
     return;
   }
   mot.accroche = true;
@@ -152,12 +171,32 @@ function accrocher(scene, joueur, mot) {
   jouer_son_mot_refuse(); // un "bzzz" grave : ca pese
 }
 
-// le plus ancien mot porte se detache : il devient une phrase douce, puis s'efface
+// le poids que porte un joueur : 1 par mot clair, 2 par mot fonce
+function poids_porte(joueur) {
+  var total = 0;
+  for (var i = 0; i < joueur.mots.length; i++) {
+    total = total + joueur.mots[i].poids;
+  }
+  return total;
+}
+
+// le plus ancien mot porte s'allege : un mot fonce devient d'abord une moquerie
+// legere ; un mot clair se detache, devient une phrase douce, puis s'efface
 function detacher(scene, joueur, rang) {
   if (joueur.mots.length == 0) {
     return;
   }
-  var mot = joueur.mots.shift();
+  var mot = joueur.mots[0];
+  if (mot.poids == 2) {
+    mot.poids = 1;
+    mot.setText(Phaser.Utils.Array.GetRandom(clairs));
+    mot.setColor("#ffffff");
+    mot.setStroke("#000000", 2);
+    mot.setFontSize(6);
+    jouer_son_mot_pose(rang);
+    return;
+  }
+  joueur.mots.shift();
   mot.setText(Phaser.Utils.Array.GetRandom(douces));
   mot.setColor("#ffffff");
   mot.setStroke("#000000", 2);
@@ -182,7 +221,7 @@ export function mettre_a_jour_phrases(scene, delta) {
   // chaque joueur : plus il porte de mots, plus il est lent ; ses mots flottent au-dessus de sa tete
   for (var j = 0; j < joueurs.length; j++) {
     var joueur = joueurs[j];
-    joueur.facteur_vitesse = Math.max(vitesse_minimum, 1 - joueur.mots.length * perte_de_vitesse);
+    joueur.facteur_vitesse = Math.max(vitesse_minimum, 1 - poids_porte(joueur) * perte_de_vitesse);
     for (var m = 0; m < joueur.mots.length; m++) {
       var balancement = Math.sin((scene.time.now + joueur.mots[m].decalage) / 500) * 1.5;
       joueur.mots[m].setPosition(joueur.x + balancement, joueur.y - 14 - m * hauteur_pile);
@@ -213,6 +252,7 @@ export function mettre_a_jour_phrases(scene, delta) {
     }
     for (var k = 0; k < joueurs.length; k++) {
       while (joueurs[k].mots.length > 0) {
+        joueurs[k].mots[0].poids = 1; // a la gare, tout s'allege d'un coup
         detacher(scene, joueurs[k], joueurs[k].mots.length);
       }
     }
@@ -264,7 +304,7 @@ function mettre_a_jour_les_voiles(scene) {
   var cameras = [scene.cameras.main, scene.camera2];
   var plus_lourd = 0;
   for (var j = 0; j < joueurs.length; j++) {
-    var poids = joueurs[j].mots.length / maximum_portes; // de 0 a 1
+    var poids = Math.min(poids_porte(joueurs[j]) / maximum_portes, 1); // de 0 a 1
     var indice = camera_du_joueur(scene, joueurs[j]) == scene.camera2 ? 1 : 0;
     poids_camera[indice] = Math.max(poids_camera[indice], poids);
     plus_lourd = Math.max(plus_lourd, poids);
