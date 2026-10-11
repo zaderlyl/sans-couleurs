@@ -16,7 +16,7 @@ export var pensees = {
     { qui: "j1", texte: "Pourquoi on revient ici ?" },
     { qui: "j2", texte: "Parce que tout a commencé là." },
     { qui: "j1", texte: "Je ne m'en souviens pas bien." },
-    { qui: "j2", texte: "Moi si. Je m'en souviens pour deux." }
+    { qui: "j2", texte: "Moi si. Je m'en souviens pour deux. Viens avec moi." }
   ],
   de_2_vers_3: [
     { qui: "j1", texte: "Ils se moquent de moi." },

@@ -9,11 +9,10 @@
 // portes de classe sombres avec un ecran au-dessus), et la gare tout au bout.
 
 import niveau from "./niveau.js";
-import { creer_gare, mettre_a_jour_gare } from "./gare.js";
+import { creer_gare, creer_train_d_arrivee, mettre_a_jour_gare } from "./gare.js";
 import { creer_phrases, mettre_a_jour_phrases } from "./phrases.js";
 import { creer_pastilles, mettre_a_jour_pastilles } from "./pastilles.js";
 import { pensees } from "./pensees.js";
-import { afficher_pensees } from "./ecran_texte.js";
 
 export default class niveau3 extends niveau {
   constructor() {
@@ -27,14 +26,9 @@ export default class niveau3 extends niveau {
     // le train du bout du couloir mene a la fin (arrivee: false : on n'arrive pas par CETTE gare)
     creer_gare(this, { niveau_suivant: "niveau4", sortie_active: true, arrivee: false, pensees: pensees.de_3_vers_4 });
 
-    // on arrive du train du niveau 2 : l'ecran noir de la conversation J1 / J2, puis on joue
-    if (this.arrivee_en_train == true) {
-      var scene = this;
-      this.fige_par_le_niveau = true;
-      afficher_pensees(this, this.pensees || pensees.de_2_vers_3, function () {
-        scene.fige_par_le_niveau = false;
-      });
-    }
+    // on arrive du train du niveau 2 : l'ecran noir de la conversation, puis le train
+    // (calque "gare_arrivee", au debut) arrive et reste la
+    creer_train_d_arrivee(this, "gare_arrivee");
   }
 
   mettre_a_jour_particularites(temps, delta) {

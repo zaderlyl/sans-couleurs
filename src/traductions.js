@@ -35,7 +35,7 @@ export var traductions = {
   "Pourquoi on revient ici ?": "Why are we coming back here?",
   "Parce que tout a commencé là.": "Because it all started here.",
   "Je ne m'en souviens pas bien.": "I don't remember it well.",
-  "Moi si. Je m'en souviens pour deux.": "I do. I remember it for both of us.",
+  "Moi si. Je m'en souviens pour deux. Viens avec moi.": "I do. I remember it for both of us. Come with me.",
   "Ils se moquent de moi.": "They make fun of me.",
   "Je sais. Je l'ai entendu aussi.": "I know. I heard it too.",
   "Le collège sera pareil ?": "Will middle school be the same?",

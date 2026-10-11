@@ -158,15 +158,18 @@ export function creer_gare(scene, options) {
   }
 }
 
-// Une gare ou on ARRIVE seulement (le calque "gare" de la carte), pour un niveau qui
+// Une gare ou on ARRIVE seulement (le calque "gare" de la carte, ou `nom_du_calque`), pour un niveau qui
 // a une autre gare pour repartir : le train arrive, s'arrete, et reste la.
-export function creer_train_d_arrivee(scene) {
-  var boite = boite_des_tuiles(scene.carte, "gare");
+export function creer_train_d_arrivee(scene, nom_du_calque) {
+  if (nom_du_calque == undefined) {
+    nom_du_calque = "gare";
+  }
+  var boite = boite_des_tuiles(scene.carte, nom_du_calque);
   if (boite == null) {
     return;
   }
   creer_les_animations(scene);
-  var gare = poser_le_train(scene, boite, le_calque_est_retourne(scene.carte, "gare"));
+  var gare = poser_le_train(scene, boite, le_calque_est_retourne(scene.carte, nom_du_calque));
   gare.arrivee_seule = true; // les joueurs passeront devant ce train (voir jouer_l_arrivee)
   if (scene.arrivee_en_train == true) {
     arriver_en_train(scene, gare);
