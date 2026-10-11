@@ -84,7 +84,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   └── styles.js, zone_cliquable.js   Petits utilitaires partages
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
-│   ├── tilesets/                Images de tuiles (Tileset.png ; Tileset-college.png pour le niveau 3)
+│   ├── tilesets/                Images de tuiles (Tileset.png ; Tileset-college.png pour le niveau 3 ; Tileset-enfance.png pour le niveau 2)
 │   ├── sprites/                 Personnages, train, herbe animee, cible...
 │   ├── ui/                      Icone d'interaction
 │   ├── fonts/                   Polices (voir le @font-face d'index.html)
@@ -107,8 +107,9 @@ elle passe dans `assets/tilesets/` au moment ou on la branche.
 Chaque niveau est une scene Phaser (un fichier `niveauN.js`) qui herite de la
 classe de base `niveau.js` et ne contient que ce qui lui est propre. La carte
 Tiled est chargee par nom (`map-1-debut`, `map-2-enfance`, `map-3-college`, `map-4-fin`).
-Une carte peut avoir un deuxieme jeu de tuiles (le college a le sien, dessine
-pour lui : portes, horloge, bancs...). Cote fichiers Tiled : la source `.tmx` dans
+Une carte peut avoir un deuxieme jeu de tuiles : le college a le sien (portes,
+horloge, bancs...) et l'enfance aussi (balancoire, toboggan, arbre, bac a sable,
+portail de l'ecole...), dessines pour eux. Cote fichiers Tiled : la source `.tmx` dans
 `tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`.
 
 Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (passage) → niveau 3 →
