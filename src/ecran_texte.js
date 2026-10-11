@@ -8,7 +8,22 @@
 //   - afficher_texte(scene, "...", quand_clic) : un texte affiche d'un coup,
 //     jusqu'au prochain clic (l'ecran d'effondrement du college, voir phrases.js).
 
+import { t } from "./langue.js";
+
 var delai_par_lettre = 70; // ms : l'effet "machine a ecrire"
+var taille_de_police = 28; // px : la taille normale du texte
+var taille_minimum = 12; // px : on ne le rend pas plus petit que ca
+
+// Si le texte deborde de l'ecran (fenetre petite), on reduit la police jusqu'a ce
+// que tout tienne : rien ne doit etre coupe.
+function faire_tenir(ecran) {
+  var taille = taille_de_police;
+  ecran.style.fontSize = taille + "px";
+  while (ecran.scrollHeight > ecran.clientHeight && taille > taille_minimum) {
+    taille = taille - 2;
+    ecran.style.fontSize = taille + "px";
+  }
+}
 
 
 // l'ecran noir (cree la premiere fois, ensuite reutilise)
@@ -45,6 +60,7 @@ function obtenir_l_ecran(scene) {
     scene.game.canvas.parentElement.appendChild(ecran);
   }
   ecran.style.display = "flex";
+  ecran.style.fontSize = taille_de_police + "px";
   ecran.style.flexDirection = "";
   ecran.style.alignItems = "center";
   ecran.style.justifyContent = "center";
@@ -69,10 +85,19 @@ function refermer(ecran) {
 // --- Des phrases qui s'ecrivent, puis `quand_fini` --------------------------------
 
 export function afficher_phrases(scene, phrases, quand_fini) {
+  phrases = phrases.map(t); // dans la langue choisie
   var ecran = obtenir_l_ecran(scene);
 
   var indice_phrase = 0; // quelle phrase
   var nombre_de_lettres = 0; // combien de lettres sont deja ecrites
+
+  // la phrase en entier d'abord (pour regler la taille de la police), puis on la vide
+  function mesurer_la_phrase() {
+    ecran.textContent = phrases[indice_phrase];
+    faire_tenir(ecran);
+    ecran.textContent = "";
+  }
+  mesurer_la_phrase();
 
   // toutes les 70 ms : une lettre de plus
   var minuteur = scene.time.addEvent({
@@ -101,7 +126,9 @@ export function afficher_phrases(scene, phrases, quand_fini) {
       minuteur.remove();
       refermer(ecran);
       quand_fini();
+      return;
     }
+    mesurer_la_phrase();
   };
 }
 
@@ -110,7 +137,8 @@ export function afficher_phrases(scene, phrases, quand_fini) {
 
 export function afficher_texte(scene, texte, quand_clic) {
   var ecran = obtenir_l_ecran(scene);
-  ecran.textContent = texte;
+  ecran.textContent = t(texte);
+  faire_tenir(ecran);
   ecran.onclick = function () {
     refermer(ecran);
     quand_clic();
@@ -128,6 +156,12 @@ export function afficher_texte(scene, texte, quand_clic) {
 // passe a la suivante ; apres la derniere, un clic ferme l'ecran.
 
 export function afficher_dialogue(scene, lignes, quand_fini) {
+  // les repliques dans la langue choisie
+  var lignes_traduites = [];
+  for (var i = 0; i < lignes.length; i++) {
+    lignes_traduites.push({ qui: lignes[i].qui, texte: t(lignes[i].texte) });
+  }
+  lignes = lignes_traduites;
   var ecran = obtenir_l_ecran(scene);
   ecran.style.flexDirection = "column";
   ecran.style.alignItems = "stretch";
@@ -154,6 +188,9 @@ export function afficher_dialogue(scene, lignes, quand_fini) {
       bloc.style.border = "2px solid #ffffff";
     }
     ecran.appendChild(bloc);
+    bloc.textContent = lignes[indice].texte; // d'abord en entier, pour mesurer
+    faire_tenir(ecran);
+    bloc.textContent = "";
     nombre_de_lettres = 0;
   }
   nouvelle_replique();

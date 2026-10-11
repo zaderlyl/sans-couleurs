@@ -36,31 +36,32 @@
 import { style_texte } from "./styles.js";
 import { afficher_texte } from "./ecran_texte.js";
 import { jouer_son_mot_refuse, jouer_son_mot_pose, jouer_son_sonnerie, peser_sur_la_musique } from "./sons.js";
+import { t } from "./langue.js";
 
 // les mots clairs : des moqueries legeres
 var clairs = [
-  "T'es bizarre, quand même.",
-  "Pourquoi tu es comme ça ?",
-  "Tu fais exprès.",
-  "Encore toi.",
-  "Il parle jamais, lui.",
-  "Regardez-le, tout seul.",
-  "Cette place est prise.",
-  "Il se croit où ?"
+  t("T'es bizarre, quand même."),
+  t("Pourquoi tu es comme ça ?"),
+  t("Tu fais exprès."),
+  t("Encore toi."),
+  t("Il parle jamais, lui."),
+  t("Regardez-le, tout seul."),
+  t("Cette place est prise."),
+  t("Il se croit où ?")
 ];
 // les mots fonces : vraiment mechants
 var fonces = [
-  "T'es nul.",
-  "Tu sers à rien.",
-  "Personne ne t'aime.",
-  "Dégage.",
-  "T'es dégoûtant.",
-  "Tu fais pitié.",
-  "T'es de trop ici.",
-  "Ferme-la."
+  t("T'es nul."),
+  t("Tu sers à rien."),
+  t("Personne ne t'aime."),
+  t("Dégage."),
+  t("T'es dégoûtant."),
+  t("Tu fais pitié."),
+  t("T'es de trop ici."),
+  t("Ferme-la.")
 ];
 // ce que devient un mot quand il se detache
-var douces = ["Je suis là.", "Tu n'es pas seul.", "Ça va aller.", "On avance."];
+var douces = [t("Je suis là."), t("Tu n'es pas seul."), t("Ça va aller."), t("On avance.")];
 
 var delai_vague = 25000; // ms entre deux vagues (timer recurrent)
 var premiere_vague = 8000; // ms avant la premiere vague
@@ -78,7 +79,7 @@ var distance_ensemble = 40; // pixels : "l'un a cote de l'autre"
 var delai_detache = 1800; // ms entre deux mots qui se detachent quand on est ensemble
 var hauteur_pile = 7; // pixels entre deux mots empiles au-dessus de la tete
 var duree_avant_effondrement = 8000; // ms au poids maximum avant de s'effondrer
-var texte_effondrement = "Tu n'as pas pu avancer.\n\nClique pour continuer";
+var texte_effondrement = t("Tu n'as pas pu avancer.") + "\n\n" + t("Clique pour continuer");
 // les portes de classe (colonnes) : si un joueur s'effondre, on repart de la derniere passee
 var colonnes_de_reprise = [40, 71, 88];
 var colonne_de_fin = 98; // quand les deux joueurs l'ont depassee, plus de mots
@@ -97,7 +98,6 @@ export function creer_phrases(scene) {
   scene.temps_ensemble = 0; // depuis combien de temps les joueurs sont l'un a cote de l'autre
   scene.joueur_souris.mots = []; // les mots que chaque joueur porte
   scene.joueur_clavier.mots = [];
-  scene.tir_desactive = true; // pas de tir dans ce niveau (voir tir.js)
 
   // un mot qui touche un joueur s'accroche a lui
   scene.physics.add.overlap(scene.groupe_phrases, scene.joueur_souris, function (a, b) {
@@ -420,7 +420,7 @@ function afficher_l_indice(scene) {
     scene.game.canvas.parentElement.style.position = "relative";
     scene.game.canvas.parentElement.appendChild(indice);
   }
-  indice.innerHTML = "Une sonnerie, et les mots arrivent.<br>Restez l'un près de l'autre.";
+  indice.innerHTML = t("Une sonnerie, et les mots arrivent.") + "<br>" + t("Restez l'un près de l'autre.");
   indice.style.opacity = "1";
   indice.style.display = "block";
 

@@ -27,6 +27,7 @@
 import { ouvrir_dialogue } from "./dialogue.js";
 import { est_un_clic_de_tir } from "./tir.js";
 import { rendre_cliquable_sur_les_pixels } from "./zone_cliquable.js";
+import { t } from "./langue.js";
 
 
 // --- 1. Mise en place (dans create) ------------------------------------------
@@ -80,10 +81,10 @@ function creer_un_pnj(scene, objet) {
 
   // ce qu'il dit
   pnj.dialogue = {
-    ligne: lire_propriete(objet, "ligneNPJ", ""),
-    intro: lire_propriete(objet, "intro", ""),
-    pages: lire_les_pages(lire_propriete(objet, "phrase", ""), lire_propriete(objet, "mots", "")),
-    repliques: lire_les_repliques(lire_propriete(objet, "repliques", ""))
+    ligne: t(lire_propriete(objet, "ligneNPJ", "")),
+    intro: t(lire_propriete(objet, "intro", "")),
+    pages: lire_les_pages(t(lire_propriete(objet, "phrase", "")), t(lire_propriete(objet, "mots", ""))),
+    repliques: lire_les_repliques(t(lire_propriete(objet, "repliques", "")))
   };
 
   // la souris entre / sort du PNJ

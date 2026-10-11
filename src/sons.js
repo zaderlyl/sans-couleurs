@@ -21,6 +21,7 @@ var volume_musique = 0.4; // le volume de la musique de fond (0 a 1)
 var volume_pas = 0.1;
 var volume_rire = 0.6; // le rire moqueur des PNJ (avant : 0.18)
 var volume_atterrissage = 0.2;
+var effets_actifs = true; // les bruitages sont-ils actifs ? (reglage du menu)
 
 
 // --- Le contexte audio (un seul pour tout le jeu) -----------------------------
@@ -38,7 +39,7 @@ function obtenir_le_contexte() {
 // le contexte s'il est pret a jouer, ou null (pas de son avant le premier clic)
 function contexte_pret() {
   var c = obtenir_le_contexte();
-  if (c.state == "running") {
+  if (c.state == "running" && effets_actifs == true) {
     return c;
   }
   return null;
@@ -101,6 +102,29 @@ export function changer_la_musique(fichier) {
   musique.play().catch(function () {
     musique = null;
   });
+}
+
+// --- Reglages du menu ---------------------------------------------------------
+
+// le volume de la musique de fond (0 a 1)
+export function lire_volume_musique() {
+  return volume_musique;
+}
+
+export function regler_volume_musique(valeur) {
+  volume_musique = Math.max(0, Math.min(1, valeur));
+  if (musique != null) {
+    musique.volume = volume_musique;
+  }
+}
+
+// les bruitages (pas, tirs, rires...) : actifs ou muets
+export function lire_effets_actifs() {
+  return effets_actifs;
+}
+
+export function regler_effets_actifs(actif) {
+  effets_actifs = actif;
 }
 
 // La musique s'alourdit : poids de 0 (normale) a 1 (plus lente, donc plus grave,
@@ -244,11 +268,39 @@ export function jouer_son_sonnerie() {
 
 // --- Le cardiogramme du monde 4 : les bips des televisions (planifies par niveau4.js) ---
 
+// le son d'un bip (assets/audio/bip.mp3) : un seul bip, relance par niveau4.js
+// au rythme voulu. Il est charge une fois, au premier besoin.
+var son_du_bip = null;
+var bip_en_chargement = false;
+
+function charger_le_bip(c) {
+  bip_en_chargement = true;
+  fetch("assets/audio/bip.mp3")
+    .then(function (reponse) { return reponse.arrayBuffer(); })
+    .then(function (donnees) { return c.decodeAudioData(donnees); })
+    .then(function (son) { son_du_bip = son; })
+    .catch(function () { bip_en_chargement = false; });
+}
+
 // un bip de moniteur ; `volume` de 0 (rien) a 1
 export function jouer_un_bip(volume) {
-  if (volume > 0.02) {
-    jouer_une_note(1000, 1000, 0.09, 0.22 * volume, "sine");
+  var c = contexte_pret();
+  if (c == null || volume <= 0.02) {
+    return;
   }
+  if (son_du_bip == null) {
+    if (bip_en_chargement == false) {
+      charger_le_bip(c);
+    }
+    return; // pas encore charge : on joue le suivant
+  }
+  var source = c.createBufferSource();
+  source.buffer = son_du_bip;
+  var gain = c.createGain();
+  gain.gain.value = volume;
+  source.connect(gain);
+  gain.connect(c.destination);
+  source.start();
 }
 
 // le cardiogramme s'arrete : un ton plat qui CONTINUE. Renvoie un objet avec

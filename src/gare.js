@@ -21,6 +21,8 @@
 //
 //   - niveau_suivant : la cle du niveau ou mene le train (ou null : il ne mene nulle part) ;
 //   - sortie_active  : false si on peut arriver ici en train mais pas repartir ;
+//   - calque         : le calque de la carte qui dessine la gare ("gare" par defaut) ;
+//   - arrivee        : false si ce niveau a une autre gare d'arrivee (creer_train_d_arrivee) ;
 //   - pensees        : les phrases de l'ecran noir a l'arrivee dans le niveau suivant
 //                      (voir pensees.js ; sinon, des phrases par defaut).
 //
@@ -31,6 +33,7 @@ import { afficher_phrases, afficher_pensees } from "./ecran_texte.js";
 import { pensees } from "./pensees.js";
 import { rendre_cliquable_sur_les_pixels } from "./zone_cliquable.js";
 import { style_texte } from "./styles.js";
+import { t } from "./langue.js";
 
 // --- Reglages : la calibration de l'image du train ---------------------------
 //
@@ -54,19 +57,19 @@ var hauteur_icone = 80; // l'icone "E" est a cette hauteur fixe au-dessus du sol
 
 // ce que dit le joueur souris quand il manque quelqu'un dans la gare
 var phrases_il_manque_quelqu_un = [
-  "Je ne peux pas partir sans lui.",
-  "On ne laisse personne derriere.",
-  "Pas sans l'autre."
+  t("Je ne peux pas partir sans lui."),
+  t("On ne laisse personne derriere."),
+  t("Pas sans l'autre.")
 ];
 
 // ce que dit un joueur pret pendant qu'il attend l'autre
-var phrase_d_attente_souris = "J'attends l'autre...";
-var phrase_d_attente_clavier = "J'attends...";
+var phrase_d_attente_souris = t("J'attends l'autre...");
+var phrase_d_attente_clavier = t("J'attends...");
 
 var phrases_du_voyage = [
-  "Le train quitte la gare.",
-  "Les paysages defilent derriere la vitre.",
-  "Quelques instants plus tard..."
+  t("Le train quitte la gare."),
+  t("Les paysages defilent derriere la vitre."),
+  t("Quelques instants plus tard...")
 ];
 
 
@@ -76,22 +79,23 @@ export function creer_gare(scene, options) {
   scene.etat_gare = "attente";
   scene.gare = null;
 
-  // le bloc de tuiles "gare" de la carte : colonnes et rangees min / max
-  var boite = boite_des_tuiles(scene.carte, "gare");
+  // le bloc de tuiles de la gare dans la carte : colonnes et rangees min / max
+  // (le calque "gare" par defaut ; une carte peut avoir un autre calque pour la gare de depart)
+  var nom_du_calque = "gare";
+  if (options.calque != undefined) {
+    nom_du_calque = options.calque;
+  }
+  var boite = boite_des_tuiles(scene.carte, nom_du_calque);
   if (boite == null) {
     return; // cette carte n'a pas de gare
   }
 
-  // la gare est-elle dessinee retournee dans cette carte ? (la carte 2 le fait)
-  var flippe = le_calque_est_retourne(scene.carte, "gare");
+  // la gare est-elle dessinee retournee dans cette carte ?
+  var flippe = le_calque_est_retourne(scene.carte, nom_du_calque);
 
-  var gare = {};
+  creer_les_animations(scene);
+  var gare = poser_le_train(scene, boite, flippe);
   gare.options = options;
-  // le milieu du bloc de tuiles
-  gare.centre_x = (boite.col_min * 16 + (boite.col_max + 1) * 16) / 2;
-  gare.bas_y = boite.rangee_max * 16;
-  gare.haut_y = boite.rangee_min * 16;
-  gare.flippe = flippe;
   gare.souris_dessus = false;
   gare.pressee = false; // l'animation "E qui eclate" est-elle en cours ?
   gare.souris_prete = false; // le joueur souris a clique sur la gare et y est arrive
@@ -111,21 +115,9 @@ export function creer_gare(scene, options) {
   gare.zone = new Phaser.Geom.Rectangle(x_min, boite.rangee_min * 16 - 8, x_max - x_min, (boite.rangee_max - boite.rangee_min) * 16 + 48);
   gare.parole = null; // le texte "il manque quelqu'un", quand il est affiche
 
-  // --- l'image du train, posee sur le bloc de tuiles ---
-  creer_les_animations(scene);
-  var decalage = decalage_normal;
-  if (flippe == true) {
-    decalage = decalage_flippe;
-  }
-  gare.sprite = scene.add.sprite(gare.centre_x - decalage, gare.bas_y, "img_gare", 0);
-  gare.sprite.setOrigin(ancrage_x / taille_image, ancrage_y / taille_image);
-  gare.sprite.setDepth(5);
-  gare.sprite.setFlipX(flippe);
   // seul le dessin reagit a la souris, pas le grand carre transparent (et ca
   // marche aussi quand l'image est retournee : voir zone_cliquable.js)
   rendre_cliquable_sur_les_pixels(gare.sprite);
-  gare.x_sprite = gare.sprite.x;
-  gare.y_sprite = gare.sprite.y;
 
   // l'icone "E" au-dessus de la gare
   gare.icone = scene.add.sprite(gare.centre_x, hauteur_icone, "img_icone_e", 0);
@@ -160,10 +152,50 @@ export function creer_gare(scene, options) {
     });
   });
 
-  // on arrive en train : l'animation d'arrivee
-  if (scene.arrivee_en_train == true) {
-    arriver_en_train(scene);
+  // on arrive en train : l'animation d'arrivee (sauf si ce niveau a une gare d'arrivee a part)
+  if (scene.arrivee_en_train == true && options.arrivee != false) {
+    arriver_en_train(scene, gare);
   }
+}
+
+// Une gare ou on ARRIVE seulement (le calque "gare" de la carte, ou `nom_du_calque`), pour un niveau qui
+// a une autre gare pour repartir : le train arrive, s'arrete, et reste la.
+export function creer_train_d_arrivee(scene, nom_du_calque) {
+  if (nom_du_calque == undefined) {
+    nom_du_calque = "gare";
+  }
+  var boite = boite_des_tuiles(scene.carte, nom_du_calque);
+  if (boite == null) {
+    return;
+  }
+  creer_les_animations(scene);
+  var gare = poser_le_train(scene, boite, le_calque_est_retourne(scene.carte, nom_du_calque));
+  gare.arrivee_seule = true; // les joueurs passeront devant ce train (voir jouer_l_arrivee)
+  if (scene.arrivee_en_train == true) {
+    arriver_en_train(scene, gare);
+  }
+}
+
+// l'image du train, posee sur le bloc de tuiles `boite` ; renvoie la gare (sans interaction)
+function poser_le_train(scene, boite, flippe) {
+  var gare = {};
+  // le milieu du bloc de tuiles
+  gare.centre_x = (boite.col_min * 16 + (boite.col_max + 1) * 16) / 2;
+  gare.bas_y = boite.rangee_max * 16;
+  gare.haut_y = boite.rangee_min * 16;
+  gare.flippe = flippe;
+
+  var decalage = decalage_normal;
+  if (flippe == true) {
+    decalage = decalage_flippe;
+  }
+  gare.sprite = scene.add.sprite(gare.centre_x - decalage, gare.bas_y, "img_gare", 0);
+  gare.sprite.setOrigin(ancrage_x / taille_image, ancrage_y / taille_image);
+  gare.sprite.setDepth(5);
+  gare.sprite.setFlipX(flippe);
+  gare.x_sprite = gare.sprite.x;
+  gare.y_sprite = gare.sprite.y;
+  return gare;
 }
 
 // peut-on prendre le train maintenant ?
@@ -380,8 +412,7 @@ function fondu_au_noir(scene, suite) {
 
 // On vient d'arriver dans ce niveau en train : ecran noir avec des phrases (sauf
 // si scene.avec_transition est false), puis le train arrive et les joueurs descendent.
-function arriver_en_train(scene) {
-  var gare = scene.gare;
+function arriver_en_train(scene, gare) {
   scene.etat_gare = "enCours"; // figes pendant l'arrivee
 
   // les joueurs sont dans le train, sur le bloc de la gare (le joueur clavier
@@ -396,16 +427,15 @@ function arriver_en_train(scene) {
 
   if (scene.avec_transition == true) {
     afficher_pensees(scene, scene.pensees || phrases_du_voyage, function () {
-      jouer_l_arrivee(scene);
+      jouer_l_arrivee(scene, gare);
     });
   } else {
-    jouer_l_arrivee(scene);
+    jouer_l_arrivee(scene, gare);
   }
 }
 
 // le train arrive en douceur, l'ecran se rallume, les joueurs sont libres
-function jouer_l_arrivee(scene) {
-  var gare = scene.gare;
+function jouer_l_arrivee(scene, gare) {
   scene.cameras.main.resetFX(); // enleve le noir pose plus haut
   scene.cameras.main.fadeIn(500, 0, 0, 0);
 
@@ -414,6 +444,11 @@ function jouer_l_arrivee(scene) {
     gare.sprite.setFrame(0); // le train reste la, a l'arret
     montrer_le_joueur(scene.joueur_souris);
     montrer_le_joueur(scene.joueur_clavier);
+    if (gare.arrivee_seule == true) {
+      // un train qui ne sert plus : les joueurs descendent et passent DEVANT lui
+      scene.joueur_souris.setDepth(6);
+      scene.joueur_clavier.setDepth(6);
+    }
     scene.etat_gare = "attente";
   });
 }

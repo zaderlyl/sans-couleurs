@@ -67,10 +67,12 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 ├── index.html                  Page d'entree : <script type="module" src="src/index.js">
 ├── src/                        Code du jeu (modules ES, un fichier = un sujet)
 │   ├── index.js                Config Phaser + liste des scenes
-│   ├── accueil.js              Page d'accueil (titre + boutons)
+│   ├── accueil.js              Menu principal en objets Phaser (jouer, niveaux, reglages, credits)
+│   ├── langue.js               La langue (francais / anglais) et la fonction t() qui traduit un texte
+│   ├── traductions.js          Les textes du jeu en anglais (cle = texte francais)
 │   ├── niveau.js               Classe de base des niveaux (carte, 2 joueurs, tir, decor)
 │   ├── niveau1.js              Niveau 1 : mini-tuto (panneaux + cible d'entrainement) + gare
-│   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage
+│   ├── niveau2.js              Niveau 2 (enfance) : PNJ + train d'arrivee + gare de depart
 │   ├── niveau3.js              Niveau 3 (college) : mots a porter, pastilles, gare
 │   ├── niveau4.js              Niveau 4 (la fin) : plaine, epave du train, trois televisions
 │   ├── niveau5.js, pression.js Niveau 5 (le lycee) : pieces, coups suggeres, pression
@@ -78,7 +80,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── camera.js               La camera : un seul ecran qui suit les deux joueurs
 │   ├── tir.js, cibles.js, tuto.js   Le tir (souris / clavier), la cible d'entrainement + timers, les panneaux du tuto
 │   ├── phrases.js, pastilles.js    Niveau 3 : les mots du college ; pastille d'un joueur hors cadre (tous les niveaux)
-│   ├── gare.js, passage.js         Interactions et changements de niveau
+│   ├── gare.js                     Les trains (gares de depart et d'arrivee) et les changements de niveau
 │   ├── pnj.js, dialogue.js, mots_a_placer.js               PNJ et dialogues a trous
 │   ├── ecran_texte.js, decor.js, textes_de_zone.js         Ambiance
 │   ├── chute.js                Tomber dans le vide (bords du monde)
@@ -90,10 +92,10 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── sprites/                 Personnages, train, herbe animee, cible...
 │   ├── ui/                      Icone d'interaction
 │   ├── fonts/                   Polices (voir le @font-face d'index.html)
-│   └── audio/                   ambiance.mp3 : la musique de fond (les bruitages sont synthetises via Web Audio)
+│   └── audio/                   ambiance.mp3 : la musique de fond ; bip.mp3 : le bip des televisions (monde 4) ; les autres bruitages sont synthetises via Web Audio
 ├── tiled/                       Sources d'edition, jamais chargees par le jeu
 │   ├── maps/                    Fichiers sources Tiled (.tmx)
-│   └── art-source/              Images de travail et tuiles pas encore utilisees
+│   └── art-source/              Images de travail et tuiles pas utilisees (anciens-tilesets/ : anciens jeux de tuiles retires du jeu)
 ├── docs/
 │   └── index.html              Panel admin des issues, publie via GitHub Pages
 └── .github/
@@ -114,12 +116,13 @@ horloge, bancs...) et l'enfance aussi (balancoire, toboggan, arbre, bac a sable,
 portail de l'ecole...), dessines pour eux. Cote fichiers Tiled : la source `.tmx` dans
 `tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`.
 
-Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (passage) → niveau 3 →
+Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (train) → niveau 3 →
 (train) → niveau 4 → niveau 5. Entre deux niveaux, un ecran noir affiche une conversation
 entre J1 (a gauche) et J2 (a droite, en couleurs inversees) : les deux parts du
 personnage, qui sont la meme personne (a ecrire dans `src/pensees.js`).
 La position de la gare n'est pas codee en dur : elle est recalculee depuis le
-calque `gare` de la carte.
+calque `gare` de la carte (le niveau 2 a aussi un calque `gare_depart` pour sa gare
+de depart ; le niveau 4 a un train d'arrivee en miroir).
 
 ## Commandes
 
@@ -140,7 +143,7 @@ tir dans le niveau 3.
 ## Le niveau 3 : porter les mots a deux
 
 Le college est un long couloir (120 tuiles : la cour, l'entree, trois classes,
-la sortie de secours, puis la gare). Il n'y a ni ennemi ni tir :
+la sortie de secours, puis la gare). Il n'y a pas d'ennemi :
 
 - toutes les 25 secondes, une sonnerie retentit et des mots arrivent **un par
   un** ; les mots **clairs** sont des moqueries legeres (poids 1), les mots
@@ -175,8 +178,7 @@ Quand les trois sont plates, un fondu au noir mene a l'ecran final. Le niveau a
 sa propre ambiance sonore.
 
 Le jeu aborde des sujets sensibles : un ecran d'avertissement, avec le 3114
-(numero national de prevention du suicide), s'affiche tout au debut du jeu, avant
-l'accueil, et l'ecran final le rappelle.
+(numero national de prevention du suicide), s'affiche la premiere fois qu'on appuie sur Jouer, et l'ecran final le rappelle.
 
 ## Le niveau 5 : le lycee
 
@@ -194,7 +196,7 @@ plus fort, il se pose des questions et trouve des excuses ; puis il ne dit plus
 rien, par habitude ; puis il pleure et ne sait plus quoi faire. Les textes sont
 separes par qui parle (J1, la voix rationnelle de J2, sa voix emotionnelle, le
 juge, l'avocat) et suivent leur personnage. Le tribunal est une vraie audience :
-un juge, un avocat, des accusations, un classement sans suite.
+un juge, elle (l'ombre) qui l'accuse a tort apres qu'il l'a quittee, son avocat a lui, ses accusations qui volent vers lui, un classement sans suite.
 
 La pression monte a chaque coup : un voile sombre et flou sur les bords de
 l'ecran, une musique plus lente et plus grave, des mouvements plus lents. Le
@@ -202,8 +204,8 @@ joueur clavier est une part du personnage lui-meme, un allie interieur, qui a
 deux voix : une rationnelle, une emotionnelle. Quand les deux joueurs restent
 l'un a cote de l'autre, la pression redescend, mais jamais tout a fait : il reste
 des sequelles. Au tribunal, des accusations fausses s'accrochent au personnage,
-puis « Classe sans suite ». La derniere piece, la nuit, ramene les coups en
-ombres silencieuses : il faut rester ensemble pour tenir.
+puis « Classe sans suite ». Dans la derniere piece, la nuit, on clique sur le lit (il vibre sous la souris) : il s'y couche (une image du lit avec lui dedans), elle
+vient et le frappe quatre fois (sans rien montrer), puis c'est la fin du jeu.
 
 ## Systeme de dialogue
 
@@ -250,8 +252,8 @@ de conserver la mention de copyright et le texte de la licence.
 
 Copyright (c) 2026 Lilian Cornet.
 
-Les musiques d'ambiance (`assets/audio/ambiance.mp3` et `ambiance-monde4.mp3`)
-sont des morceaux de tiers (telecharges sous les noms
+Les sons `assets/audio/ambiance.mp3`, `ambiance-monde4.mp3` et `bip.mp3`
+(ce dernier : « Beep of a cash register », BigSoundBank.com) sont des sons de tiers (telecharges sous les noms
 « tunetank-dark-ambient-soundscape-music » et « cosmic-scapes-soft-brown-noise ») :
 ils ne sont pas couverts par la licence MIT du code et restent soumis a la
 licence de leurs auteurs.
