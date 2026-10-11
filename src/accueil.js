@@ -1,7 +1,15 @@
 // accueil.js — la page d'accueil : le titre du jeu et des boutons pour
-// choisir le niveau.
+// choisir le niveau. Tout au debut du jeu (une seule fois), un ecran
+// d'avertissement previent que le jeu aborde des sujets sensibles.
 
 import { demarrer_la_musique } from "./sons.js";
+import { afficher_texte } from "./ecran_texte.js";
+
+var texte_avertissement = "Ce jeu raconte des moments difficiles de la vie d'un personnage : le harcèlement, le mal-être, la violence, et l'envie d'en finir.\n\n" +
+  "Si tu traverses quelque chose de difficile, tu n'es pas seul. En France, le 3114 (numéro national de prévention du suicide) répond gratuitement, 24 h sur 24.\n\n" +
+  "Clique pour continuer.";
+
+var avertissement_deja_vu = false; // l'ecran d'avertissement ne s'affiche qu'une fois
 
 export default class accueil extends Phaser.Scene {
   // constructeur de la classe : on donne a la scene son identifiant
@@ -27,6 +35,13 @@ export default class accueil extends Phaser.Scene {
     this.bouton_enfance = this.creer_bouton("L'enfance", "niveau2");
     this.bouton_college = this.creer_bouton("Le college", "niveau3");
     this.bouton_fin = this.creer_bouton("La fin", "niveau4");
+
+    // tout au debut du jeu : l'avertissement (par-dessus l'accueil, jusqu'au clic)
+    if (avertissement_deja_vu == false) {
+      afficher_texte(this, texte_avertissement, function () {
+        avertissement_deja_vu = true;
+      });
+    }
 
     // la barre espace lance aussi le niveau 1
     this.clavier = this.input.keyboard.createCursorKeys();

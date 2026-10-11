@@ -71,7 +71,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── niveau1.js              Niveau 1 : mini-tuto (panneaux + cible d'entrainement) + gare
 │   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage
 │   ├── niveau3.js              Niveau 3 (college) : mots a porter, pastilles, gare
-│   ├── niveau4.js              Niveau 4 (la fin) : plaine, epave du train, trois televisions
+│   ├── niveau4.js, ecran_dechire.js   Niveau 4 (la fin) : plaine, epave, trois televisions, ecran gris dechire
 │   ├── pensees.js              Les pensees du personnage (ecrans noirs entre les niveaux)
 │   ├── camera.js               La camera : un seul ecran qui suit les deux joueurs
 │   ├── tir.js, cibles.js, tuto.js   Le tir (souris / clavier), la cible d'entrainement + timers, les panneaux du tuto
@@ -160,14 +160,19 @@ Les reglages (rythme des vagues, poids, delais...) sont tout en haut de
 
 Le point de cesure entre le college et le lycee. Une plaine vide ; d'un cote
 l'epave du train (le train ne repart plus), de l'autre trois televisions qui
-montrent un cardiogramme. Quand le joueur souris en eteint une, la ligne devient
-plate, puis un coeur en pixels apparait et se brise : un peu, davantage, puis
-completement. On ne montre rien de plus. Le niveau a sa propre ambiance sonore.
+montrent un cardiogramme : on entend leur bip, de plus en plus fort quand on
+s'approche. Au survol, une television tremble et montre une icone « E ».
+Quand le joueur souris interagit avec l'une d'elles, le cardiogramme s'emballe
+(il va plus vite, les bips se rapprochent) et un ecran gris plein ecran apparait,
+dechire par des fissures de plus en plus nombreuses ; la television disparait.
+Ca se repete trois fois : a la troisieme, le cardiogramme s'arrete sur un ton
+sourd et continu, l'ecran est tout dechire, puis un fondu au noir mene a
+l'ecran final. Le niveau a sa propre ambiance sonore. Le joueur clavier est
+present mais ne peut rien faire.
 
-Il parle d'un moment tres sombre de la vie du personnage : un ecran
-d'avertissement (avec le 3114, numero national de prevention du suicide) s'affiche
-au debut (un clic pour continuer, Echap pour passer le niveau), et un ecran
-final le rappelle. Le joueur clavier est present mais ne peut rien faire.
+Le jeu aborde des sujets sensibles : un ecran d'avertissement, avec le 3114
+(numero national de prevention du suicide), s'affiche tout au debut du jeu, avant
+l'accueil, et l'ecran final le rappelle.
 
 ## Systeme de dialogue
 

@@ -45,10 +45,19 @@ export default class niveau extends Phaser.Scene {
   }
 
   preload() {
-    // l'image des tuiles, la carte Tiled (au format JSON) et les personnages
+    // la carte Tiled (au format JSON) : propre a chaque niveau
+    if (this.cache.tilemap.exists(this.nom_carte) == false) {
+      this.load.tilemapTiledJSON(this.nom_carte, "assets/maps/" + this.nom_carte + ".json");
+    }
+    // les images sont les memes pour tous les niveaux : si on en a deja joue un,
+    // elles sont deja chargees (sinon Phaser protesterait : "Texture key already in use")
+    if (this.textures.exists("img_perso") == true) {
+      return;
+    }
+
+    // l'image des tuiles et les personnages
     this.load.image("img_tuiles", "assets/tilesets/Tileset.png");
     this.load.image("img_tuiles_college", "assets/tilesets/Tileset-college.png"); // (le niveau 3 s'en sert)
-    this.load.tilemapTiledJSON(this.nom_carte, "assets/maps/" + this.nom_carte + ".json");
     this.load.spritesheet("img_perso", "assets/sprites/characters/player.png", {
       frameWidth: 16,
       frameHeight: 16
@@ -58,7 +67,7 @@ export default class niveau extends Phaser.Scene {
       frameWidth: 16,
       frameHeight: 16
     });
-    // la goutte du tir, et les taches grises a toucher
+    // la goutte du tir, et la cible d'entrainement
     this.load.image("img_goutte", "assets/sprites/props/goutte.png");
     this.load.image("img_cible", "assets/sprites/props/cible.png");
     // l'icone "E" : 11 images de 16 x 16 (voir gare.js et pnj.js)
