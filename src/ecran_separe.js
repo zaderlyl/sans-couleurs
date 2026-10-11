@@ -18,6 +18,11 @@
 // Il y a deux cameras : scene.cameras.main (celle du joueur souris) et
 // scene.camera2 (celle du joueur clavier).
 //
+// Un niveau peut aussi garder UN SEUL ecran en tout temps : il met
+// this.camera_unique = true. La camera suit alors le milieu des joueurs ; s'ils
+// s'eloignent trop, elle suit celui qui est le plus avance, et l'autre apparait
+// en "pastille" au bord de l'ecran (voir pastilles.js).
+//
 // === Comment s'en servir ====================================================
 //
 //   dans create() :  creer_ecran_separe(this);
@@ -131,6 +136,10 @@ export function mettre_a_jour_ecran_separe(scene, delta) {
 // Renvoie un nombre de 0 (un seul ecran) a 1 (deux moities), d'apres la
 // distance entre les joueurs.
 function separation_voulue(scene) {
+  // un niveau a camera unique (voir pastilles.js) : jamais de separation
+  if (scene.camera_unique == true) {
+    return 0;
+  }
   // une scene plein ecran est en cours (voyage en train...) : un seul ecran
   if (scene.forcer_ecran_entier == true) {
     return 0;
@@ -257,6 +266,19 @@ function point_regarde(scene, camera, son_joueur) {
   var milieu_x = (souris.x + clavier.x) / 2;
   var milieu_y = (souris.y + clavier.y) / 2;
   var part = scene.part_separation;
+
+  // camera unique : le milieu, tant que les deux joueurs tiennent dans l'ecran ;
+  // sinon la camera suit le plus avance (le plus a droite), a 40 pixels du bord
+  if (scene.camera_unique == true) {
+    var largeur_vue = scene.scale.width / scene.cameras.main.zoom;
+    var marge_du_premier = 40;
+    var ecart_x = Math.abs(souris.x - clavier.x);
+    if (ecart_x <= largeur_vue - 2 * marge_du_premier) {
+      return { x: milieu_x, y: milieu_y };
+    }
+    var premier = souris.x > clavier.x ? souris : clavier;
+    return { x: premier.x - (largeur_vue / 2 - marge_du_premier), y: milieu_y };
+  }
 
   // un seul ecran : le milieu
   if (part <= 0) {

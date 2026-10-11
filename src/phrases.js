@@ -21,6 +21,11 @@
 // voile noir, flou et sans contraste) et plus la musique devient grave : le poids
 // se ressent sans texte.
 //
+// ECHEC : un joueur qui porte le poids maximum pendant 8 secondes d'affilee
+// s'effondre : fondu au noir, un texte, un clic, et les deux joueurs repartent de
+// la derniere porte de classe passee, sans aucun mot. L'autre joueur peut le
+// sauver en venant tout contre lui (les mots se detachent).
+//
 // Un TIMER RECURRENT lance la vague toutes les 25 s. Les mots cessent (et tout
 // s'allege) quand les deux joueurs arrivent a la gare.
 //
@@ -30,6 +35,7 @@
 
 import { style_texte } from "./styles.js";
 import { camera_du_joueur } from "./ecran_separe.js";
+import { afficher_texte } from "./ecran_texte.js";
 import { jouer_son_mot_refuse, jouer_son_mot_pose, jouer_son_sonnerie, peser_sur_la_musique } from "./sons.js";
 
 // les mots clairs : des moqueries legeres
@@ -70,8 +76,12 @@ var maximum_portes = 6; // un joueur ne porte jamais plus de poids que ca (clair
 var perte_de_vitesse = 0.16; // chaque point de poids retire ca a la vitesse (1 = normale)
 var vitesse_minimum = 0.1; // il avance toujours un peu : jamais bloque pour de bon
 var distance_ensemble = 40; // pixels : "l'un a cote de l'autre"
-var delai_detache = 1000; // ms entre deux mots qui se detachent quand on est ensemble
+var delai_detache = 1800; // ms entre deux mots qui se detachent quand on est ensemble
 var hauteur_pile = 7; // pixels entre deux mots empiles au-dessus de la tete
+var duree_avant_effondrement = 8000; // ms au poids maximum avant de s'effondrer
+var texte_effondrement = "Tu n'as pas pu avancer.\n\nClique pour continuer";
+// les portes de classe (colonnes) : si un joueur s'effondre, on repart de la derniere passee
+var colonnes_de_reprise = [40, 71, 88];
 var colonne_de_fin = 98; // quand les deux joueurs l'ont depassee, plus de mots
 
 var id_indice = "indice-phrases";
@@ -82,6 +92,9 @@ var id_indice = "indice-phrases";
 export function creer_phrases(scene) {
   scene.groupe_phrases = scene.physics.add.group({ allowGravity: false }); // les mots qui flottent
   scene.phrases_actives = true;
+  scene.effondrement = false; // un joueur vient de s'effondrer (le jeu est fige : voir est_fige)
+  scene.joueur_souris.temps_au_maximum = 0; // depuis combien de temps il porte le poids maximum
+  scene.joueur_clavier.temps_au_maximum = 0;
   scene.temps_ensemble = 0; // depuis combien de temps les joueurs sont l'un a cote de l'autre
   scene.joueur_souris.mots = []; // les mots que chaque joueur porte
   scene.joueur_clavier.mots = [];
@@ -213,6 +226,55 @@ function detacher(scene, joueur, rang) {
 }
 
 
+// un joueur s'effondre : fondu au noir, le texte, puis les deux joueurs repartent de
+// la derniere porte de classe passee, sans aucun mot
+function s_effondrer(scene, joueur) {
+  scene.effondrement = true; // fige le jeu (voir est_fige dans niveau.js)
+  var camera = scene.cameras.main;
+  camera.fadeOut(600, 0, 0, 0);
+  camera.once("camerafadeoutcomplete", function () {
+    camera.resetFX(); // le texte est un <div> par-dessus le jeu : on leve le fondu
+    afficher_texte(scene, texte_effondrement, function () {
+      repartir(scene, joueur);
+    });
+  });
+}
+
+function repartir(scene, joueur) {
+  // la derniere porte de classe passee par le joueur qui s'est effondre (sinon le depart)
+  var x = scene.point_depart.x;
+  for (var i = 0; i < colonnes_de_reprise.length; i++) {
+    if (colonnes_de_reprise[i] * 16 + 8 < joueur.x) {
+      x = colonnes_de_reprise[i] * 16 + 8;
+    }
+  }
+
+  // plus aucun mot : ceux qui flottent, et ceux que les joueurs portent
+  var flottants = scene.groupe_phrases.getChildren().slice();
+  for (var f = 0; f < flottants.length; f++) {
+    flottants[f].destroy();
+  }
+  var joueurs = [scene.joueur_souris, scene.joueur_clavier];
+  for (var j = 0; j < joueurs.length; j++) {
+    while (joueurs[j].mots.length > 0) {
+      joueurs[j].mots.shift().destroy();
+    }
+    joueurs[j].temps_au_maximum = 0;
+    joueurs[j].setVelocity(0, 0);
+  }
+  scene.joueur_souris.setPosition(x, scene.point_depart.y);
+  scene.joueur_clavier.setPosition(x + 24, scene.point_depart.y);
+  scene.destination_x = null; // le joueur souris ne continue pas vers son ancienne destination
+  scene.sauter_camera = true; // les cameras se placent d'un coup
+  scene.temps_ensemble = 0;
+  scene.cameras.main.fadeIn(500, 0, 0, 0);
+  scene.time.delayedCall(100, function () {
+    scene.sauter_camera = false;
+    scene.effondrement = false; // le jeu repart
+  }, null, scene);
+}
+
+
 // --- 3. Mise a jour (dans update) ----------------------------------------------
 
 export function mettre_a_jour_phrases(scene, delta) {
@@ -225,6 +287,18 @@ export function mettre_a_jour_phrases(scene, delta) {
     for (var m = 0; m < joueur.mots.length; m++) {
       var balancement = Math.sin((scene.time.now + joueur.mots[m].decalage) / 500) * 1.5;
       joueur.mots[m].setPosition(joueur.x + balancement, joueur.y - 14 - m * hauteur_pile);
+    }
+  }
+
+  // un joueur au poids maximum depuis trop longtemps s'effondre
+  for (var e = 0; e < joueurs.length; e++) {
+    if (poids_porte(joueurs[e]) >= maximum_portes) {
+      joueurs[e].temps_au_maximum = joueurs[e].temps_au_maximum + delta;
+    } else {
+      joueurs[e].temps_au_maximum = 0;
+    }
+    if (joueurs[e].temps_au_maximum >= duree_avant_effondrement && scene.effondrement == false) {
+      s_effondrer(scene, joueurs[e]);
     }
   }
 

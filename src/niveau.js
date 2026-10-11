@@ -319,7 +319,7 @@ export default class niveau extends Phaser.Scene {
   // ouvert (voir dialogue.js), le train est en route (voir gare.js) ou l'ecran
   // de mort du glitch est affiche (voir glitch.js)
   est_fige() {
-    return this.dialogue_ouvert == true || this.etat_gare == "enCours" || this.glitch_fin != null;
+    return this.dialogue_ouvert == true || this.etat_gare == "enCours" || this.glitch_fin != null || this.effondrement == true;
   }
 
   // Le joueur souris va jusqu'a l'abscisse x, puis fait `action` (une fonction,
