@@ -6,7 +6,7 @@
 //     lettre par lettre ; un clic finit la phrase en cours, puis passe a la
 //     suivante (le voyage en train, voir gare.js) ;
 //   - afficher_texte(scene, "...", quand_clic) : un texte affiche d'un coup,
-//     jusqu'au prochain clic (l'ecran de mort, voir glitch.js).
+//     jusqu'au prochain clic (l'ecran d'effondrement du college, voir phrases.js).
 
 var delai_par_lettre = 70; // ms : l'effet "machine a ecrire"
 

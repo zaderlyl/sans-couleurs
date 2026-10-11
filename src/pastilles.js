@@ -6,7 +6,7 @@
 // SON visage, se pose au bord de l'ecran du cote ou il se trouve, avec une
 // fleche qui montre la direction. Elle disparait des qu'il revient a l'ecran.
 //
-// Une pastille est un <div> HTML pose sur le jeu (comme le voile du glitch).
+// Une pastille est un <div> HTML pose sur le jeu (comme le voile du poids de phrases.js).
 //
 // Comment s'en servir (dans un niveau, voir niveau3.js) :
 //   this.camera_unique = true;

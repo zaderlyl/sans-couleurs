@@ -60,7 +60,7 @@ export default class niveau extends Phaser.Scene {
     // la goutte du tir, et les taches grises a toucher
     this.load.image("img_goutte", "assets/sprites/props/goutte.png");
     this.load.image("img_cible", "assets/sprites/props/cible.png");
-    // l'icone "E" : 11 images de 16 x 16 (voir portails.js et pnj.js)
+    // l'icone "E" : 11 images de 16 x 16 (voir gare.js et pnj.js)
     this.load.spritesheet("img_icone_e", "assets/ui/E_animated.png", {
       frameWidth: 16,
       frameHeight: 16
@@ -109,7 +109,7 @@ export default class niveau extends Phaser.Scene {
     var depart = this.carte.findObject("Calque d'Objets 1", function (objet) {
       return objet.name === "spawn";
     });
-    // (on retient ce point : le glitch y renvoie le joueur, voir glitch.js)
+    // (on retient ce point : la chute dans le vide y ramene le joueur, voir chute.js)
     this.point_depart = { x: depart.x, y: depart.y };
     this.joueur_souris = this.physics.add.sprite(depart.x, depart.y, "img_perso");
     this.physics.add.collider(this.joueur_souris, this.calque_sol);
@@ -190,7 +190,7 @@ export default class niveau extends Phaser.Scene {
     // --- les textes de zone (poses dans Tiled) ---
     creer_textes_de_zone(this);
 
-    // --- ce qui est propre a ce niveau (portails, cibles, ...) ---
+    // --- ce qui est propre a ce niveau (cibles, gare, mots, ...) ---
     this.creer_particularites();
 
     // --- le clic de souris ---
@@ -316,10 +316,10 @@ export default class niveau extends Phaser.Scene {
   }
 
   // true quand les joueurs ne doivent plus bouger ni tirer : un dialogue est
-  // ouvert (voir dialogue.js), le train est en route (voir gare.js) ou l'ecran
-  // de mort du glitch est affiche (voir glitch.js)
+  // ouvert (voir dialogue.js), le train est en route (voir gare.js) ou un joueur
+  // vient de s'effondrer sous le poids des mots (voir phrases.js)
   est_fige() {
-    return this.dialogue_ouvert == true || this.etat_gare == "enCours" || this.glitch_fin != null || this.effondrement == true;
+    return this.dialogue_ouvert == true || this.etat_gare == "enCours" || this.effondrement == true;
   }
 
   // Le joueur souris va jusqu'a l'abscisse x, puis fait `action` (une fonction,
