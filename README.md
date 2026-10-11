@@ -67,11 +67,11 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── index.js                Config Phaser + liste des scenes
 │   ├── accueil.js              Page d'accueil (titre + boutons)
 │   ├── niveau.js               Classe de base des niveaux (carte, 2 joueurs, tir, decor)
-│   ├── niveau1.js              Niveau 1 : cibles + gare
+│   ├── niveau1.js              Niveau 1 : mini-tuto (panneaux + cible d'entrainement) + gare
 │   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage
 │   ├── niveau3.js              Niveau 3 (college) : mots a porter, pastilles, gare
 │   ├── camera.js               La camera : un seul ecran qui suit les deux joueurs
-│   ├── tir.js, cibles.js       Le tir (souris / clavier) et les cibles + timers
+│   ├── tir.js, cibles.js, tuto.js   Le tir (souris / clavier), la cible d'entrainement + timers, les panneaux du tuto
 │   ├── phrases.js, pastilles.js    Niveau 3 : les mots du college ; pastille d'un joueur hors cadre (tous les niveaux)
 │   ├── gare.js, passage.js         Interactions et changements de niveau
 │   ├── pnj.js, dialogue.js, mots_a_placer.js               PNJ et dialogues a trous
@@ -82,7 +82,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
 │   ├── tilesets/                Images de tuiles (Tileset.png ; Tileset-college.png pour le niveau 3)
-│   ├── sprites/                 Personnages, train, herbe animee, cibles...
+│   ├── sprites/                 Personnages, train, herbe animee, cible...
 │   ├── ui/                      Icone d'interaction
 │   ├── fonts/                   Polices (voir le @font-face d'index.html)
 │   └── audio/                   ambiance.mp3 : la musique de fond (les bruitages sont synthetises via Web Audio)
@@ -119,6 +119,9 @@ calque `gare` de la carte.
 | Marcher | clic dans le vide | fleches gauche / droite |
 | Interagir | clic sur l'element (PNJ, gare) | touche E dans la gare ; se placer a cote de l'autre joueur (mots du niveau 3) |
 | Tirer (niveaux 1 et 2) | Ctrl ou Cmd + clic (vers le point clique) | barre espace (devant lui) |
+
+Le niveau 1 sert de mini-tuto : des panneaux le long du chemin apprennent les
+commandes (marcher, tirer sur une cible d'entrainement, prendre le train).
 
 Le train ne part que si les **deux** joueurs agissent dessus : le joueur souris
 clique sur la gare, le joueur clavier se place dedans et appuie sur E. On ne

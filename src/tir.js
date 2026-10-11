@@ -1,12 +1,11 @@
 // tir.js — le tir des deux joueurs.
 //
 // - Joueur souris : on maintient Ctrl (ou Cmd sur Mac) et on clique. Un
-//   projectile (une goutte de couleur) part du joueur et vole en ligne droite
+//   projectile (une goutte noire) part du joueur et vole en ligne droite
 //   jusqu'a l'endroit clique, ou il eclate en une petite tache.
 // - Joueur clavier : la barre espace tire devant lui, dans le sens ou il regarde.
 //
-// Un projectile eclate aussi quand il touche un mur. Les couleurs se suivent :
-// rouge, vert, bleu, rouge...
+// Un projectile eclate aussi quand il touche un mur.
 //
 // Comment s'en servir :
 //   dans preload() : this.load.image("img_goutte", "assets/sprites/props/goutte.png");
@@ -27,7 +26,7 @@ var vitesse_projectile = 260; // pixels du monde par seconde
 var portee_max = 400; // un tir ne va jamais plus loin
 var delai_entre_tirs = 250; // millisecondes entre deux tirs d'un meme joueur
 var portee_clavier = 160; // le joueur clavier tire "devant lui" jusqu'a cette distance
-var couleurs_tir = [0xff2a4a, 0x2aff6a, 0x2a7bff]; // rouge, vert, bleu
+var couleurs_tir = [0x000000]; // un projectile noir (le jeu n'a pas de couleurs)
 
 
 // --- 1. Mise en place (dans create) ------------------------------------------
@@ -149,7 +148,7 @@ function tirer_vers(scene, joueur, cible_x, cible_y) {
   projectile.couleur = couleurs_tir[scene.couleur_tir];
   projectile.tireur = joueur; // qui a tire (les phrases du niveau 3 le demandent)
 
-  // couleur suivante : rouge, vert, bleu, rouge...
+  // couleur suivante (il n'y en a qu'une : le noir)
   scene.couleur_tir = (scene.couleur_tir + 1) % couleurs_tir.length;
   jouer_son_tir();
 }
