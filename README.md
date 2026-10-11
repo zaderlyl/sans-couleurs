@@ -80,7 +80,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── camera.js               La camera : un seul ecran qui suit les deux joueurs
 │   ├── tir.js, cibles.js, tuto.js   Le tir (souris / clavier), la cible d'entrainement + timers, les panneaux du tuto
 │   ├── phrases.js, pastilles.js    Niveau 3 : les mots du college ; pastille d'un joueur hors cadre (tous les niveaux)
-│   ├── gare.js, passage.js         Interactions et changements de niveau
+│   ├── gare.js                     Les trains (gares de depart et d'arrivee) et les changements de niveau
 │   ├── pnj.js, dialogue.js, mots_a_placer.js               PNJ et dialogues a trous
 │   ├── ecran_texte.js, decor.js, textes_de_zone.js         Ambiance
 │   ├── chute.js                Tomber dans le vide (bords du monde)
@@ -95,7 +95,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   └── audio/                   ambiance.mp3 : la musique de fond ; bip.mp3 : le bip des televisions (monde 4) ; les autres bruitages sont synthetises via Web Audio
 ├── tiled/                       Sources d'edition, jamais chargees par le jeu
 │   ├── maps/                    Fichiers sources Tiled (.tmx)
-│   └── art-source/              Images de travail et tuiles pas encore utilisees
+│   └── art-source/              Images de travail et tuiles pas utilisees (anciens-tilesets/ : anciens jeux de tuiles retires du jeu)
 ├── docs/
 │   └── index.html              Panel admin des issues, publie via GitHub Pages
 └── .github/
