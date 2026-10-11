@@ -71,14 +71,14 @@ var coups = [
 // Au tribunal, la camera recule et chaque personne parle dans SA ligne (hauteur du
 // bas du texte, en pixels du monde) : rien ne se recouvre.
 var zoom_du_tribunal = 3.6;
-var lignes_du_tribunal = { j1: 128, rationnelle: 82, emotionnelle: 82, avocat: 68, juge: 54 };
-var hauteur_de_la_pile = 120; // les accusations : la 1re est ici, les suivantes au-dessus (9 px chacune)
+var lignes_du_tribunal = { j1: 128, rationnelle: 74, emotionnelle: 74, avocat: 68, juge: 54 };
+var hauteur_de_la_pile = 112; // les accusations : la 1re est ici, les suivantes au-dessus (9 px chacune)
 
 var delai_entre_cauchemars = 7000; // ms (la nuit)
 var duree_pour_tenir = 6000; // ms a rester l'un a cote de l'autre pour finir la nuit
 
 var texte_de_fin = [
-  t("Une plainte. Une audience. Des mots qu'on a mis dans ta bouche."),
+  t("Des rumeurs. Une plainte. Une audience. Des mots qui ne sont pas les tiens."),
   t("Le dossier a été classé sans suite : rien n'a été prouvé, rien n'a été réparé."),
   t("Il reste les nuits."),
   t("Si tu as vécu de la violence dans une relation, tu n'es pas seul. Le 116 006 (aide aux victimes) et le 3114 répondent gratuitement."),
@@ -198,7 +198,8 @@ export default class niveau5 extends niveau {
     this.time.delayedCall(delai, function () {
       var cible = scene.joueur_souris;
       contenu = t(contenu);
-      var style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 110 }, align: "center" });
+      var largeur_j1 = scene.tribunal_actif == true ? 200 : 110; // au tribunal : sur une seule ligne
+      var style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: largeur_j1 }, align: "center" });
       if (qui == "rationnelle") {
         cible = scene.joueur_clavier;
         style = Object.assign({}, style_texte, { color: "#ffffff", stroke: "#000000", wordWrap: { width: 100 } });
@@ -359,9 +360,10 @@ export default class niveau5 extends niveau {
   }
 
 
-  // --- Le tribunal : la gravite. Le juge, ELLE (l'ombre) et son avocat, des accusations, un classement. ---
-  // Lui a porte plainte ; elle est la, avec son avocat, et elle dit qu'il ment : ses mots
-  // partent d'elle et viennent s'empiler au-dessus de sa tete. Puis le juge classe sans suite.
+  // --- Le tribunal : la gravite. Le juge, ELLE (l'ombre) qui l'accuse, son avocat a lui, un classement. ---
+  // Apres qu'il l'a quittee, elle a fait courir des rumeurs et porte plainte contre lui
+  // pour viol. Ici, elle l'accuse : ses mots partent d'elle et viennent s'empiler au-dessus
+  // de sa tete. Son avocat conteste, et le juge classe sans suite. (Rien n'est montre.)
 
   scene_du_tribunal() {
     var scene = this;
@@ -370,13 +372,13 @@ export default class niveau5 extends niveau {
     this.tribunal_actif = true;
     this.tweens.add({ targets: this.cameras.main, zoom: zoom_du_tribunal, duration: 1000, ease: "Sine.easeInOut" }); // la camera recule
 
-    // elle (l'ombre, comme toujours) et son avocat apparaissent a gauche du personnage
-    this.elle = this.add.sprite(j.x - 24, sol_y, "img_ombre", 0);
+    // son avocat apparait a gauche du personnage ; elle (l'ombre, comme toujours), a droite du juge
+    this.elle = this.add.sprite(2496, sol_y, "img_ombre", 0);
     this.elle.setOrigin(0.5, 1);
     this.elle.setDepth(8);
     this.elle.setAlpha(0);
     this.elle.haut_texte = 36;
-    this.avocat = this.add.sprite(j.x - 46, sol_y, "img_tribunal", 1);
+    this.avocat = this.add.sprite(j.x - 26, sol_y, "img_tribunal", 1);
     this.avocat.setOrigin(0.5, 1);
     this.avocat.setDepth(8);
     this.avocat.haut_texte = 36;
@@ -386,11 +388,11 @@ export default class niveau5 extends niveau {
     // le juge ouvre l'audience et dit de quoi il s'agit
     this.dire("juge", "Audience du tribunal correctionnel.", 600, 3000);
     this.time.delayedCall(700, function () { jouer_son_marteau(); }, null, this);
-    this.dire("juge", "Plainte pour violences volontaires, déposée contre Madame.", 3800, 3600);
+    this.dire("juge", "Plainte pour viol, déposée par Madame contre le prévenu.", 3800, 3600);
 
-    // elle dit qu'il ment : chaque mot part d'elle, vole jusqu'a lui et s'empile au-dessus de sa tete
+    // elle l'accuse : chaque mot part d'elle, vole jusqu'a lui et s'empile au-dessus de sa tete
     var mots = [];
-    var accusations = [t("Il ment."), t("Il exagère."), t("Il a toujours été fragile."), t("Personne n'a rien vu.")];
+    var accusations = [t("Il m'a forcée."), t("Il l'a fait."), t("Tout le monde le sait."), t("Il est dangereux.")];
     for (var k = 0; k < accusations.length; k++) {
       this.time.delayedCall(7600 + k * 1100, function (indice) {
         var mot = scene.add.text(scene.elle.x, hauteur_de_la_pile - 10, accusations[indice], Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff" }));
@@ -411,13 +413,13 @@ export default class niveau5 extends niveau {
     // les accusations, une fois arrivees, suivent le personnage (empilees)
     this.piles_du_tribunal = mots;
 
-    // la defense : l'avocat d'ELLE
-    this.dire("avocat", "Ma cliente conteste les faits.", 12000, 3000);
-    this.dire("avocat", "Aucun témoin. Aucune preuve.", 14600, 2800);
-    this.dire("j1", "Je dis la vérité.", 16600, 2400);
+    // la defense : son avocat a lui
+    this.dire("avocat", "Mon client conteste les faits.", 12000, 3000);
+    this.dire("avocat", "Aucune preuve. Aucun témoin.", 14600, 2800);
+    this.dire("j1", "Je ne lui ai jamais fait ça.", 16600, 2400);
 
     // la decision
-    this.dire("juge", "Faute de preuves, la plainte est classée sans suite.", 18000, 4200);
+    this.dire("juge", "Les faits ne sont pas établis : la plainte est classée sans suite.", 18000, 4200);
     this.time.delayedCall(18300, function () { jouer_son_marteau(); }, null, this);
 
     // le tampon : « CLASSE SANS SUITE »
@@ -435,7 +437,7 @@ export default class niveau5 extends niveau {
     }, null, this);
 
     // les deux voix de J2
-    this.dire("rationnelle", "Tu n'as rien fait de mal.", 23000, 2800);
+    this.dire("rationnelle", "Tu n'as rien fait.", 23000, 2800);
     this.dire("emotionnelle", "Alors pourquoi je me sens coupable ?", 25400, 3400);
 
     // tout s'efface doucement : mais les sequelles restent

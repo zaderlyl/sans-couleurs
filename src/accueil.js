@@ -16,7 +16,7 @@ import { afficher_texte } from "./ecran_texte.js";
 import { t, lire_langue, choisir_langue } from "./langue.js";
 
 var texte_avertissement = [
-  t("Ce jeu raconte des moments difficiles de la vie d'un personnage : le harcèlement, le mal-être, la violence dans une relation, et l'envie d'en finir."),
+  t("Ce jeu raconte des moments difficiles de la vie d'un personnage : le harcèlement, le mal-être, la violence dans une relation, une accusation de violences sexuelles, et l'envie d'en finir."),
   t("Si tu traverses quelque chose de difficile, tu n'es pas seul. En France, le 3114 (numéro national de prévention du suicide) et le 116 006 (aide aux victimes) répondent gratuitement."),
   t("Clique pour continuer.")
 ].join("\n\n");
