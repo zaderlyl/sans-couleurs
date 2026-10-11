@@ -1,6 +1,6 @@
 // phrases.js — les mots du college. Ils arrivent par VAGUES, comme la sonnerie :
-// toutes les 25 secondes, une cloche sonne, puis une vague de mots balaie le
-// couloir ; entre deux vagues, c'est calme. On ne peut PAS les effacer : un mot qui touche un joueur s'accroche au-dessus de sa
+// toutes les 25 secondes, une cloche sonne, puis une vague de mots traverse le
+// couloir, UN MOT APRES L'AUTRE (pour qu'on lise chacun) ; entre deux vagues, c'est calme. On ne peut PAS les effacer : un mot qui touche un joueur s'accroche au-dessus de sa
 // tete et reste. Chaque mot accroche le ralentit un peu plus, jusqu'a ce qu'il
 // n'avance presque plus.
 //
@@ -47,10 +47,11 @@ var douces = ["Je suis là.", "Tu n'es pas seul.", "Ça va aller.", "On avance."
 var delai_vague = 25000; // ms entre deux vagues (timer recurrent)
 var premiere_vague = 8000; // ms avant la premiere vague
 var delai_avertissement = 1300; // ms entre la sonnerie et l'arrivee des mots
-var mots_par_vague = 10;
-var distance_devant = 150; // la vague apparait a cette distance devant le joueur le plus avance
-var hauteurs = [122, 140]; // y du monde : a hauteur du corps (le joueur est a y = 136)
-var vitesse_vague = 42; // px/s : la vague balaie le couloir vers la gauche
+var mots_par_vague = 6;
+var delai_entre_mots = 1800; // ms entre deux mots d'une meme vague : ils arrivent UN PAR UN
+var distance_devant = 150; // un mot apparait a cette distance devant le joueur le plus avance
+var hauteurs = [126, 136]; // y du monde : deux lignes qui alternent, pour qu'on lise chaque mot
+var vitesse_vague = 36; // px/s : les mots avancent vers la gauche
 var maximum_portes = 6; // un joueur ne porte jamais plus de mots que ca
 var perte_de_vitesse = 0.16; // chaque mot porte retire ca a la vitesse (1 = normale)
 var vitesse_minimum = 0.1; // il avance toujours un peu : jamais bloque pour de bon
@@ -94,7 +95,7 @@ export function creer_phrases(scene) {
   afficher_l_indice(scene);
 }
 
-// la vague : la sonnerie, un petit tremblement, puis les mots arrivent par la droite
+// la vague : la sonnerie, un petit tremblement, puis les mots arrivent un par un
 function lancer_la_vague(scene) {
   if (scene.phrases_actives == false || scene.est_fige() == true) {
     return;
@@ -103,28 +104,36 @@ function lancer_la_vague(scene) {
   scene.cameras.main.shake(400, 0.003);
   scene.camera2.shake(400, 0.003);
 
-  scene.time.delayedCall(delai_avertissement, function () {
-    if (scene.phrases_actives == false) {
-      return;
-    }
-    var devant = Math.max(scene.joueur_souris.x, scene.joueur_clavier.x);
-    for (var i = 0; i < mots_par_vague; i++) {
-      var x = devant + distance_devant + i * 14 + Phaser.Math.Between(0, 10);
-      if (x > colonne_de_fin * 16) {
-        continue; // trop pres de la gare
-      }
-      var est_une_voix = i % 2 == 0;
-      var liste = est_une_voix ? voix : silences;
-      var style = Object.assign({}, style_texte, { color: est_une_voix ? "#000000" : "#aaaaaa", stroke: est_une_voix ? "#ffffff" : "#000000" });
-      var mot = scene.add.text(x, Phaser.Math.Between(hauteurs[0], hauteurs[1]), Phaser.Utils.Array.GetRandom(liste), style);
-      mot.setOrigin(0.5, 0.5);
-      mot.setDepth(15);
-      scene.groupe_phrases.add(mot);
-      mot.body.setSize(mot.width, mot.height);
-      mot.body.setVelocity(-vitesse_vague, 0);
-      mot.decalage = Phaser.Math.Between(0, 6000); // pour que chacun balance a son rythme une fois porte
-    }
-  }, null, scene);
+  // un mot toutes les 1,8 s (un timer simple par mot)
+  for (var i = 0; i < mots_par_vague; i++) {
+    scene.time.delayedCall(delai_avertissement + i * delai_entre_mots, envoyer_un_mot, [scene, i], scene);
+  }
+}
+
+// un mot arrive par la droite, devant le joueur le plus avance (i = son numero dans la vague)
+function envoyer_un_mot(scene, i) {
+  if (scene.phrases_actives == false || scene.est_fige() == true) {
+    return;
+  }
+  var x = Math.max(scene.joueur_souris.x, scene.joueur_clavier.x) + distance_devant;
+  if (x > colonne_de_fin * 16) {
+    return; // trop pres de la gare
+  }
+  // une voix, puis un silence, puis une voix... sur deux lignes qui alternent
+  var est_une_voix = i % 2 == 0;
+  var liste = est_une_voix ? voix : silences;
+  var style = Object.assign({}, style_texte, { color: est_une_voix ? "#000000" : "#aaaaaa", stroke: est_une_voix ? "#ffffff" : "#000000" });
+  var mot = scene.add.text(x, est_une_voix ? hauteurs[0] : hauteurs[1], Phaser.Utils.Array.GetRandom(liste), style);
+  mot.setOrigin(0.5, 0.5);
+  mot.setDepth(15);
+  scene.groupe_phrases.add(mot);
+  mot.body.setSize(mot.width, mot.height);
+  mot.body.setVelocity(-vitesse_vague, 0);
+  mot.decalage = Phaser.Math.Between(0, 6000); // pour qu'il balance a son rythme une fois porte
+
+  // il apparait en fondu
+  mot.setAlpha(0);
+  scene.tweens.add({ targets: mot, alpha: 1, duration: 400 });
 }
 
 
