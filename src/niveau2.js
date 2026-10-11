@@ -22,8 +22,8 @@ export default class niveau2 extends niveau {
     creer_dialogue(this); // les gestes sur les mots (avant les PNJ)
     creer_pnjs(this);
     creer_gare(this, { niveau_suivant: null, sortie_active: false }); // on arrive en train, on ne peut pas repartir : pas de demi-tour
-    // la case (51, 9) mene au college
-    creer_passages(this, [{ colonne: 51, rangee: 9, vers: "niveau3" }]);
+    // la porte de l'ecole (case 76, 9) mene au college
+    creer_passages(this, [{ colonne: 76, rangee: 9, vers: "niveau3" }]);
   }
 
   mettre_a_jour_particularites(temps, delta) {
