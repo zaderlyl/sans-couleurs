@@ -36,6 +36,7 @@ export default class niveau extends Phaser.Scene {
   init(donnees) {
     this.arrivee_en_train = donnees.arrivee_en_train == true;
     this.avec_transition = donnees.avec_transition == true;
+    this.pensees = donnees.pensees; // les phrases de l'ecran noir de l'arrivee (voir pensees.js), ou undefined
     // Piege de Phaser : si on demarre une scene SANS donnees, il lui redonne
     // celles du demarrage precedent. On les efface ici, pour qu'une scene
     // demarree sans donnees (depuis l'accueil, un passage...) ne rejoue pas
@@ -319,9 +320,10 @@ export default class niveau extends Phaser.Scene {
 
   // true quand les joueurs ne doivent plus bouger ni tirer : un dialogue est
   // ouvert (voir dialogue.js), le train est en route (voir gare.js) ou un joueur
-  // vient de s'effondrer sous le poids des mots (voir phrases.js)
+  // vient de s'effondrer sous le poids des mots (voir phrases.js), ou le niveau
+  // lui-meme fige les joueurs (fige_par_le_niveau : voir niveau4.js)
   est_fige() {
-    return this.dialogue_ouvert == true || this.etat_gare == "enCours" || this.effondrement == true;
+    return this.dialogue_ouvert == true || this.etat_gare == "enCours" || this.effondrement == true || this.fige_par_le_niveau == true;
   }
 
   // Le joueur souris va jusqu'a l'abscisse x, puis fait `action` (une fonction,

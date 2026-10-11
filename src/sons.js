@@ -9,7 +9,8 @@
 // - jouer_son_mot_pris(), jouer_son_mot_pose(rang), jouer_son_mot_refuse() : le
 //   dialogue ; jouer_son_rire_moqueur() : le PNJ rit apres une reponse ;
 // - jouer_son_tir(), jouer_son_impact(), jouer_son_cible() : le tir et les cibles ;
-// - jouer_son_chute() : la chute dans le vide.
+// - jouer_son_chute() : la chute dans le vide ;
+// - changer_la_musique(), jouer_son_bip_plat(), jouer_son_coeur_brise() : le monde 4.
 //
 // Tant que le joueur n'a pas encore clique, les bruitages restent muets (sans
 // erreur) : le navigateur garde le contexte audio "suspendu".
@@ -85,6 +86,20 @@ export function demarrer_la_musique() {
   musique.volume = volume_musique;
   musique.play().catch(function () {
     musique = null; // le navigateur a refuse : on reessaiera au prochain clic
+  });
+}
+
+// Change la musique de fond : l'ancienne s'arrete, la nouvelle (un fichier audio)
+// tourne en boucle. Le monde 4 a sa propre ambiance.
+export function changer_la_musique(fichier) {
+  if (musique != null) {
+    musique.pause();
+  }
+  musique = new Audio(fichier);
+  musique.loop = true;
+  musique.volume = volume_musique;
+  musique.play().catch(function () {
+    musique = null;
   });
 }
 
@@ -225,4 +240,17 @@ export function jouer_son_sonnerie() {
       jouer_une_note(1040, 960, 0.16, 0.07, "triangle");
     }, i * 110);
   }
+}
+
+// une television eteinte : un long "biiip" plat (la ligne du cardiogramme)
+export function jouer_son_bip_plat() {
+  jouer_une_note(880, 880, 1.6, 0.1, "sine");
+}
+
+// un coeur qui se brise : deux craquements sourds
+export function jouer_son_coeur_brise() {
+  jouer_une_note(260, 50, 0.3, 0.3, "sawtooth");
+  setTimeout(function () {
+    jouer_une_note(180, 40, 0.4, 0.3, "triangle");
+  }, 160);
 }

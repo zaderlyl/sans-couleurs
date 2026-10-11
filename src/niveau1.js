@@ -10,6 +10,7 @@ import { creer_cible } from "./cibles.js";
 import { creer_tuto, mettre_a_jour_tuto } from "./tuto.js";
 import { creer_gare, mettre_a_jour_gare } from "./gare.js";
 import { creer_pastilles, mettre_a_jour_pastilles } from "./pastilles.js";
+import { pensees } from "./pensees.js";
 
 export default class niveau1 extends niveau {
   constructor() {
@@ -19,7 +20,7 @@ export default class niveau1 extends niveau {
 
   creer_particularites() {
     creer_pastilles(this);
-    creer_gare(this, { niveau_suivant: "niveau2", sortie_active: true });
+    creer_gare(this, { niveau_suivant: "niveau2", sortie_active: true, pensees: pensees.de_1_vers_2 });
 
     // la cible d'entrainement, au milieu du chemin, a hauteur du corps
     creer_cible(this, 270, 130);

@@ -26,6 +26,7 @@ export default class accueil extends Phaser.Scene {
     this.bouton_jouer = this.creer_bouton("Jouer", "niveau1");
     this.bouton_enfance = this.creer_bouton("L'enfance", "niveau2");
     this.bouton_college = this.creer_bouton("Le college", "niveau3");
+    this.bouton_fin = this.creer_bouton("La fin", "niveau4");
 
     // la barre espace lance aussi le niveau 1
     this.clavier = this.input.keyboard.createCursorKeys();
@@ -91,5 +92,6 @@ export default class accueil extends Phaser.Scene {
     this.bouton_jouer.setPosition(milieu_x, milieu_y + 10);
     this.bouton_enfance.setPosition(milieu_x, milieu_y + 90);
     this.bouton_college.setPosition(milieu_x, milieu_y + 170);
+    this.bouton_fin.setPosition(milieu_x, milieu_y + 250);
   }
 }

@@ -20,12 +20,15 @@
 //   mettre_a_jour_gare(this);                                              // dans mettre_a_jour_particularites
 //
 //   - niveau_suivant : la cle du niveau ou mene le train (ou null : il ne mene nulle part) ;
-//   - sortie_active  : false si on peut arriver ici en train mais pas repartir.
+//   - sortie_active  : false si on peut arriver ici en train mais pas repartir ;
+//   - pensees        : les phrases de l'ecran noir a l'arrivee dans le niveau suivant
+//                      (voir pensees.js ; sinon, des phrases par defaut).
 //
 // Etat garde sur la scene : scene.etat_gare vaut "attente" (rien ne se passe) ou
 // "enCours" (le train est en route : les joueurs sont figes, voir niveau.js).
 
 import { afficher_phrases } from "./ecran_texte.js";
+import { pensees } from "./pensees.js";
 import { rendre_cliquable_sur_les_pixels } from "./zone_cliquable.js";
 import { style_texte } from "./styles.js";
 
@@ -353,7 +356,7 @@ function changer_de_niveau(scene, avant) {
   if (gare.options.niveau_suivant != null) {
     // on demarre le niveau suivant (l'ecran est deja noir). On lui dit qu'on
     // arrive en train, avec l'ecran de texte.
-    scene.scene.start(gare.options.niveau_suivant, { arrivee_en_train: true, avec_transition: true });
+    scene.scene.start(gare.options.niveau_suivant, { arrivee_en_train: true, avec_transition: true, pensees: gare.options.pensees });
     return;
   }
 
@@ -392,7 +395,7 @@ function arriver_en_train(scene) {
   scene.cameras.main.fadeOut(0, 0, 0, 0);
 
   if (scene.avec_transition == true) {
-    afficher_phrases(scene, phrases_du_voyage, function () {
+    afficher_phrases(scene, scene.pensees || phrases_du_voyage, function () {
       jouer_l_arrivee(scene);
     });
   } else {

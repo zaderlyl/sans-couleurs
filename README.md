@@ -15,6 +15,7 @@ s'allegent que si les deux restent cote a cote).
 - [Structure du depot](#structure-du-depot)
 - [Cartes et niveaux](#cartes-et-niveaux)
 - [Le niveau 3 : porter les mots a deux](#le-niveau-3--porter-les-mots-a-deux)
+- [Le niveau 4 : la fin](#le-niveau-4--la-fin)
 - [Commandes](#commandes)
 - [Systeme de dialogue](#systeme-de-dialogue)
 - [Signaler un bug ou proposer une idee](#signaler-un-bug-ou-proposer-une-idee)
@@ -70,6 +71,8 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── niveau1.js              Niveau 1 : mini-tuto (panneaux + cible d'entrainement) + gare
 │   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage
 │   ├── niveau3.js              Niveau 3 (college) : mots a porter, pastilles, gare
+│   ├── niveau4.js              Niveau 4 (la fin) : plaine, epave du train, trois televisions
+│   ├── pensees.js              Les pensees du personnage (ecrans noirs entre les niveaux)
 │   ├── camera.js               La camera : un seul ecran qui suit les deux joueurs
 │   ├── tir.js, cibles.js, tuto.js   Le tir (souris / clavier), la cible d'entrainement + timers, les panneaux du tuto
 │   ├── phrases.js, pastilles.js    Niveau 3 : les mots du college ; pastille d'un joueur hors cadre (tous les niveaux)
@@ -103,12 +106,14 @@ elle passe dans `assets/tilesets/` au moment ou on la branche.
 
 Chaque niveau est une scene Phaser (un fichier `niveauN.js`) qui herite de la
 classe de base `niveau.js` et ne contient que ce qui lui est propre. La carte
-Tiled est chargee par nom (`map-1-debut`, `map-2-enfance`, `map-3-college`).
+Tiled est chargee par nom (`map-1-debut`, `map-2-enfance`, `map-3-college`, `map-4-fin`).
 Une carte peut avoir un deuxieme jeu de tuiles (le college a le sien, dessine
 pour lui : portes, horloge, bancs...). Cote fichiers Tiled : la source `.tmx` dans
 `tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`.
 
-Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (passage) → niveau 3.
+Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (passage) → niveau 3 →
+(train) → niveau 4. Entre deux niveaux, un ecran noir affiche les pensees du
+personnage (a ecrire dans `src/pensees.js`).
 La position de la gare n'est pas codee en dur : elle est recalculee depuis le
 calque `gare` de la carte.
 
@@ -150,6 +155,19 @@ la sortie de secours, puis la gare). Il n'y a ni ennemi ni tir :
 
 Les reglages (rythme des vagues, poids, delais...) sont tout en haut de
 `src/phrases.js`.
+
+## Le niveau 4 : la fin
+
+Le point de cesure entre le college et le lycee. Une plaine vide ; d'un cote
+l'epave du train (le train ne repart plus), de l'autre trois televisions qui
+montrent un cardiogramme. Quand le joueur souris en eteint une, la ligne devient
+plate, puis un coeur en pixels apparait et se brise : un peu, davantage, puis
+completement. On ne montre rien de plus. Le niveau a sa propre ambiance sonore.
+
+Il parle d'un moment tres sombre de la vie du personnage : un ecran
+d'avertissement (avec le 3114, numero national de prevention du suicide) s'affiche
+au debut (un clic pour continuer, Echap pour passer le niveau), et un ecran
+final le rappelle. Le joueur clavier est present mais ne peut rien faire.
 
 ## Systeme de dialogue
 
@@ -196,6 +214,8 @@ de conserver la mention de copyright et le texte de la licence.
 
 Copyright (c) 2026 Lilian Cornet.
 
-La musique d'ambiance (`assets/audio/ambiance.mp3`) est le morceau « Dark Ambient
-Soundscape » de TuneTank, qui n'est pas couvert par la licence MIT du code :
-elle reste soumise a la licence de son auteur.
+Les musiques d'ambiance (`assets/audio/ambiance.mp3` et `ambiance-monde4.mp3`)
+sont des morceaux de tiers (telecharges sous les noms
+« tunetank-dark-ambient-soundscape-music » et « cosmic-scapes-soft-brown-noise ») :
+ils ne sont pas couverts par la licence MIT du code et restent soumis a la
+licence de leurs auteurs.

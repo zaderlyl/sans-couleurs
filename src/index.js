@@ -6,6 +6,7 @@ import accueil from "./accueil.js";
 import niveau1 from "./niveau1.js";
 import niveau2 from "./niveau2.js";
 import niveau3 from "./niveau3.js";
+import niveau4 from "./niveau4.js";
 
 // configuration generale du jeu
 var config = {
@@ -30,7 +31,7 @@ var config = {
     }
   },
   // la premiere scene de la liste est lancee automatiquement
-  scene: [accueil, niveau1, niveau2, niveau3]
+  scene: [accueil, niveau1, niveau2, niveau3, niveau4]
 };
 
 // On attend que la police du jeu soit chargee avant de creer le jeu, sinon les
@@ -42,6 +43,6 @@ var attente_max = new Promise(function (resolve) {
 });
 
 Promise.race([attente_police, attente_max]).finally(function () {
-  // creation et lancement du jeu a partir de la configuration
+  new Phaser.Game(config);
   new Phaser.Game(config);
 });
