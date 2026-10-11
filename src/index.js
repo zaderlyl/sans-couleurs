@@ -1,4 +1,4 @@
-// index.js — point d'entree de la version 2 : on importe les scenes, on
+// index.js — point d'entree : on importe les scenes, on
 // configure Phaser, on lance le jeu.
 
 // chargement des scenes (une scene = un fichier)
@@ -10,7 +10,7 @@ import niveau3 from "./niveau3.js";
 // configuration generale du jeu
 var config = {
   type: Phaser.AUTO,
-  parent: "game-container", // le <div> de index-v2.html
+  parent: "game-container", // le <div> de index.html
   backgroundColor: "#000000",
   pixelArt: true, // rendu net (pas de lissage), c'est du pixel art
   scale: {
