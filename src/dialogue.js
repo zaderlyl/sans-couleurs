@@ -29,6 +29,7 @@
 
 import { creer_gestes_des_mots, preparer_le_mot } from "./mots_a_placer.js";
 import { style_texte, style_mot } from "./styles.js";
+import { jouer_son_rire_moqueur } from "./sons.js";
 
 
 // --- Reglages ------------------------------------------------------------
@@ -288,7 +289,8 @@ function noter_les_mots_choisis(scene) {
 // --- 5. La reaction du PNJ ------------------------------------------------------------
 
 // Le PNJ est mal a l'aise : la phrase du joueur s'estompe, il recule d'un pas,
-// une bulle "..." puis une replique (selon le dernier mot place). Ensuite tout
+// une bulle "..." puis une replique (selon le dernier mot place) et un rire
+// moqueur. Ensuite tout
 // disparait et le PNJ s'en va.
 function jouer_la_reaction(scene) {
   var d = scene.dialogue;
@@ -318,6 +320,7 @@ function jouer_la_reaction(scene) {
   bulle.setPosition(pnj.sprite.x + sens * 8, pnj.y - 16 - 6);
   scene.time.delayedCall(700, function () {
     bulle.setText(replique);
+    jouer_son_rire_moqueur(); // le PNJ rit en repondant
   }, null, scene);
 
   // on laisse le temps de lire (plus la replique est longue, plus on attend)

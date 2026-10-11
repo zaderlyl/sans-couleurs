@@ -77,7 +77,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── pnj.js, dialogue.js, mots_a_placer.js               PNJ et dialogues a trous
 │   ├── ecran_texte.js, decor.js, textes_de_zone.js         Ambiance
 │   ├── chute.js                Tomber dans le vide (bords du monde)
-│   ├── sons.js                 Sons synthetises (musique de fond + bruitages)
+│   ├── sons.js                 Musique de fond (fichier) + bruitages synthetises
 │   └── styles.js, zone_cliquable.js   Petits utilitaires partages
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
@@ -85,7 +85,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── sprites/                 Personnages, train, herbe animee, cibles...
 │   ├── ui/                      Icone d'interaction
 │   ├── fonts/                   Polices (voir le @font-face d'index.html)
-│   └── audio/                   Reserve : les sons sont synthetises via Web Audio
+│   └── audio/                   ambiance.mp3 : la musique de fond (les bruitages sont synthetises via Web Audio)
 ├── tiled/                       Sources d'edition, jamais chargees par le jeu
 │   ├── maps/                    Fichiers sources Tiled (.tmx)
 │   └── art-source/              Images de travail et tuiles pas encore utilisees
@@ -181,3 +181,7 @@ modifier et le redistribuer, y compris a des fins commerciales, a condition
 de conserver la mention de copyright et le texte de la licence.
 
 Copyright (c) 2026 Lilian Cornet.
+
+La musique d'ambiance (`assets/audio/ambiance.mp3`) est le morceau « Dark Ambient
+Soundscape » de TuneTank, qui n'est pas couvert par la licence MIT du code :
+elle reste soumise a la licence de son auteur.
