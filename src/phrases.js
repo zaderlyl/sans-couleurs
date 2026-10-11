@@ -98,7 +98,6 @@ export function creer_phrases(scene) {
   scene.temps_ensemble = 0; // depuis combien de temps les joueurs sont l'un a cote de l'autre
   scene.joueur_souris.mots = []; // les mots que chaque joueur porte
   scene.joueur_clavier.mots = [];
-  scene.tir_desactive = true; // pas de tir dans ce niveau (voir tir.js)
 
   // un mot qui touche un joueur s'accroche a lui
   scene.physics.add.overlap(scene.groupe_phrases, scene.joueur_souris, function (a, b) {

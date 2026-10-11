@@ -143,7 +143,7 @@ tir dans le niveau 3.
 ## Le niveau 3 : porter les mots a deux
 
 Le college est un long couloir (120 tuiles : la cour, l'entree, trois classes,
-la sortie de secours, puis la gare). Il n'y a ni ennemi ni tir :
+la sortie de secours, puis la gare). Il n'y a pas d'ennemi :
 
 - toutes les 25 secondes, une sonnerie retentit et des mots arrivent **un par
   un** ; les mots **clairs** sont des moqueries legeres (poids 1), les mots

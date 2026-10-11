@@ -102,7 +102,6 @@ export default class niveau5 extends niveau {
   }
 
   creer_particularites() {
-    this.tir_desactive = true; // pas de tir dans ce niveau
     creer_pastilles(this);
     creer_pression(this);
     this.scene_jouee = [false, false, false, false, false]; // quelle scene a deja eu lieu
