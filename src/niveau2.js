@@ -4,7 +4,7 @@
 // ne mene nulle part pour l'instant), et un passage vers le college.
 
 import niveau from "./niveau.js";
-import { creer_dialogue } from "./dialogue.js";
+import { creer_dialogue, mettre_a_jour_dialogue } from "./dialogue.js";
 import { creer_pnjs, mettre_a_jour_pnjs } from "./pnj.js";
 import { creer_gare, mettre_a_jour_gare } from "./gare.js";
 import { creer_passages, mettre_a_jour_passages } from "./passage.js";
@@ -24,6 +24,7 @@ export default class niveau2 extends niveau {
   }
 
   mettre_a_jour_particularites(temps, delta) {
+    mettre_a_jour_dialogue(this, delta); // la recolte des mots (phase 1 d'un dialogue)
     mettre_a_jour_pnjs(this);
     mettre_a_jour_gare(this);
     mettre_a_jour_passages(this);

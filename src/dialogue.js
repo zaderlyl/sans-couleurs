@@ -2,9 +2,16 @@
 //
 // Deroulement :
 //   1. le PNJ dit sa phrase (au-dessus de lui) ;
-//   2. le joueur "repond" : une phrase a trous s'affiche au-dessus de lui, et
-//      les mots proposes sont en bas de l'ecran ; il les place dans les trous
-//      (voir mots_a_placer.js pour les gestes) ;
+//   2. une phrase a trous s'affiche au-dessus du joueur souris, mais il n'a pas
+//      encore de mots : DEUX PHASES par reponse.
+//      PHASE 1 (la recolte) : les mots TOMBENT DU CIEL, et c'est le joueur
+//      CLAVIER qui les attrape en marchant dessous (fleches). Chaque mot attrape
+//      arrive dans la liste du joueur souris, en bas de l'ecran ;
+//      Il y a toujours plus de mots que de trous (des mots d'enfant en plus) : le
+//      joueur souris a le choix ;
+//      PHASE 2 (le placement) : une fois tous les mots attrapes, le joueur souris
+//      les place dans les trous (voir mots_a_placer.js pour les gestes). Le joueur
+//      clavier reste libre de marcher pendant tout le dialogue ;
 //   3. s'il y a plusieurs pages, un clic passe a la suivante une fois la page remplie ;
 //   4. peu importe les mots choisis, la reaction est la meme : le PNJ est mal a
 //      l'aise (le joueur lui parait "different"). Il recule, dit "...", puis une
@@ -25,11 +32,13 @@
 //   - repliques : { "mot": "ce que dit le PNJ" } (mots en minuscules).
 //
 // L'etat du dialogue en cours est dans scene.dialogue ; scene.dialogue_ouvert
-// est true tant qu'il dure (les joueurs sont alors figes, voir niveau.js).
+// est true tant qu'il dure (le joueur souris est alors fige, voir niveau.js ;
+// le joueur clavier reste libre : scene.clavier_libre).
 
 import { creer_gestes_des_mots, preparer_le_mot } from "./mots_a_placer.js";
 import { style_texte, style_mot } from "./styles.js";
-import { jouer_son_rire_moqueur } from "./sons.js";
+import { camera_du_joueur } from "./ecran_separe.js";
+import { jouer_son_rire_moqueur, jouer_son_mot_pris } from "./sons.js";
 
 
 // --- Reglages ------------------------------------------------------------
@@ -44,6 +53,14 @@ var repliques_generales = [
 ];
 
 var delai_affichage = 900; // ms : combien de temps on lit la phrase du PNJ, l'intro
+var vitesse_chute = 42; // px/s : la vitesse d'un mot qui tombe du ciel (phase 1)
+var delai_entre_chutes = 1300; // ms entre deux mots qui commencent a tomber (timer recurrent)
+var portee_de_chute = 90; // px : un mot tombe a moins de ca (a gauche ou a droite) du joueur clavier
+var mots_en_plus = 2; // des mots en plus des trous : le joueur souris a le choix
+
+// des mots d'enfant en plus des mots de la page (tous donnent la meme reaction :
+// l'enfant est mal a l'aise, peu importe le mot)
+var mots_en_plus_possibles = ["gentil", "grand", "petit", "bleu", "jouer", "peur", "seul", "maman", "chaud", "content", "triste", "dormir", "rire"];
 
 
 // --- 1. Mise en place (une fois, dans create) ---------------------------------
@@ -51,6 +68,7 @@ var delai_affichage = 900; // ms : combien de temps on lit la phrase du PNJ, l'i
 export function creer_dialogue(scene) {
   scene.dialogue_ouvert = false;
   scene.dialogue = null;
+  scene.clavier_libre = false; // true pendant un dialogue : le joueur clavier peut marcher (voir niveau.js)
 
   // les gestes sur les mots (clic, glisser) : voir mots_a_placer.js
   creer_gestes_des_mots(scene);
@@ -72,7 +90,8 @@ export function creer_dialogue(scene) {
 // quand_fini(sens) est appelee a la fin ; sens = -1 si le PNJ s'eloigne vers la
 // gauche, 1 vers la droite
 export function ouvrir_dialogue(scene, pnj, quand_fini) {
-  scene.dialogue_ouvert = true; // les joueurs sont figes
+  scene.dialogue_ouvert = true; // le joueur souris est fige...
+  scene.clavier_libre = true; // ... mais pas le joueur clavier, qui reste libre de marcher
   scene.dialogue = {
     pnj: pnj,
     quand_fini: quand_fini,
@@ -128,8 +147,28 @@ function afficher_la_page(scene, indice) {
   var vue = scene.cameras.main.worldView;
   var largeur_max = Math.min(vue.width - 20, 150);
 
-  // 1) les mots (des maintenant : le trou prend la largeur du plus long mot)
-  var melanges = Phaser.Utils.Array.Shuffle(page.mots.slice());
+  // 1) les mots (des maintenant : le trou prend la largeur du plus long mot).
+  // Il y en a toujours plus que de trous : les mots de la page, plus des mots d'enfant.
+  var nombre_de_trous = 0;
+  for (var t = 0; t < page.jetons.length; t++) {
+    if (page.jetons[t].trou == true) {
+      nombre_de_trous = nombre_de_trous + 1;
+    }
+  }
+  var choix = page.mots.slice();
+  if (nombre_de_trous > 0) {
+    var autres = [];
+    for (var u = 0; u < mots_en_plus_possibles.length; u++) {
+      if (choix.indexOf(mots_en_plus_possibles[u]) == -1) {
+        autres.push(mots_en_plus_possibles[u]);
+      }
+    }
+    autres = Phaser.Utils.Array.Shuffle(autres);
+    while (choix.length < nombre_de_trous + mots_en_plus && autres.length > 0) {
+      choix.push(autres.pop());
+    }
+  }
+  var melanges = Phaser.Utils.Array.Shuffle(choix);
   var etiquettes = [];
   var largeur_trou = 18;
   for (var i = 0; i < melanges.length; i++) {
@@ -205,25 +244,186 @@ function afficher_la_page(scene, indice) {
     }
   }
 
-  // 5) les mots a placer : une rangee centree, en bas de la zone visible
-  var ecart_mots = 6;
-  var largeur_mots = 0;
-  for (var q = 0; q < etiquettes.length; q++) {
-    largeur_mots = largeur_mots + etiquettes[q].width;
-    if (q > 0) {
-      largeur_mots = largeur_mots + ecart_mots;
-    }
-  }
-  var x_mot = vue.centerX - largeur_mots / 2;
+  // 5) les mots a placer : pour l'instant des "?" gris dans la liste (le joueur
+  // souris n'a pas encore ses mots : le joueur clavier doit les attraper)
   for (var r = 0; r < etiquettes.length; r++) {
-    etiquettes[r].setPosition(x_mot + etiquettes[r].width / 2, vue.bottom - 14);
-    x_mot = x_mot + etiquettes[r].width + ecart_mots;
-    preparer_le_mot(scene, etiquettes[r], r * 120); // le mot devient cliquable et glissable
+    etiquettes[r].vrai_mot = etiquettes[r].text;
+    etiquettes[r].setText("?");
+    etiquettes[r].setAlpha(0.45);
+    etiquettes[r].attrape = false;
+    etiquettes[r].en_chute = false;
     d.mots.push(etiquettes[r]);
   }
+  placer_les_mots(scene);
 
-  // une page sans trou (juste du texte) : rien ne sera depose, on verifie tout de suite
-  verifier_la_page(scene);
+  // PHASE 1 : la recolte (sans mot a attraper, on passe directement a la phase 2)
+  demarrer_la_recolte(scene);
+}
+
+
+// La liste des mots du joueur souris : une rangee centree, en bas de la zone
+// visible. On la replace a chaque mot attrape (la largeur d'un mot change quand
+// le "?" devient le vrai mot).
+function placer_les_mots(scene) {
+  var d = scene.dialogue;
+  var vue = scene.cameras.main.worldView;
+  var ecart_mots = 6;
+  var largeur_max = vue.width - 12;
+
+  // on regroupe les mots en rangees (une 2e rangee si la liste est trop large)
+  var rangees = [[]];
+  var largeur_rangee = 0;
+  for (var q = 0; q < d.mots.length; q++) {
+    var courante = rangees[rangees.length - 1];
+    var avec_espace = 0;
+    if (courante.length > 0) {
+      avec_espace = ecart_mots;
+    }
+    if (courante.length > 0 && largeur_rangee + avec_espace + d.mots[q].width > largeur_max) {
+      rangees.push([d.mots[q]]);
+      largeur_rangee = d.mots[q].width;
+    } else {
+      courante.push(d.mots[q]);
+      largeur_rangee = largeur_rangee + avec_espace + d.mots[q].width;
+    }
+  }
+
+  // chaque rangee est centree ; la derniere est tout en bas, les autres remontent
+  for (var n = 0; n < rangees.length; n++) {
+    var largeur_totale = 0;
+    for (var m = 0; m < rangees[n].length; m++) {
+      largeur_totale = largeur_totale + rangees[n][m].width;
+      if (m > 0) {
+        largeur_totale = largeur_totale + ecart_mots;
+      }
+    }
+    var x_mot = vue.centerX - largeur_totale / 2;
+    var y_mot = vue.bottom - 14 - (rangees.length - 1 - n) * 14;
+    for (var r = 0; r < rangees[n].length; r++) {
+      rangees[n][r].setPosition(x_mot + rangees[n][r].width / 2, y_mot);
+      x_mot = x_mot + rangees[n][r].width + ecart_mots;
+    }
+  }
+}
+
+
+// --- 3b. PHASE 1 : le joueur clavier attrape les mots qui tombent du ciel ----------
+
+function demarrer_la_recolte(scene) {
+  var d = scene.dialogue;
+  if (d.mots.length == 0) {
+    d.phase = "placement";
+    verifier_la_page(scene); // une page sans mot (juste du texte) : rien a recolter
+    return;
+  }
+  d.phase = "recolte";
+  d.en_chute = []; // les mots qui tombent : { texte, etiquette }
+  scene.clavier_libre = true; // le joueur clavier peut marcher pendant tout le dialogue (voir niveau.js)
+
+  // un rappel au-dessus du joueur clavier : il marche avec les fleches
+  d.indice_clavier = creer_texte(scene, "← →", style_texte);
+  d.indice_clavier.setOrigin(0.5, 1);
+
+  // TIMER RECURRENT : un mot se met a tomber, puis un autre, jusqu'a ce que tous soient attrapes
+  lancer_un_mot_qui_tombe(scene);
+  d.minuteur_chute = scene.time.addEvent({
+    delay: delai_entre_chutes,
+    loop: true,
+    callback: function () {
+      lancer_un_mot_qui_tombe(scene);
+    }
+  });
+}
+
+// un mot pas encore attrape (et pas deja en chute) commence a tomber du haut de
+// l'ecran du joueur clavier, pres de lui
+function lancer_un_mot_qui_tombe(scene) {
+  var d = scene.dialogue;
+  if (d == null || d.phase != "recolte") {
+    return;
+  }
+  var libres = [];
+  for (var i = 0; i < d.mots.length; i++) {
+    if (d.mots[i].attrape == false && d.mots[i].en_chute == false) {
+      libres.push(d.mots[i]);
+    }
+  }
+  if (libres.length == 0) {
+    return;
+  }
+  var etiquette = Phaser.Utils.Array.GetRandom(libres);
+  var vue = camera_du_joueur(scene, scene.joueur_clavier).worldView;
+  var x = Phaser.Math.Clamp(scene.joueur_clavier.x + Phaser.Math.Between(-portee_de_chute, portee_de_chute), vue.left + 20, vue.right - 20);
+  var texte = creer_texte(scene, etiquette.vrai_mot, style_mot);
+  texte.setOrigin(0.5, 0.5);
+  texte.setPosition(x, vue.top + 6);
+  etiquette.en_chute = true;
+  d.en_chute.push({ texte: texte, etiquette: etiquette });
+}
+
+// appelee a chaque image (voir niveau2.js) : les mots tombent, et le joueur
+// clavier en attrape un quand il passe dessous
+export function mettre_a_jour_dialogue(scene, delta) {
+  var d = scene.dialogue;
+  if (d == null || d.phase != "recolte") {
+    return;
+  }
+  var joueur = scene.joueur_clavier;
+  d.indice_clavier.setPosition(joueur.x, joueur.y - 20);
+
+  for (var i = d.en_chute.length - 1; i >= 0; i--) {
+    var mot = d.en_chute[i];
+    mot.texte.y = mot.texte.y + vitesse_chute * delta / 1000;
+    var touche = Math.abs(mot.texte.x - joueur.x) < mot.texte.width / 2 + 6 && Math.abs(mot.texte.y - (joueur.y - 6)) < 12;
+    if (touche == true) {
+      attraper_un_mot(scene, mot, i);
+      if (d.phase != "recolte") {
+        return; // c'etait le dernier mot
+      }
+    } else if (mot.texte.y > joueur.y + 6) {
+      // il est arrive au sol sans etre attrape : il reviendra
+      retirer(scene, mot.texte);
+      mot.etiquette.en_chute = false;
+      d.en_chute.splice(i, 1);
+    }
+  }
+}
+
+// le joueur clavier attrape un mot : le "?" de la liste du joueur souris devient ce mot
+function attraper_un_mot(scene, mot, indice) {
+  var d = scene.dialogue;
+  d.en_chute.splice(indice, 1);
+  retirer(scene, mot.texte);
+  var etiquette = mot.etiquette;
+  etiquette.en_chute = false;
+  etiquette.attrape = true;
+  etiquette.setText(etiquette.vrai_mot);
+  etiquette.setAlpha(1);
+  placer_les_mots(scene);
+  jouer_son_mot_pris();
+  etiquette.setScale(1.5);
+  scene.tweens.add({ targets: etiquette, scale: 1, duration: 200, ease: "Back.easeOut" });
+
+  // tous les mots sont attrapes ?
+  for (var i = 0; i < d.mots.length; i++) {
+    if (d.mots[i].attrape == false) {
+      return;
+    }
+  }
+  terminer_la_recolte(scene);
+}
+
+// PHASE 2 : les mots deviennent cliquables et glissables pour le joueur souris
+function terminer_la_recolte(scene) {
+  var d = scene.dialogue;
+  d.phase = "placement";
+  d.minuteur_chute.remove();
+  d.minuteur_chute = null;
+  retirer(scene, d.indice_clavier); // (le joueur clavier reste libre de marcher pendant tout le dialogue)
+  d.indice_clavier = null;
+  for (var i = 0; i < d.mots.length; i++) {
+    preparer_le_mot(scene, d.mots[i], i * 120); // le mot devient cliquable et glissable
+  }
 }
 
 
@@ -327,6 +527,7 @@ function jouer_la_reaction(scene) {
   var duree = Math.max(1600, 700 + 50 * replique.length);
   scene.time.delayedCall(duree, function () {
     retirer_tout(scene);
+    scene.clavier_libre = false;
     scene.dialogue_ouvert = false; // les joueurs sont libres
     scene.dialogue = null;
     d.quand_fini(sens); // le PNJ s'en va (voir pnj.js)
@@ -370,6 +571,11 @@ function retirer(scene, objet) {
 // retire tout ce que le dialogue a ajoute au monde
 function retirer_tout(scene) {
   var d = scene.dialogue;
+  if (d.minuteur_chute != null && d.minuteur_chute != undefined) {
+    d.minuteur_chute.remove(); // la recolte s'arrete
+    d.minuteur_chute = null;
+  }
+  d.phase = null;
   for (var i = 0; i < d.elements.length; i++) {
     scene.tweens.killTweensOf(d.elements[i]);
     d.elements[i].destroy();

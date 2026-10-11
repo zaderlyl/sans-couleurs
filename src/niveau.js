@@ -210,9 +210,11 @@ export default class niveau extends Phaser.Scene {
       this.joueur_souris.setVelocityX(0);
       this.joueur_souris.anims.stop();
       this.joueur_souris.setFrame(3);
-      this.joueur_clavier.setVelocityX(0);
-      this.joueur_clavier.anims.stop();
-      this.joueur_clavier.setFrame(3);
+      if (this.clavier_libre != true) {
+        this.joueur_clavier.setVelocityX(0);
+        this.joueur_clavier.anims.stop();
+        this.joueur_clavier.setFrame(3);
+      }
     }
 
     // --- le joueur souris marche vers la destination ---
@@ -252,7 +254,8 @@ export default class niveau extends Phaser.Scene {
     }
 
     // --- le joueur clavier : les fleches gauche et droite ---
-    if (this.est_fige() == true) {
+    // (sauf pendant la recolte des mots d'un dialogue : il attrape alors les mots qui tombent)
+    if (this.est_fige() == true && this.clavier_libre != true) {
       // fige (voir plus haut)
     } else if (this.clavier.left.isDown) {
       this.joueur_clavier.setVelocityX(-70 * this.joueur_clavier.facteur_vitesse);

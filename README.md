@@ -148,6 +148,15 @@ Les reglages (rythme des vagues, poids, delais...) sont tout en haut de
 
 ## Systeme de dialogue
 
+Chaque reponse se fait **en deux phases, a deux joueurs** : le joueur souris
+choisit l'enfant a qui parler, mais n'a pas encore de mots pour repondre. Les
+mots **tombent du ciel** et c'est le **joueur clavier** qui les attrape en
+marchant dessous (fleches) ; chaque mot attrape arrive dans la liste du joueur
+souris, qui n'a plus qu'a les placer dans les trous de la phrase. Il y a
+toujours plus de mots que de trous (des mots d'enfant en plus), et le joueur
+clavier reste libre de marcher pendant tout le dialogue. Quels que soient les
+mots, l'enfant est mal a l'aise, repond, et rit.
+
 Les personnages non-joueurs et leurs dialogues sont entierement definis
 depuis des proprietes personnalisees sur les objets Tiled (calque
 `Calque d'Objets 1`) : ligne affichee au-dessus de la tete, phrase a trous
