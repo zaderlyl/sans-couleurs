@@ -18,6 +18,7 @@
 
 var volume_musique = 0.4; // le volume de la musique de fond (0 a 1)
 var volume_pas = 0.1;
+var volume_rire = 0.6; // le rire moqueur des PNJ (avant : 0.18)
 var volume_atterrissage = 0.2;
 
 
@@ -174,7 +175,7 @@ function un_ha(hauteur) {
   filtre.Q.value = 2.5;
   var gain = c.createGain();
   gain.gain.setValueAtTime(0.0001, c.currentTime);
-  gain.gain.linearRampToValueAtTime(0.18, c.currentTime + 0.02);
+  gain.gain.linearRampToValueAtTime(volume_rire, c.currentTime + 0.02);
   gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.14);
   oscillateur.connect(filtre);
   filtre.connect(gain);
