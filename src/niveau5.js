@@ -91,8 +91,6 @@ var coups_du_lit = [
 ];
 
 var texte_de_fin = [
-  t("Des rumeurs. Une plainte. Une audience. Des mots qui ne sont pas les tiens."),
-  t("Le dossier a été classé sans suite : rien n'a été prouvé, rien n'a été réparé."),
   t("Les douleurs les plus dures arrivent bien plus tard. Les cicatrices ne se referment jamais vraiment."),
   t("N'attends pas d'aller mal pour demander de l'aide : parle à quelqu'un autour de toi, un proche, un professionnel."),
   t("Si tu as vécu de la violence dans une relation, tu n'es pas seul. Le 116 006 (aide aux victimes) et le 3114 répondent gratuitement."),
