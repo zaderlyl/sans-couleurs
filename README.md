@@ -67,7 +67,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 ├── index.html                  Page d'entree : <script type="module" src="src/index.js">
 ├── src/                        Code du jeu (modules ES, un fichier = un sujet)
 │   ├── index.js                Config Phaser + liste des scenes
-│   ├── accueil.js              Page d'accueil (titre + boutons)
+│   ├── accueil.js              Menu principal en objets Phaser (jouer, niveaux, reglages, credits)
 │   ├── niveau.js               Classe de base des niveaux (carte, 2 joueurs, tir, decor)
 │   ├── niveau1.js              Niveau 1 : mini-tuto (panneaux + cible d'entrainement) + gare
 │   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage

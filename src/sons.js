@@ -21,6 +21,7 @@ var volume_musique = 0.4; // le volume de la musique de fond (0 a 1)
 var volume_pas = 0.1;
 var volume_rire = 0.6; // le rire moqueur des PNJ (avant : 0.18)
 var volume_atterrissage = 0.2;
+var effets_actifs = true; // les bruitages sont-ils actifs ? (reglage du menu)
 
 
 // --- Le contexte audio (un seul pour tout le jeu) -----------------------------
@@ -38,7 +39,7 @@ function obtenir_le_contexte() {
 // le contexte s'il est pret a jouer, ou null (pas de son avant le premier clic)
 function contexte_pret() {
   var c = obtenir_le_contexte();
-  if (c.state == "running") {
+  if (c.state == "running" && effets_actifs == true) {
     return c;
   }
   return null;
@@ -101,6 +102,29 @@ export function changer_la_musique(fichier) {
   musique.play().catch(function () {
     musique = null;
   });
+}
+
+// --- Reglages du menu ---------------------------------------------------------
+
+// le volume de la musique de fond (0 a 1)
+export function lire_volume_musique() {
+  return volume_musique;
+}
+
+export function regler_volume_musique(valeur) {
+  volume_musique = Math.max(0, Math.min(1, valeur));
+  if (musique != null) {
+    musique.volume = volume_musique;
+  }
+}
+
+// les bruitages (pas, tirs, rires...) : actifs ou muets
+export function lire_effets_actifs() {
+  return effets_actifs;
+}
+
+export function regler_effets_actifs(actif) {
+  effets_actifs = actif;
 }
 
 // La musique s'alourdit : poids de 0 (normale) a 1 (plus lente, donc plus grave,
