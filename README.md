@@ -70,9 +70,9 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── niveau1.js              Niveau 1 : cibles + gare
 │   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage
 │   ├── niveau3.js              Niveau 3 (college) : mots a porter, pastilles, gare
-│   ├── ecran_separe.js         L'ecran qui se separe en deux (niveau 1) ou camera unique (niveaux 2 et 3)
+│   ├── ecran_separe.js         La camera unique (suit les joueurs). Le code de l'ecran separe en deux existe encore mais n'est plus active
 │   ├── tir.js, cibles.js       Le tir (souris / clavier) et les cibles + timers
-│   ├── phrases.js, pastilles.js    Niveau 3 : les mots du college ; pastille d'un joueur hors cadre (niveaux 2 et 3)
+│   ├── phrases.js, pastilles.js    Niveau 3 : les mots du college ; pastille d'un joueur hors cadre (tous les niveaux)
 │   ├── gare.js, passage.js         Interactions et changements de niveau
 │   ├── pnj.js, dialogue.js, mots_a_placer.js               PNJ et dialogues a trous
 │   ├── ecran_texte.js, decor.js, textes_de_zone.js         Ambiance
@@ -140,7 +140,7 @@ la sortie de secours, puis la gare). Il n'y a ni ennemi ni tir :
 - un joueur qui porte le poids maximum pendant 8 secondes **s'effondre** : fondu
   au noir, « Tu n'as pas pu avancer. », puis les deux joueurs repartent de la
   derniere porte de classe passee ;
-- la camera est unique (comme au niveau 2) : un joueur sorti du cadre apparait en **pastille** (un
+- la camera est unique (comme dans tous les niveaux) : un joueur sorti du cadre apparait en **pastille** (un
   rond avec son visage et une fleche) au bord de l'ecran.
 
 Les reglages (rythme des vagues, poids, delais...) sont tout en haut de
