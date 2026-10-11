@@ -38,7 +38,6 @@ function prendre_le_passage(scene, passage) {
   scene.passage_en_cours = true;
   scene.joueur_souris.body.setVelocity(0, 0);
 
-  scene.camera2.fadeOut(400, 0, 0, 0);
   scene.cameras.main.fadeOut(400, 0, 0, 0);
   scene.cameras.main.once("camerafadeoutcomplete", function () {
     scene.scene.start(passage.vers); // sans "arrivee_en_train" : on arrive au point de depart du niveau

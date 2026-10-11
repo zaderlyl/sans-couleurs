@@ -2,7 +2,7 @@
 // Tout ce qui est commun a tous les niveaux est dans niveau.js. Ici : ce qui
 // est propre au college : les phrases (voir phrases.js), les pastilles (voir
 // pastilles.js : un seul ecran, un joueur sorti du cadre devient une pastille)
-// et la gare (on y arrive en train, mais on ne peut pas repartir).
+// et la gare du bout du couloir (le train mene au niveau 4, la fin).
 //
 // La carte est un long couloir de casiers (120 tuiles) : la cour avec de
 // l'herbe et un nounours oublie, puis le couloir (des casiers forces, trois
@@ -12,6 +12,7 @@ import niveau from "./niveau.js";
 import { creer_gare, mettre_a_jour_gare } from "./gare.js";
 import { creer_phrases, mettre_a_jour_phrases } from "./phrases.js";
 import { creer_pastilles, mettre_a_jour_pastilles } from "./pastilles.js";
+import { pensees } from "./pensees.js";
 
 export default class niveau3 extends niveau {
   constructor() {
@@ -20,10 +21,9 @@ export default class niveau3 extends niveau {
   }
 
   creer_particularites() {
-    this.camera_unique = true; // un seul ecran en tout temps ; un joueur sorti du cadre devient une pastille
     creer_pastilles(this);
     creer_phrases(this); // apres creer_tir (fait dans niveau.js)
-    creer_gare(this, { niveau_suivant: null, sortie_active: false });
+    creer_gare(this, { niveau_suivant: "niveau4", sortie_active: true, pensees: pensees.de_3_vers_4 }); // le train mene a la fin
   }
 
   mettre_a_jour_particularites(temps, delta) {

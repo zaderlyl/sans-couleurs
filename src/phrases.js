@@ -34,7 +34,6 @@
 //   mettre_a_jour_phrases(this, delta);     // dans mettre_a_jour_particularites
 
 import { style_texte } from "./styles.js";
-import { camera_du_joueur } from "./ecran_separe.js";
 import { afficher_texte } from "./ecran_texte.js";
 import { jouer_son_mot_refuse, jouer_son_mot_pose, jouer_son_sonnerie, peser_sur_la_musique } from "./sons.js";
 
@@ -129,7 +128,6 @@ function lancer_la_vague(scene) {
   }
   jouer_son_sonnerie();
   scene.cameras.main.shake(400, 0.003);
-  scene.camera2.shake(400, 0.003);
 
   // un mot toutes les 1,8 s (un timer simple par mot)
   for (var i = 0; i < mots_par_vague; i++) {
@@ -347,58 +345,48 @@ export function mettre_a_jour_phrases(scene, delta) {
 
 // --- 4. Le poids se voit et s'entend : le voile sur les bords de l'ecran ----------
 
-var id_voile_poids = "voile-poids-";
+var id_voile_poids = "voile-poids";
 
-// un <div> par camera (celle du joueur souris, celle du joueur clavier), cache au debut
+// un <div> pose sur l'ecran, cache au debut
 function creer_les_voiles(scene) {
-  scene.voiles_du_poids = [];
-  for (var i = 0; i < 2; i++) {
-    var voile = document.getElementById(id_voile_poids + i);
-    if (voile == null) {
-      voile = document.createElement("div");
-      voile.id = id_voile_poids + i;
-      voile.style.position = "absolute";
-      voile.style.pointerEvents = "none";
-      scene.game.canvas.parentElement.style.position = "relative";
-      scene.game.canvas.parentElement.appendChild(voile);
-    }
-    voile.style.display = "none";
-    scene.voiles_du_poids.push(voile);
+  var voile = document.getElementById(id_voile_poids);
+  if (voile == null) {
+    voile = document.createElement("div");
+    voile.id = id_voile_poids;
+    voile.style.position = "absolute";
+    voile.style.left = "0";
+    voile.style.top = "0";
+    voile.style.width = "100%";
+    voile.style.height = "100%";
+    voile.style.pointerEvents = "none";
+    scene.game.canvas.parentElement.style.position = "relative";
+    scene.game.canvas.parentElement.appendChild(voile);
   }
+  voile.style.display = "none";
+  scene.voile_du_poids = voile;
   scene.events.once("shutdown", function () {
-    scene.voiles_du_poids[0].style.display = "none";
-    scene.voiles_du_poids[1].style.display = "none";
+    voile.style.display = "none";
     peser_sur_la_musique(0);
   });
 }
 
+// le voile suit le joueur le plus charge (il n'y a qu'un ecran)
 function mettre_a_jour_les_voiles(scene) {
   var joueurs = [scene.joueur_souris, scene.joueur_clavier];
-  var poids_camera = [0, 0]; // [camera principale, camera 2] : le poids du joueur qu'elle montre
-  var cameras = [scene.cameras.main, scene.camera2];
   var plus_lourd = 0;
   for (var j = 0; j < joueurs.length; j++) {
     var poids = Math.min(poids_porte(joueurs[j]) / maximum_portes, 1); // de 0 a 1
-    var indice = camera_du_joueur(scene, joueurs[j]) == scene.camera2 ? 1 : 0;
-    poids_camera[indice] = Math.max(poids_camera[indice], poids);
     plus_lourd = Math.max(plus_lourd, poids);
   }
 
-  for (var i = 0; i < 2; i++) {
-    var voile = scene.voiles_du_poids[i];
-    var p = poids_camera[i];
-    if (p <= 0 || cameras[i].visible == false) {
-      voile.style.display = "none";
-      continue;
-    }
+  var voile = scene.voile_du_poids;
+  if (plus_lourd <= 0) {
+    voile.style.display = "none";
+  } else {
     voile.style.display = "block";
-    voile.style.left = cameras[i].x + "px";
-    voile.style.top = cameras[i].y + "px";
-    voile.style.width = cameras[i].width + "px";
-    voile.style.height = cameras[i].height + "px";
     // le noir monte des bords vers le centre ; l'image se floute et perd son contraste
-    voile.style.background = "radial-gradient(ellipse at center, rgba(0,0,0,0) " + Math.round(60 - 40 * p) + "%, rgba(0,0,0," + (0.35 + 0.6 * p).toFixed(2) + ") 100%)";
-    voile.style.backdropFilter = "blur(" + (p * 1.2).toFixed(1) + "px) brightness(" + (1 - 0.3 * p).toFixed(2) + ") contrast(" + (1 - 0.35 * p).toFixed(2) + ")";
+    voile.style.background = "radial-gradient(ellipse at center, rgba(0,0,0,0) " + Math.round(60 - 40 * plus_lourd) + "%, rgba(0,0,0," + (0.35 + 0.6 * plus_lourd).toFixed(2) + ") 100%)";
+    voile.style.backdropFilter = "blur(" + (plus_lourd * 1.2).toFixed(1) + "px) brightness(" + (1 - 0.3 * plus_lourd).toFixed(2) + ") contrast(" + (1 - 0.35 * plus_lourd).toFixed(2) + ")";
   }
 
   // la musique devient plus grave (seulement si le poids a change : pas a chaque image)

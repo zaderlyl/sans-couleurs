@@ -1,25 +1,25 @@
-// sons.js — les sons du jeu. Ils sont tous SYNTHETISES avec Web Audio (le
-// navigateur fabrique les sons avec des oscillateurs) : aucun fichier audio.
+// sons.js — les sons du jeu. La musique de fond est un fichier audio
+// (assets/audio/ambiance.mp3) ; tous les bruitages sont SYNTHETISES avec Web Audio
+// (le navigateur fabrique les sons avec des oscillateurs).
 //
 // - demarrer_la_musique() : la musique de fond, continue, a lancer au premier
 //   clic du joueur (un navigateur interdit les sons avant un geste du joueur) ;
+// - peser_sur_la_musique(poids) : la musique devient plus lente et plus grave ;
 // - jouer_son_pas(), jouer_son_atterrissage() : les bruitages des joueurs ;
 // - jouer_son_mot_pris(), jouer_son_mot_pose(rang), jouer_son_mot_refuse() : le
-//   dialogue ;
+//   dialogue ; jouer_son_rire_moqueur() : le PNJ rit apres une reponse ;
 // - jouer_son_tir(), jouer_son_impact(), jouer_son_cible() : le tir et les cibles ;
-// - jouer_son_chute() : la chute dans le vide.
+// - jouer_son_chute() : la chute dans le vide ;
+// - changer_la_musique(), jouer_un_bip(), creer_ton_continu() : le monde 4.
 //
 // Tant que le joueur n'a pas encore clique, les bruitages restent muets (sans
 // erreur) : le navigateur garde le contexte audio "suspendu".
 
 // --- Reglages ------------------------------------------------------------
 
-var volume_musique = 0.07; // le bourdon grave de la musique de fond
-var frequence_bourdon = 52; // Hz
-var volume_notes = 0.03; // les petites notes douces par-dessus
-var gamme = [196, 220, 261.6, 293.7, 329.6]; // Hz : sol, la, do, re, mi (une gamme calme)
-var delai_entre_notes = 2400; // ms
+var volume_musique = 0.4; // le volume de la musique de fond (0 a 1)
 var volume_pas = 0.1;
+var volume_rire = 0.6; // le rire moqueur des PNJ (avant : 0.18)
 var volume_atterrissage = 0.2;
 
 
@@ -70,60 +70,48 @@ function jouer_une_note(frequence_debut, frequence_fin, duree, volume, type) {
 
 // --- 1. La musique de fond ---------------------------------------------------------
 //
-// Un bourdon grave continu, avec une pulsation lente, et de temps en temps une
-// petite note douce d'une gamme calme. Elle ne s'arrete jamais, meme quand on
-// change de niveau.
+// Un fichier audio qui tourne en boucle. Elle ne s'arrete jamais, meme quand on
+// change de niveau (l'objet audio vit en dehors des scenes).
 
-var musique_lancee = false;
-var bourdon_oscillateur = null; // gardes pour pouvoir alourdir la musique (voir peser_sur_la_musique)
-var poids_musique = 0; // 0 = normale ; 1 = tres grave
+var musique = null;
 
 export function demarrer_la_musique() {
   var c = obtenir_le_contexte();
   c.resume(); // (le clic du joueur autorise le son)
-  if (musique_lancee == true) {
+  if (musique != null) {
     return;
   }
-  musique_lancee = true;
-
-  // le bourdon : une onde pure, grave
-  var bourdon = c.createOscillator();
-  bourdon.type = "sine";
-  bourdon.frequency.value = frequence_bourdon;
-  var volume = c.createGain();
-  volume.gain.value = volume_musique;
-  bourdon.connect(volume);
-  volume.connect(c.destination);
-  bourdon.start();
-  bourdon_oscillateur = bourdon;
-
-  // la pulsation : un 2e oscillateur tres lent fait monter et descendre le
-  // volume du bourdon (environ une pulsation toutes les 8 secondes)
-  var pulsation = c.createOscillator();
-  pulsation.type = "sine";
-  pulsation.frequency.value = 0.12;
-  var amplitude = c.createGain();
-  amplitude.gain.value = 0.04;
-  pulsation.connect(amplitude);
-  amplitude.connect(volume.gain);
-  pulsation.start();
-
-  // une petite note douce de la gamme, toutes les 2,4 secondes
-  setInterval(function () {
-    var note = gamme[Math.floor(Math.random() * gamme.length)] * (1 - 0.3 * poids_musique); // plus grave quand ca pese
-    jouer_une_note(note, note * 0.99, 1.8, volume_notes, "sine");
-  }, delai_entre_notes);
+  musique = new Audio("assets/audio/ambiance.mp3");
+  musique.loop = true;
+  musique.volume = volume_musique;
+  musique.play().catch(function () {
+    musique = null; // le navigateur a refuse : on reessaiera au prochain clic
+  });
 }
 
-
-// La musique s'alourdit : poids de 0 (normale) a 1 (le bourdon et les notes sont
-// bien plus graves). Appelee quand les joueurs portent des mots (voir phrases.js).
-export function peser_sur_la_musique(poids) {
-  poids_musique = poids;
-  if (bourdon_oscillateur != null) {
-    var c = obtenir_le_contexte();
-    bourdon_oscillateur.frequency.setTargetAtTime(frequence_bourdon * (1 - 0.35 * poids), c.currentTime, 0.4);
+// Change la musique de fond : l'ancienne s'arrete, la nouvelle (un fichier audio)
+// tourne en boucle. Le monde 4 a sa propre ambiance.
+export function changer_la_musique(fichier) {
+  if (musique != null) {
+    musique.pause();
   }
+  musique = new Audio(fichier);
+  musique.loop = true;
+  musique.volume = volume_musique;
+  musique.play().catch(function () {
+    musique = null;
+  });
+}
+
+// La musique s'alourdit : poids de 0 (normale) a 1 (plus lente, donc plus grave,
+// et un peu plus forte). Appelee quand les joueurs portent des mots (voir phrases.js).
+export function peser_sur_la_musique(poids) {
+  if (musique == null) {
+    return;
+  }
+  musique.preservesPitch = false; // la vitesse change aussi la hauteur : plus lent = plus grave
+  musique.playbackRate = 1 - 0.3 * poids;
+  musique.volume = Math.min(1, volume_musique * (1 + 0.5 * poids));
 }
 
 
@@ -178,6 +166,39 @@ export function jouer_son_mot_pose(rang) {
   jouer_une_note(base, base * 1.5, 0.11, 0.08, "triangle");
 }
 
+// le rire moqueur d'un PNJ apres une reponse : cinq "ha" qui s'eteignent
+export function jouer_son_rire_moqueur() {
+  var hauteurs = [330, 310, 320, 285, 260];
+  for (var i = 0; i < hauteurs.length; i++) {
+    setTimeout(un_ha, i * 150, hauteurs[i]);
+  }
+}
+
+// un "ha" : une voix (onde en dents de scie) filtree comme une voyelle, qui retombe
+function un_ha(hauteur) {
+  var c = contexte_pret();
+  if (c == null) {
+    return;
+  }
+  var oscillateur = c.createOscillator();
+  oscillateur.type = "sawtooth";
+  oscillateur.frequency.setValueAtTime(hauteur, c.currentTime);
+  oscillateur.frequency.exponentialRampToValueAtTime(hauteur * 0.72, c.currentTime + 0.13);
+  var filtre = c.createBiquadFilter();
+  filtre.type = "bandpass";
+  filtre.frequency.value = 850;
+  filtre.Q.value = 2.5;
+  var gain = c.createGain();
+  gain.gain.setValueAtTime(0.0001, c.currentTime);
+  gain.gain.linearRampToValueAtTime(volume_rire, c.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.14);
+  oscillateur.connect(filtre);
+  filtre.connect(gain);
+  gain.connect(c.destination);
+  oscillateur.start();
+  oscillateur.stop(c.currentTime + 0.16);
+}
+
 // un depot impossible : un "bzzz" grave
 export function jouer_son_mot_refuse() {
   jouer_une_note(150, 90, 0.12, 0.07, "sawtooth");
@@ -219,4 +240,38 @@ export function jouer_son_sonnerie() {
       jouer_une_note(1040, 960, 0.16, 0.07, "triangle");
     }, i * 110);
   }
+}
+
+// --- Le cardiogramme du monde 4 : les bips des televisions (planifies par niveau4.js) ---
+
+// un bip de moniteur ; `volume` de 0 (rien) a 1
+export function jouer_un_bip(volume) {
+  if (volume > 0.02) {
+    jouer_une_note(1000, 1000, 0.09, 0.22 * volume, "sine");
+  }
+}
+
+// le cardiogramme s'arrete : un ton plat qui CONTINUE. Renvoie un objet avec
+// regler(volume) (de 0 a 1 : plus on est pres, plus c'est fort) et arreter().
+export function creer_ton_continu() {
+  var c = contexte_pret();
+  if (c == null) {
+    return { regler: function () {}, arreter: function () {} };
+  }
+  var oscillateur = c.createOscillator();
+  oscillateur.type = "sine";
+  oscillateur.frequency.value = 880;
+  var gain = c.createGain();
+  gain.gain.value = 0;
+  oscillateur.connect(gain);
+  gain.connect(c.destination);
+  oscillateur.start();
+  return {
+    regler: function (volume) {
+      gain.gain.value = 0.14 * volume;
+    },
+    arreter: function () {
+      oscillateur.stop();
+    }
+  };
 }

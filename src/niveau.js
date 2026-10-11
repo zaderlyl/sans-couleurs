@@ -13,7 +13,7 @@
 // creer_particularites() et mettre_a_jour_particularites() sont VIDES ici : un
 // niveau les remplace par les siennes (sinon elles ne font rien).
 
-import { creer_ecran_separe, mettre_a_jour_ecran_separe, point_monde } from "./ecran_separe.js";
+import { creer_camera, mettre_a_jour_camera, point_monde } from "./camera.js";
 import { creer_tir, mettre_a_jour_tir, est_un_clic_de_tir, tirer_a_la_souris } from "./tir.js";
 import { creer_chute } from "./chute.js";
 import { creer_decor, mettre_a_jour_decor } from "./decor.js";
@@ -36,6 +36,7 @@ export default class niveau extends Phaser.Scene {
   init(donnees) {
     this.arrivee_en_train = donnees.arrivee_en_train == true;
     this.avec_transition = donnees.avec_transition == true;
+    this.pensees = donnees.pensees; // les phrases de l'ecran noir de l'arrivee (voir pensees.js), ou undefined
     // Piege de Phaser : si on demarre une scene SANS donnees, il lui redonne
     // celles du demarrage precedent. On les efface ici, pour qu'une scene
     // demarree sans donnees (depuis l'accueil, un passage...) ne rejoue pas
@@ -44,10 +45,19 @@ export default class niveau extends Phaser.Scene {
   }
 
   preload() {
-    // l'image des tuiles, la carte Tiled (au format JSON) et les personnages
+    // la carte Tiled (au format JSON) : propre a chaque niveau
+    if (this.cache.tilemap.exists(this.nom_carte) == false) {
+      this.load.tilemapTiledJSON(this.nom_carte, "assets/maps/" + this.nom_carte + ".json");
+    }
+    // les images sont les memes pour tous les niveaux : si on en a deja joue un,
+    // elles sont deja chargees (sinon Phaser protesterait : "Texture key already in use")
+    if (this.textures.exists("img_perso") == true) {
+      return;
+    }
+
+    // l'image des tuiles et les personnages
     this.load.image("img_tuiles", "assets/tilesets/Tileset.png");
     this.load.image("img_tuiles_college", "assets/tilesets/Tileset-college.png"); // (le niveau 3 s'en sert)
-    this.load.tilemapTiledJSON(this.nom_carte, "assets/maps/" + this.nom_carte + ".json");
     this.load.spritesheet("img_perso", "assets/sprites/characters/player.png", {
       frameWidth: 16,
       frameHeight: 16
@@ -57,7 +67,7 @@ export default class niveau extends Phaser.Scene {
       frameWidth: 16,
       frameHeight: 16
     });
-    // la goutte du tir, et les taches grises a toucher
+    // la goutte du tir, et la cible d'entrainement
     this.load.image("img_goutte", "assets/sprites/props/goutte.png");
     this.load.image("img_cible", "assets/sprites/props/cible.png");
     // l'icone "E" : 11 images de 16 x 16 (voir gare.js et pnj.js)
@@ -178,8 +188,8 @@ export default class niveau extends Phaser.Scene {
     // --- les cameras ---
     // pixel art de 16 pixels : on zoome x5, sinon tout est minuscule
     this.cameras.main.setZoom(5);
-    // une 2e camera et la separation de l'ecran (voir ecran_separe.js)
-    creer_ecran_separe(this);
+    // un seul ecran qui suit les deux joueurs (voir camera.js)
+    creer_camera(this);
 
     // --- le tir ---
     creer_tir(this);
@@ -210,9 +220,11 @@ export default class niveau extends Phaser.Scene {
       this.joueur_souris.setVelocityX(0);
       this.joueur_souris.anims.stop();
       this.joueur_souris.setFrame(3);
-      this.joueur_clavier.setVelocityX(0);
-      this.joueur_clavier.anims.stop();
-      this.joueur_clavier.setFrame(3);
+      if (this.clavier_libre != true) {
+        this.joueur_clavier.setVelocityX(0);
+        this.joueur_clavier.anims.stop();
+        this.joueur_clavier.setFrame(3);
+      }
     }
 
     // --- le joueur souris marche vers la destination ---
@@ -252,7 +264,8 @@ export default class niveau extends Phaser.Scene {
     }
 
     // --- le joueur clavier : les fleches gauche et droite ---
-    if (this.est_fige() == true) {
+    // (sauf pendant la recolte des mots d'un dialogue : il attrape alors les mots qui tombent)
+    if (this.est_fige() == true && this.clavier_libre != true) {
       // fige (voir plus haut)
     } else if (this.clavier.left.isDown) {
       this.joueur_clavier.setVelocityX(-70 * this.joueur_clavier.facteur_vitesse);
@@ -273,9 +286,8 @@ export default class niveau extends Phaser.Scene {
     this.faire_les_bruits(this.joueur_clavier, delta);
 
     // --- les cameras ---
-    // un seul ecran quand les joueurs sont proches, deux quand ils s'eloignent :
-    // le calcul est dans ecran_separe.js
-    mettre_a_jour_ecran_separe(this, delta);
+    // un seul ecran, qui suit les deux joueurs : le calcul est dans camera.js
+    mettre_a_jour_camera(this);
 
     // --- le tir ---
     mettre_a_jour_tir(this);
@@ -317,9 +329,10 @@ export default class niveau extends Phaser.Scene {
 
   // true quand les joueurs ne doivent plus bouger ni tirer : un dialogue est
   // ouvert (voir dialogue.js), le train est en route (voir gare.js) ou un joueur
-  // vient de s'effondrer sous le poids des mots (voir phrases.js)
+  // vient de s'effondrer sous le poids des mots (voir phrases.js), ou le niveau
+  // lui-meme fige les joueurs (fige_par_le_niveau : voir niveau4.js)
   est_fige() {
-    return this.dialogue_ouvert == true || this.etat_gare == "enCours" || this.effondrement == true;
+    return this.dialogue_ouvert == true || this.etat_gare == "enCours" || this.effondrement == true || this.fige_par_le_niveau == true;
   }
 
   // Le joueur souris va jusqu'a l'abscisse x, puis fait `action` (une fonction,
@@ -350,8 +363,7 @@ export default class niveau extends Phaser.Scene {
     }
 
     // pointeur.x / pointeur.y : l'endroit de l'ECRAN ou on a clique. On le
-    // convertit en endroit du MONDE (la camera est zoomee et decalee, et
-    // l'ecran peut etre separe en deux cameras : voir ecran_separe.js).
+    // convertit en endroit du MONDE (la camera est zoomee et decalee : voir camera.js).
     var clic = point_monde(this, pointeur.x, pointeur.y);
     this.aller_vers(clic.x, null);
 
