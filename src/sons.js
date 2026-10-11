@@ -10,7 +10,7 @@
 //   dialogue ; jouer_son_rire_moqueur() : le PNJ rit apres une reponse ;
 // - jouer_son_tir(), jouer_son_impact(), jouer_son_cible() : le tir et les cibles ;
 // - jouer_son_chute() : la chute dans le vide ;
-// - changer_la_musique(), les bips du cardiogramme, jouer_son_dechirure() : le monde 4.
+// - changer_la_musique(), jouer_un_bip(), jouer_un_bip_long() : le monde 4.
 //
 // Tant que le joueur n'a pas encore clique, les bruitages restent muets (sans
 // erreur) : le navigateur garde le contexte audio "suspendu".
@@ -242,73 +242,18 @@ export function jouer_son_sonnerie() {
   }
 }
 
-// --- Le cardiogramme du monde 4 : un bip en boucle, qu'on entend de plus en plus
-// quand on s'approche des televisions ---------------------------------------------
+// --- Le cardiogramme du monde 4 : les bips des televisions (planifies par niveau4.js) ---
 
-var bips = { actif: false, intervalle: 1100, sourd: false, oscillateur: null, gain: null, lire_le_volume: null, minuteur: null };
-
-// lance les bips ; `lire_le_volume` est une fonction qui renvoie un volume de 0 a 1
-// (0 = loin des televisions, on n'entend rien)
-export function demarrer_les_bips(lire_le_volume) {
-  bips.lire_le_volume = lire_le_volume;
-  bips.actif = true;
-  bips.sourd = false;
-  planifier_un_bip();
-}
-
-function planifier_un_bip() {
-  if (bips.actif == false) {
-    return;
-  }
-  var volume = bips.lire_le_volume();
-  if (bips.sourd == true) {
-    // le ton continu : on ajuste seulement son volume
-    if (bips.gain != null) {
-      bips.gain.gain.value = 0.2 * volume;
-    }
-  } else if (volume > 0.02) {
-    jouer_une_note(1000, 1000, 0.09, 0.22 * volume, "sine"); // un "bip"
-  }
-  var attente = bips.intervalle;
-  if (bips.sourd == true) {
-    attente = 100;
-  }
-  bips.minuteur = setTimeout(planifier_un_bip, attente);
-}
-
-// les bips se rapprochent : un bip toutes les `intervalle` millisecondes
-export function accelerer_les_bips(intervalle) {
-  bips.intervalle = intervalle;
-}
-
-// le cardiogramme s'arrete : un ton plus sourd, et qui continue
-export function bip_sourd_continu() {
-  var c = contexte_pret();
-  if (c == null) {
-    return;
-  }
-  bips.sourd = true;
-  bips.oscillateur = c.createOscillator();
-  bips.oscillateur.type = "sine";
-  bips.oscillateur.frequency.value = 330;
-  bips.gain = c.createGain();
-  bips.gain.gain.value = 0;
-  bips.oscillateur.connect(bips.gain);
-  bips.gain.connect(c.destination);
-  bips.oscillateur.start();
-}
-
-export function arreter_les_bips() {
-  bips.actif = false;
-  clearTimeout(bips.minuteur);
-  if (bips.oscillateur != null) {
-    bips.oscillateur.stop();
-    bips.oscillateur = null;
-    bips.gain = null;
+// un bip de moniteur ; `volume` de 0 (rien) a 1
+export function jouer_un_bip(volume) {
+  if (volume > 0.02) {
+    jouer_une_note(1000, 1000, 0.09, 0.22 * volume, "sine");
   }
 }
 
-// une dechirure : un petit craquement
-export function jouer_son_dechirure() {
-  jouer_une_note(420, 90, 0.18, 0.12, "sawtooth");
+// le cardiogramme s'arrete : un long bip plat
+export function jouer_un_bip_long(volume) {
+  if (volume > 0.02) {
+    jouer_une_note(880, 880, 3, 0.2 * volume, "sine");
+  }
 }

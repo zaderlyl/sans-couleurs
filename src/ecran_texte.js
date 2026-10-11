@@ -33,7 +33,7 @@ function obtenir_l_ecran(scene) {
     ecran.style.fontSize = "28px";
     ecran.style.padding = "40px";
     ecran.style.cursor = "pointer";
-    ecran.style.zIndex = "10"; // au-dessus de tout (les voiles, l'ecran dechire du monde 4...)
+    ecran.style.zIndex = "10"; // au-dessus de tout (les voiles...)
     // un clic sur cet ecran ne doit pas "traverser" jusqu'au jeu (sinon il declenche
     // le bouton ou l'objet qui se trouve dessous)
     ["mousedown", "mouseup", "pointerdown", "pointerup", "touchstart", "touchend"].forEach(function (evenement) {
