@@ -117,11 +117,13 @@ calque `gare` de la carte.
 | | Joueur souris (J1) | Joueur clavier (J2) |
 |---|---|---|
 | Marcher | clic dans le vide | fleches gauche / droite |
-| Interagir | clic sur l'element (PNJ, gare) | se placer a cote (gare, autre joueur) |
+| Interagir | clic sur l'element (PNJ, gare) | touche E dans la gare ; se placer a cote de l'autre joueur (mots du niveau 3) |
 | Tirer (niveaux 1 et 2) | Ctrl ou Cmd + clic (vers le point clique) | barre espace (devant lui) |
 
-Le train ne part que si les deux joueurs sont dans la gare. Il n'y a pas de tir
-dans le niveau 3.
+Le train ne part que si les **deux** joueurs agissent dessus : le joueur souris
+clique sur la gare, le joueur clavier se place dedans et appuie sur E. On ne
+peut pas revenir en arriere (le train du niveau 2 ne repart pas). Il n'y a pas de
+tir dans le niveau 3.
 
 ## Le niveau 3 : porter les mots a deux
 

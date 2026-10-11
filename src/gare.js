@@ -1,10 +1,13 @@
 // gare.js — la gare et le voyage en train.
 //
-// Le joueur souris clique sur la gare : il y marche. Le train ne part que si les
-// DEUX joueurs sont dans la gare : personne n'est laisse derriere (sinon, le
-// joueur souris dit qu'il manque quelqu'un). Alors le train clignote, tremble,
-// demarre, l'ecran devient noir, puis on passe au niveau suivant (ou, si ce
-// niveau n'a pas de suite, les joueurs reviennent ou ils etaient).
+// Le train ne part que si les DEUX joueurs agissent dessus, chacun a sa facon :
+//   - le joueur souris clique sur la gare : il y marche ;
+//   - le joueur clavier se place dans la gare et appuie sur E.
+// Chacun reste "pret" tant qu'il est dans la gare ; quand les deux sont prets,
+// le train clignote, tremble, demarre, l'ecran devient noir, puis on passe au
+// niveau suivant (ou, si ce niveau n'a pas de suite, les joueurs reviennent ou
+// ils etaient). Personne n'est laisse derriere : si l'un est pret et pas l'autre,
+// il attend (et le joueur souris le dit).
 // Dans le niveau d'arrivee, un ecran noir (voir ecran_texte.js) affiche quelques phrases ("Le train
 // quitte la gare..."), puis le train arrive en douceur et les joueurs descendent.
 //
@@ -53,6 +56,10 @@ var phrases_il_manque_quelqu_un = [
   "Pas sans l'autre."
 ];
 
+// ce que dit un joueur pret pendant qu'il attend l'autre
+var phrase_d_attente_souris = "J'attends l'autre...";
+var phrase_d_attente_clavier = "J'attends...";
+
 var phrases_du_voyage = [
   "Le train quitte la gare.",
   "Les paysages defilent derriere la vitre.",
@@ -84,6 +91,11 @@ export function creer_gare(scene, options) {
   gare.flippe = flippe;
   gare.souris_dessus = false;
   gare.pressee = false; // l'animation "E qui eclate" est-elle en cours ?
+  gare.souris_prete = false; // le joueur souris a clique sur la gare et y est arrive
+  gare.clavier_pret = false; // le joueur clavier est dans la gare et a appuye sur E
+  gare.texte_souris = null; // "J'attends..." au-dessus de chaque joueur pret
+  gare.texte_clavier = null;
+  gare.indice_e = null; // le petit "E" au-dessus du joueur clavier quand il peut appuyer
 
   // ou le joueur souris marche avant de partir : le milieu de la zone de la gare
   var col_centre = boite.col_min + Math.floor((boite.col_max - boite.col_min) / 2);
@@ -136,12 +148,12 @@ export function creer_gare(scene, options) {
       return;
     }
     scene.aller_vers(gare.x_depart, function () {
-      // le joueur souris est arrive : les deux joueurs sont-ils dans la gare ?
-      if (les_deux_sont_dans_la_gare(scene) == false) {
+      // le joueur souris est arrive : il est pret (tant qu'il reste dans la gare)
+      gare.souris_prete = true;
+      if (gare.clavier_pret == false) {
         dire_qu_il_manque_quelqu_un(scene);
-        return;
       }
-      appuyer_sur_l_icone_puis(scene, partir);
+      verifier_le_depart(scene);
     });
   });
 
@@ -198,10 +210,33 @@ export function mettre_a_jour_gare(scene) {
     return;
   }
 
+  // chacun reste "pret" tant qu'il est dans la gare ; s'il en sort, il ne l'est plus
+  var zone = gare.zone;
+  var souris_dedans = Phaser.Geom.Rectangle.Contains(zone, scene.joueur_souris.x, scene.joueur_souris.y);
+  var clavier_dedans = Phaser.Geom.Rectangle.Contains(zone, scene.joueur_clavier.x, scene.joueur_clavier.y);
+  if (souris_dedans == false) {
+    gare.souris_prete = false;
+  }
+  if (clavier_dedans == false) {
+    gare.clavier_pret = false;
+  }
+
+  // le joueur clavier, dans la gare, appuie sur E : il est pret
+  if (peut_partir(scene) == true && clavier_dedans == true && gare.clavier_pret == false
+      && Phaser.Input.Keyboard.JustDown(scene.touche_e) == true) {
+    gare.clavier_pret = true;
+    if (gare.souris_prete == false) {
+      dire_qu_il_manque_quelqu_un(scene);
+    }
+    verifier_le_depart(scene);
+  }
+
+  mettre_a_jour_les_textes_d_attente(scene, clavier_dedans);
+
   // la souris sur la gare : l'icone apparait et le train tremble ("on peut cliquer")
   var survole = gare.souris_dessus == true && peut_partir(scene) == true && scene.en_mode_tir != true;
-  // les deux joueurs sont dans la gare : l'icone reste affichee ("tout le monde est la")
-  var pret = peut_partir(scene) == true && les_deux_sont_dans_la_gare(scene) == true;
+  // un joueur au moins est dans la gare : l'icone reste affichee ("on peut partir")
+  var pret = peut_partir(scene) == true && (souris_dedans == true || clavier_dedans == true);
 
   if (scene.etat_gare == "attente" && gare.pressee == false) {
     gare.icone.setVisible(survole || pret);
@@ -216,6 +251,49 @@ export function mettre_a_jour_gare(scene) {
     }
     gare.sprite.setPosition(gare.x_sprite + tremblement_x, gare.y_sprite + tremblement_y);
   }
+}
+
+
+// Les deux joueurs sont prets (le souris a clique et le clavier a appuye sur E) ?
+// Alors le E eclate et le train part.
+function verifier_le_depart(scene) {
+  var gare = scene.gare;
+  if (gare.souris_prete == true && gare.clavier_pret == true && peut_partir(scene) == true) {
+    gare.souris_prete = false;
+    gare.clavier_pret = false;
+    appuyer_sur_l_icone_puis(scene, partir);
+  }
+}
+
+// Au-dessus de chaque joueur pret : "J'attends..." ; au-dessus du joueur clavier
+// qui est dans la gare mais pas encore pret : un "E" pour lui dire d'appuyer.
+function mettre_a_jour_les_textes_d_attente(scene, clavier_dedans) {
+  var gare = scene.gare;
+  var en_route = scene.etat_gare != "attente";
+
+  gare.texte_souris = suivre_un_texte(scene, gare.texte_souris, gare.souris_prete == true && en_route == false, phrase_d_attente_souris, scene.joueur_souris);
+  gare.texte_clavier = suivre_un_texte(scene, gare.texte_clavier, gare.clavier_pret == true && en_route == false, phrase_d_attente_clavier, scene.joueur_clavier);
+  var veut_le_e = clavier_dedans == true && gare.clavier_pret == false && en_route == false && gare.options.sortie_active == true;
+  gare.indice_e = suivre_un_texte(scene, gare.indice_e, veut_le_e, "[E]", scene.joueur_clavier);
+}
+
+// un texte qui suit un joueur : cree s'il faut l'afficher, detruit sinon
+function suivre_un_texte(scene, texte, afficher, contenu, joueur) {
+  if (afficher == false) {
+    if (texte != null) {
+      texte.destroy();
+    }
+    return null;
+  }
+  if (texte == null) {
+    texte = scene.add.text(0, 0, contenu, style_texte);
+    texte.setOrigin(0.5, 1);
+    texte.setDepth(25);
+    // pixelArt: true met les textures en NEAREST : flou pour un texte agrandi.
+    texte.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  }
+  texte.setPosition(joueur.x, joueur.y - 22);
+  return texte;
 }
 
 
@@ -338,15 +416,7 @@ function jouer_l_arrivee(scene) {
 }
 
 
-// --- 5. Les deux joueurs doivent etre la ---------------------------------------------------------
-
-// true si le centre de CHACUN des deux joueurs est dans la zone de la gare
-function les_deux_sont_dans_la_gare(scene) {
-  var zone = scene.gare.zone;
-  var souris_est_la = Phaser.Geom.Rectangle.Contains(zone, scene.joueur_souris.x, scene.joueur_souris.y);
-  var clavier_est_la = Phaser.Geom.Rectangle.Contains(zone, scene.joueur_clavier.x, scene.joueur_clavier.y);
-  return souris_est_la == true && clavier_est_la == true;
-}
+// --- 5. Il manque quelqu'un ---------------------------------------------------------
 
 // le joueur souris dit, au-dessus de lui, qu'il manque quelqu'un ; le texte s'efface
 function dire_qu_il_manque_quelqu_un(scene) {
