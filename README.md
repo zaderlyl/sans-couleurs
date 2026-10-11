@@ -196,7 +196,7 @@ plus fort, il se pose des questions et trouve des excuses ; puis il ne dit plus
 rien, par habitude ; puis il pleure et ne sait plus quoi faire. Les textes sont
 separes par qui parle (J1, la voix rationnelle de J2, sa voix emotionnelle, le
 juge, l'avocat) et suivent leur personnage. Le tribunal est une vraie audience :
-un juge, un avocat, des accusations, un classement sans suite.
+un juge, elle (l'ombre) et son avocat, ses accusations qui volent vers lui, un classement sans suite.
 
 La pression monte a chaque coup : un voile sombre et flou sur les bords de
 l'ecran, une musique plus lente et plus grave, des mouvements plus lents. Le

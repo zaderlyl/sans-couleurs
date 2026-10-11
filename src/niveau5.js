@@ -207,7 +207,7 @@ export default class niveau5 extends niveau {
         style = Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff", wordWrap: { width: 100 } });
       } else if (qui == "juge") {
         cible = scene.juge;
-        style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 130 }, align: "center" });
+        style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 200 }, align: "center" });
       } else if (qui == "avocat") {
         cible = scene.avocat;
         style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 130 }, align: "center" });
@@ -359,7 +359,9 @@ export default class niveau5 extends niveau {
   }
 
 
-  // --- Le tribunal : la gravite. Un juge, un avocat, des accusations, un classement. ---
+  // --- Le tribunal : la gravite. Le juge, ELLE (l'ombre) et son avocat, des accusations, un classement. ---
+  // Lui a porte plainte ; elle est la, avec son avocat, et elle dit qu'il ment : ses mots
+  // partent d'elle et viennent s'empiler au-dessus de sa tete. Puis le juge classe sans suite.
 
   scene_du_tribunal() {
     var scene = this;
@@ -368,47 +370,58 @@ export default class niveau5 extends niveau {
     this.tribunal_actif = true;
     this.tweens.add({ targets: this.cameras.main, zoom: zoom_du_tribunal, duration: 1000, ease: "Sine.easeInOut" }); // la camera recule
 
-    // l'avocat apparait a cote du personnage
-    this.avocat = this.add.sprite(j.x - 26, sol_y, "img_tribunal", 1);
+    // elle (l'ombre, comme toujours) et son avocat apparaissent a gauche du personnage
+    this.elle = this.add.sprite(j.x - 24, sol_y, "img_ombre", 0);
+    this.elle.setOrigin(0.5, 1);
+    this.elle.setDepth(8);
+    this.elle.setAlpha(0);
+    this.elle.haut_texte = 36;
+    this.avocat = this.add.sprite(j.x - 46, sol_y, "img_tribunal", 1);
     this.avocat.setOrigin(0.5, 1);
     this.avocat.setDepth(8);
     this.avocat.haut_texte = 36;
     this.avocat.setAlpha(0);
-    this.tweens.add({ targets: this.avocat, alpha: 1, duration: 600 });
+    this.tweens.add({ targets: [this.elle, this.avocat], alpha: 1, duration: 600 });
 
-    // le juge ouvre l'audience
+    // le juge ouvre l'audience et dit de quoi il s'agit
     this.dire("juge", "Audience du tribunal correctionnel.", 600, 3000);
     this.time.delayedCall(700, function () { jouer_son_marteau(); }, null, this);
-    this.dire("juge", "Vous êtes poursuivi pour violences volontaires sur conjoint.", 3800, 3600);
+    this.dire("juge", "Plainte pour violences volontaires, déposée contre Madame.", 3800, 3600);
 
-    // les accusations tombent sur lui, une a une, et s'empilent au-dessus de sa tete
+    // elle dit qu'il ment : chaque mot part d'elle, vole jusqu'a lui et s'empile au-dessus de sa tete
     var mots = [];
-    var accusations = [t("Il ment."), t("Il est dangereux."), t("Il l'a menacée."), t("Il ne dit rien.")];
+    var accusations = [t("Il ment."), t("Il exagère."), t("Il a toujours été fragile."), t("Personne n'a rien vu.")];
     for (var k = 0; k < accusations.length; k++) {
-      this.time.delayedCall(7600 + k * 1000, function (indice) {
-        var mot = scene.add.text(j.x, hauteur_de_la_pile - indice * 9, accusations[indice], Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff" }));
+      this.time.delayedCall(7600 + k * 1100, function (indice) {
+        var mot = scene.add.text(scene.elle.x, hauteur_de_la_pile - 10, accusations[indice], Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff" }));
         mot.setOrigin(0.5, 1);
         mot.setDepth(25);
         mot.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-        mots.push({ texte: mot, rang: indice });
-        jouer_son_coup(0.35);
-        scene.cameras.main.shake(120, 0.004);
-        ajouter_pression(scene, 0.04);
+        var pile = { texte: mot, rang: indice, arrive: false };
+        mots.push(pile);
+        // le mot vole d'elle vers lui
+        scene.tweens.add({ targets: mot, x: j.x, duration: 700, ease: "Quad.easeIn", onComplete: function () {
+          pile.arrive = true;
+          jouer_son_coup(0.35);
+          scene.cameras.main.shake(120, 0.004);
+          ajouter_pression(scene, 0.04);
+        } });
       }, [k], this);
     }
-    // les accusations suivent le personnage (empilees)
+    // les accusations, une fois arrivees, suivent le personnage (empilees)
     this.piles_du_tribunal = mots;
 
-    // la defense
-    this.dire("avocat", "Mon client conteste les faits.", 12200, 3000);
-    this.dire("j1", "...", 12500, 2600);
+    // la defense : l'avocat d'ELLE
+    this.dire("avocat", "Ma cliente conteste les faits.", 12000, 3000);
+    this.dire("avocat", "Aucun témoin. Aucune preuve.", 14600, 2800);
+    this.dire("j1", "Je dis la vérité.", 16600, 2400);
 
     // la decision
-    this.dire("juge", "Après examen du dossier, la procédure est classée sans suite.", 15600, 4200);
-    this.time.delayedCall(15900, function () { jouer_son_marteau(); }, null, this);
+    this.dire("juge", "Faute de preuves, la plainte est classée sans suite.", 18000, 4200);
+    this.time.delayedCall(18300, function () { jouer_son_marteau(); }, null, this);
 
     // le tampon : « CLASSE SANS SUITE »
-    this.time.delayedCall(19600, function () {
+    this.time.delayedCall(21800, function () {
       var plaque = scene.add.text(j.x, 42, t("CLASSÉ SANS SUITE"), Object.assign({}, style_mot, { fontSize: "8px" }));
       plaque.setOrigin(0.5, 1);
       plaque.setDepth(26);
@@ -422,11 +435,11 @@ export default class niveau5 extends niveau {
     }, null, this);
 
     // les deux voix de J2
-    this.dire("rationnelle", "Tu n'as rien fait.", 20800, 2800);
-    this.dire("emotionnelle", "Alors pourquoi je me sens coupable ?", 23200, 3400);
+    this.dire("rationnelle", "Tu n'as rien fait de mal.", 23000, 2800);
+    this.dire("emotionnelle", "Alors pourquoi je me sens coupable ?", 25400, 3400);
 
     // tout s'efface doucement : mais les sequelles restent
-    this.time.delayedCall(26800, function () {
+    this.time.delayedCall(29000, function () {
       var a_effacer = [scene.plaque_du_tribunal];
       for (var m = 0; m < mots.length; m++) {
         a_effacer.push(mots[m].texte);
@@ -437,7 +450,7 @@ export default class niveau5 extends niveau {
         }
         scene.piles_du_tribunal = [];
       } });
-      scene.tweens.add({ targets: scene.avocat, alpha: 0, duration: 1500 });
+      scene.tweens.add({ targets: [scene.avocat, scene.elle], alpha: 0, duration: 1500 });
       scene.tribunal_actif = false;
       scene.tweens.add({ targets: scene.cameras.main, zoom: 5, duration: 1500, ease: "Sine.easeInOut" }); // la camera revient
       scene.liberer_les_joueurs();
@@ -499,7 +512,11 @@ export default class niveau5 extends niveau {
     if (this.piles_du_tribunal != undefined) {
       for (var p = 0; p < this.piles_du_tribunal.length; p++) {
         var pile = this.piles_du_tribunal[p];
-        pile.texte.setPosition(this.joueur_souris.x, hauteur_de_la_pile - pile.rang * 9);
+        if (pile.arrive == true) {
+          pile.texte.setPosition(this.joueur_souris.x, hauteur_de_la_pile - pile.rang * 9);
+        } else {
+          pile.texte.y = hauteur_de_la_pile - pile.rang * 9;
+        }
       }
       if (this.plaque_du_tribunal != undefined && this.plaque_du_tribunal.active) {
         this.plaque_du_tribunal.setPosition(this.joueur_souris.x, 42);
