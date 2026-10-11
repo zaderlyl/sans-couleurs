@@ -14,6 +14,7 @@ import {
 } from "./sons.js";
 import { afficher_texte } from "./ecran_texte.js";
 import { t, lire_langue, choisir_langue } from "./langue.js";
+import { mode_solo_actif, regler_mode_solo } from "./solo.js";
 
 var texte_avertissement = [
   t("Ce jeu raconte des moments difficiles de la vie d'un personnage : le harcèlement, le mal-être, la violence dans une relation, une accusation de violences sexuelles, et l'envie d'en finir."),
@@ -214,29 +215,34 @@ export default class accueil extends Phaser.Scene {
     this.mettre_a_jour_volume();
 
     // les bruitages : un bouton qui bascule entre oui et non
-    this.creer_etiquette(page, t("Bruitages"), 12, 24);
-    this.bouton_effets = this.creer_bouton(page, "", 55, function () {
+    this.bouton_effets = this.creer_bouton(page, "", 35, function () {
       regler_effets_actifs(lire_effets_actifs() == false);
       this.mettre_a_jour_effets();
       jouer_son_mot_pose(0); // un petit son pour entendre le resultat
-    }, 200);
+    });
     this.mettre_a_jour_effets();
 
     // la langue : un bouton qui bascule entre francais et anglais (la page se recharge)
-    this.creer_etiquette(page, t("Langue"), 107, 24);
     var nom_de_la_langue = "Français";
     if (lire_langue() == "en") {
       nom_de_la_langue = "English";
     }
-    this.creer_bouton(page, nom_de_la_langue, 150, function () {
+    this.creer_bouton(page, t("Langue") + " : " + nom_de_la_langue, 95, function () {
       if (lire_langue() == "fr") {
         choisir_langue("en");
       } else {
         choisir_langue("fr");
       }
-    }, 200);
+    });
 
-    this.creer_bouton(page, t("Retour"), 240, function () { this.afficher_page("principale"); }, 200);
+    // le mode solo : J2 est dirige par l'ordinateur
+    this.bouton_solo = this.creer_bouton(page, "", 155, function () {
+      regler_mode_solo(mode_solo_actif() == false);
+      this.mettre_a_jour_solo();
+    });
+    this.mettre_a_jour_solo();
+
+    this.creer_bouton(page, t("Retour"), 225, function () { this.afficher_page("principale"); }, 200);
   }
 
   // change le volume de la musique de `ecart` (+0.1 ou -0.1)
@@ -252,11 +258,20 @@ export default class accueil extends Phaser.Scene {
 
   // affiche l'etat des bruitages
   mettre_a_jour_effets() {
+    var etat = t("Non");
     if (lire_effets_actifs() == true) {
-      this.bouton_effets.setText(t("Oui"));
-    } else {
-      this.bouton_effets.setText(t("Non"));
+      etat = t("Oui");
     }
+    this.bouton_effets.setText(t("Bruitages") + " : " + etat);
+  }
+
+  // affiche l'etat du mode solo
+  mettre_a_jour_solo() {
+    var etat = t("Non");
+    if (mode_solo_actif() == true) {
+      etat = t("Oui");
+    }
+    this.bouton_solo.setText(t("Mode solo") + " : " + etat);
   }
 
   // --- La page des credits ---

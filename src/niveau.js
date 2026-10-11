@@ -19,6 +19,7 @@ import { creer_chute } from "./chute.js";
 import { creer_decor, mettre_a_jour_decor } from "./decor.js";
 import { creer_textes_de_zone, mettre_a_jour_textes_de_zone } from "./textes_de_zone.js";
 import { jouer_son_pas, jouer_son_atterrissage } from "./sons.js";
+import { mode_solo_actif, direction_de_j2 } from "./solo.js";
 
 export default class niveau extends Phaser.Scene {
   // cle = l'identifiant de la scene ; nom_carte = le fichier Tiled (sans .json)
@@ -273,15 +274,23 @@ export default class niveau extends Phaser.Scene {
       this.joueur_souris.setFrame(3); // l'image "debout"
     }
 
-    // --- le joueur clavier : les fleches gauche et droite ---
+    // --- le joueur clavier : les fleches gauche et droite (en mode solo : l'ordinateur) ---
+    var va_a_gauche = this.clavier.left.isDown;
+    var va_a_droite = this.clavier.right.isDown;
+    if (mode_solo_actif() == true) {
+      var direction = direction_de_j2(this);
+      va_a_gauche = direction < 0;
+      va_a_droite = direction > 0;
+    }
+    this.cible_j2_x = undefined; // (la gare ou le dialogue la remettent a chaque image, au besoin)
     // (sauf pendant la recolte des mots d'un dialogue : il attrape alors les mots qui tombent)
     if (this.est_fige() == true && this.clavier_libre != true) {
       // fige (voir plus haut)
-    } else if (this.clavier.left.isDown) {
+    } else if (va_a_gauche == true) {
       this.joueur_clavier.setVelocityX(-70 * this.joueur_clavier.facteur_vitesse);
       this.joueur_clavier.setFlipX(true); // regarde a gauche
       this.joueur_clavier.anims.play("anim_marche2", true);
-    } else if (this.clavier.right.isDown) {
+    } else if (va_a_droite == true) {
       this.joueur_clavier.setVelocityX(70 * this.joueur_clavier.facteur_vitesse);
       this.joueur_clavier.setFlipX(false); // regarde a droite
       this.joueur_clavier.anims.play("anim_marche2", true);

@@ -34,6 +34,7 @@ import { pensees } from "./pensees.js";
 import { rendre_cliquable_sur_les_pixels } from "./zone_cliquable.js";
 import { style_texte } from "./styles.js";
 import { t } from "./langue.js";
+import { mode_solo_actif } from "./solo.js";
 
 // --- Reglages : la calibration de l'image du train ---------------------------
 //
@@ -266,6 +267,22 @@ export function mettre_a_jour_gare(scene) {
     verifier_le_depart(scene);
   }
 
+  // MODE SOLO : quand J1 est pret, J2 va tout seul dans la gare et "appuie sur E"
+  if (mode_solo_actif() == true && peut_partir(scene) == true && gare.souris_prete == true && gare.clavier_pret == false) {
+    scene.cible_j2_x = gare.x_depart + 12;
+    if (clavier_dedans == true) {
+      if (gare.j2_pret_a == undefined) {
+        gare.j2_pret_a = scene.time.now + 500;
+      } else if (scene.time.now >= gare.j2_pret_a) {
+        gare.j2_pret_a = undefined;
+        gare.clavier_pret = true;
+        verifier_le_depart(scene);
+      }
+    }
+  } else {
+    gare.j2_pret_a = undefined;
+  }
+
   mettre_a_jour_les_textes_d_attente(scene, clavier_dedans);
 
   // la souris sur la gare : l'icone apparait et le train tremble ("on peut cliquer")
@@ -308,7 +325,7 @@ function mettre_a_jour_les_textes_d_attente(scene, clavier_dedans) {
 
   gare.texte_souris = suivre_un_texte(scene, gare.texte_souris, gare.souris_prete == true && en_route == false, phrase_d_attente_souris, scene.joueur_souris);
   gare.texte_clavier = suivre_un_texte(scene, gare.texte_clavier, gare.clavier_pret == true && en_route == false, phrase_d_attente_clavier, scene.joueur_clavier);
-  var veut_le_e = clavier_dedans == true && gare.clavier_pret == false && en_route == false && gare.options.sortie_active == true;
+  var veut_le_e = clavier_dedans == true && gare.clavier_pret == false && en_route == false && gare.options.sortie_active == true && mode_solo_actif() == false;
   gare.indice_e = suivre_un_texte(scene, gare.indice_e, veut_le_e, "[E]", scene.joueur_clavier);
 }
 
