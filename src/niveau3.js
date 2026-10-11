@@ -20,7 +20,6 @@ export default class niveau3 extends niveau {
   }
 
   creer_particularites() {
-    this.camera_unique = true; // un seul ecran en tout temps ; un joueur sorti du cadre devient une pastille
     creer_pastilles(this);
     creer_phrases(this); // apres creer_tir (fait dans niveau.js)
     creer_gare(this, { niveau_suivant: null, sortie_active: false });

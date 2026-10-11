@@ -37,7 +37,6 @@
 
 import { creer_gestes_des_mots, preparer_le_mot } from "./mots_a_placer.js";
 import { style_texte, style_mot } from "./styles.js";
-import { camera_du_joueur } from "./ecran_separe.js";
 import { jouer_son_rire_moqueur, jouer_son_mot_pris } from "./sons.js";
 
 
@@ -352,7 +351,7 @@ function lancer_un_mot_qui_tombe(scene) {
     return;
   }
   var etiquette = Phaser.Utils.Array.GetRandom(libres);
-  var vue = camera_du_joueur(scene, scene.joueur_clavier).worldView;
+  var vue = scene.cameras.main.worldView;
   var x = Phaser.Math.Clamp(scene.joueur_clavier.x + Phaser.Math.Between(-portee_de_chute, portee_de_chute), vue.left + 20, vue.right - 20);
   var texte = creer_texte(scene, etiquette.vrai_mot, style_mot);
   texte.setOrigin(0.5, 0.5);

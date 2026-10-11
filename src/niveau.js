@@ -13,7 +13,7 @@
 // creer_particularites() et mettre_a_jour_particularites() sont VIDES ici : un
 // niveau les remplace par les siennes (sinon elles ne font rien).
 
-import { creer_ecran_separe, mettre_a_jour_ecran_separe, point_monde } from "./ecran_separe.js";
+import { creer_camera, mettre_a_jour_camera, point_monde } from "./camera.js";
 import { creer_tir, mettre_a_jour_tir, est_un_clic_de_tir, tirer_a_la_souris } from "./tir.js";
 import { creer_chute } from "./chute.js";
 import { creer_decor, mettre_a_jour_decor } from "./decor.js";
@@ -178,8 +178,8 @@ export default class niveau extends Phaser.Scene {
     // --- les cameras ---
     // pixel art de 16 pixels : on zoome x5, sinon tout est minuscule
     this.cameras.main.setZoom(5);
-    // une 2e camera et la separation de l'ecran (voir ecran_separe.js)
-    creer_ecran_separe(this);
+    // un seul ecran qui suit les deux joueurs (voir camera.js)
+    creer_camera(this);
 
     // --- le tir ---
     creer_tir(this);
@@ -276,9 +276,8 @@ export default class niveau extends Phaser.Scene {
     this.faire_les_bruits(this.joueur_clavier, delta);
 
     // --- les cameras ---
-    // un seul ecran quand les joueurs sont proches, deux quand ils s'eloignent :
-    // le calcul est dans ecran_separe.js
-    mettre_a_jour_ecran_separe(this, delta);
+    // un seul ecran, qui suit les deux joueurs : le calcul est dans camera.js
+    mettre_a_jour_camera(this);
 
     // --- le tir ---
     mettre_a_jour_tir(this);
@@ -353,8 +352,7 @@ export default class niveau extends Phaser.Scene {
     }
 
     // pointeur.x / pointeur.y : l'endroit de l'ECRAN ou on a clique. On le
-    // convertit en endroit du MONDE (la camera est zoomee et decalee, et
-    // l'ecran peut etre separe en deux cameras : voir ecran_separe.js).
+    // convertit en endroit du MONDE (la camera est zoomee et decalee : voir camera.js).
     var clic = point_monde(this, pointeur.x, pointeur.y);
     this.aller_vers(clic.x, null);
 

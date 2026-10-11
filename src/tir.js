@@ -17,7 +17,7 @@
 // La scene doit avoir this.joueur_souris, this.joueur_clavier, this.clavier
 // (les fleches, avec la barre espace), this.calque_sol et this.carte.
 
-import { point_monde } from "./ecran_separe.js";
+import { point_monde } from "./camera.js";
 import { jouer_son_tir, jouer_son_impact } from "./sons.js";
 
 
@@ -107,7 +107,7 @@ export function est_un_clic_de_tir(pointeur) {
 
 // tire vers l'endroit de l'ecran (x_ecran, y_ecran) ou on a clique
 export function tirer_a_la_souris(scene, x_ecran, y_ecran) {
-  var cible = point_monde(scene, x_ecran, y_ecran); // l'endroit du MONDE (voir ecran_separe.js)
+  var cible = point_monde(scene, x_ecran, y_ecran); // l'endroit du MONDE (voir camera.js)
   tirer_vers(scene, scene.joueur_souris, cible.x, cible.y);
 }
 

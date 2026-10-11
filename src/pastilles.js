@@ -1,15 +1,14 @@
 // pastilles.js — quand un joueur sort de l'ecran, il apparait en "pastille" au bord.
 //
-// Dans un niveau a camera unique (this.camera_unique = true, voir
-// ecran_separe.js), la camera ne montre pas toujours les deux joueurs : si l'un
-// est trop loin, il sort du cadre. A la place, une petite pastille ronde, avec
-// SON visage, se pose au bord de l'ecran du cote ou il se trouve, avec une
-// fleche qui montre la direction. Elle disparait des qu'il revient a l'ecran.
+// La camera (voir camera.js) est unique : elle ne montre pas toujours les deux
+// joueurs. Si l'un est trop loin, il sort du cadre. A la place, une petite
+// pastille ronde, avec SON visage, se pose au bord de l'ecran du cote ou il se
+// trouve, avec une fleche qui montre la direction. Elle disparait des qu'il
+// revient a l'ecran.
 //
 // Une pastille est un <div> HTML pose sur le jeu (comme le voile du poids de phrases.js).
 //
 // Comment s'en servir (dans un niveau, voir niveau3.js) :
-//   this.camera_unique = true;
 //   creer_pastilles(this);              // dans creer_particularites
 //   mettre_a_jour_pastilles(this);      // dans mettre_a_jour_particularites
 

@@ -240,7 +240,6 @@ function appuyer_sur_l_icone_puis(scene, suite) {
 function partir(scene) {
   var gare = scene.gare;
   scene.etat_gare = "enCours"; // les joueurs sont figes
-  scene.forcer_ecran_entier = true; // pas d'ecran separe pendant le voyage
 
   // les deux joueurs "montent dans le train" : on ne les voit plus. On retient
   // ou ils etaient, pour les ramener si le train ne mene nulle part.
@@ -286,14 +285,11 @@ function changer_de_niveau(scene, avant) {
   montrer_le_joueur(scene.joueur_souris);
   montrer_le_joueur(scene.joueur_clavier);
   scene.cameras.main.fadeIn(500, 0, 0, 0);
-  scene.camera2.fadeIn(500, 0, 0, 0);
   scene.etat_gare = "attente";
-  scene.forcer_ecran_entier = false;
 }
 
-// les deux cameras s'assombrissent en 0,5 s, puis on appelle `suite`
+// l'ecran s'assombrit en 0,5 s, puis on appelle `suite`
 function fondu_au_noir(scene, suite) {
-  scene.camera2.fadeOut(500, 0, 0, 0);
   scene.cameras.main.fadeOut(500, 0, 0, 0);
   scene.cameras.main.once("camerafadeoutcomplete", suite);
 }
@@ -306,7 +302,6 @@ function fondu_au_noir(scene, suite) {
 function arriver_en_train(scene) {
   var gare = scene.gare;
   scene.etat_gare = "enCours"; // figes pendant l'arrivee
-  scene.forcer_ecran_entier = true;
 
   // les joueurs sont dans le train, sur le bloc de la gare (le joueur clavier
   // un peu plus loin) : invisibles jusqu'a la fin de l'arrivee
@@ -317,7 +312,6 @@ function arriver_en_train(scene) {
 
   // on cache le monde (ecran noir) jusqu'a la fin des phrases
   scene.cameras.main.fadeOut(0, 0, 0, 0);
-  scene.camera2.fadeOut(0, 0, 0, 0);
 
   if (scene.avec_transition == true) {
     afficher_phrases(scene, phrases_du_voyage, function () {
@@ -332,9 +326,7 @@ function arriver_en_train(scene) {
 function jouer_l_arrivee(scene) {
   var gare = scene.gare;
   scene.cameras.main.resetFX(); // enleve le noir pose plus haut
-  scene.camera2.resetFX();
   scene.cameras.main.fadeIn(500, 0, 0, 0);
-  scene.camera2.fadeIn(500, 0, 0, 0);
 
   gare.sprite.play("anim_gare_arrive");
   gare.sprite.once("animationcomplete", function () {
@@ -342,7 +334,6 @@ function jouer_l_arrivee(scene) {
     montrer_le_joueur(scene.joueur_souris);
     montrer_le_joueur(scene.joueur_clavier);
     scene.etat_gare = "attente";
-    scene.forcer_ecran_entier = false;
   });
 }
 

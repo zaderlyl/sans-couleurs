@@ -70,7 +70,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── niveau1.js              Niveau 1 : cibles + gare
 │   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage
 │   ├── niveau3.js              Niveau 3 (college) : mots a porter, pastilles, gare
-│   ├── ecran_separe.js         La camera unique (suit les joueurs). Le code de l'ecran separe en deux existe encore mais n'est plus active
+│   ├── camera.js               La camera : un seul ecran qui suit les deux joueurs
 │   ├── tir.js, cibles.js       Le tir (souris / clavier) et les cibles + timers
 │   ├── phrases.js, pastilles.js    Niveau 3 : les mots du college ; pastille d'un joueur hors cadre (tous les niveaux)
 │   ├── gare.js, passage.js         Interactions et changements de niveau

@@ -18,7 +18,6 @@ export default class niveau2 extends niveau {
   }
 
   creer_particularites() {
-    this.camera_unique = true; // un seul ecran en tout temps ; un joueur sorti du cadre devient une pastille
     creer_pastilles(this);
     creer_dialogue(this); // les gestes sur les mots (avant les PNJ)
     creer_pnjs(this);
