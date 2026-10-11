@@ -185,7 +185,15 @@ blanches, rien d'autre). Dans chaque piece, une scene de violence que l'on ne
 montre jamais : on la fait ressentir. Une ombre arrive, on entend le choc, le
 personnage tombe, les oreilles sifflent, la piece garde la trace (un pupitre
 renverse, une lampe cassee, une vitre fendue). Le joueur ne subit rien de plus :
-au bout de quelques secondes, le personnage se releve.
+au bout de quelques secondes, le personnage se releve. Les deux joueurs sont
+alors vraiment figes (physique coupee, ordres ignores).
+
+Les coups sont graduels : au debut c'est presque rien et il en rit ; puis c'est
+plus fort, il se pose des questions et trouve des excuses ; puis il ne dit plus
+rien, par habitude ; puis il pleure et ne sait plus quoi faire. Les textes sont
+separes par qui parle (J1, la voix rationnelle de J2, sa voix emotionnelle, le
+juge, l'avocat) et suivent leur personnage. Le tribunal est une vraie audience :
+un juge, un avocat, des accusations, un classement sans suite.
 
 La pression monte a chaque coup : un voile sombre et flou sur les bords de
 l'ecran, une musique plus lente et plus grave, des mouvements plus lents. Le

@@ -4,25 +4,26 @@
 // chambre la nuit), separees par de grands passages tout BLANCS (des tuiles
 // blanches, rien d'autre). Dans chaque piece, une scene de violence. On ne la
 // montre jamais : on la fait RESSENTIR. Une ombre arrive, on entend le choc, le
-// personnage tombe, les oreilles sifflent, la piece garde la trace (une chaise
-// renversee, une lampe cassee, une vitre fendue). Le joueur ne subit rien de
-// plus : au bout de quelques secondes, il se releve.
+// personnage tombe, les oreilles sifflent, la piece garde la trace.
 //
-// La PRESSION monte a chaque coup (voir pression.js : voile, musique grave, lenteur).
-// Le joueur clavier (J2) est une part du personnage lui-meme, un allie interieur :
-// il a deux voix, l'une RATIONNELLE, l'autre EMOTIONNELLE, qui se contredisent.
-// Quand les deux joueurs restent l'un a cote de l'autre, la pression redescend,
-// mais jamais tout a fait : il reste des sequelles.
+// Les coups sont GRADUELS, comme dans la vraie vie : au debut c'est presque rien,
+// il en rit ; puis c'est plus fort, il se pose des questions, il trouve des
+// excuses ; puis il ne dit plus rien, par habitude ; puis il pleure, il ne sait
+// plus quoi faire. Pendant chaque scene, les deux joueurs sont VRAIMENT figes.
 //
-// Le tribunal : des accusations fausses s'accrochent au personnage ; puis
-// « Classe sans suite. » La derniere piece, la nuit : les cauchemars. Les coups
-// reviennent en ombres silencieuses ; il faut rester ensemble pour tenir.
+// Les textes sont separes par qui parle, et SUIVENT leur personnage : ce que dit
+// J1 (un cadre noir), la voix rationnelle de J2 (blanc, contour noir), sa voix
+// emotionnelle (noir, contour blanc), et au tribunal le juge et l'avocat.
+//
+// La PRESSION (voir pression.js) monte a chaque coup. J2 est une part du
+// personnage lui-meme, un allie interieur : quand les deux joueurs restent l'un a
+// cote de l'autre, elle redescend, mais jamais tout a fait (les sequelles).
 
 import niveau from "./niveau.js";
 import { creer_pastilles, mettre_a_jour_pastilles } from "./pastilles.js";
 import { creer_pression, mettre_a_jour_pression, ajouter_pression } from "./pression.js";
 import { afficher_texte, afficher_phrases } from "./ecran_texte.js";
-import { jouer_son_coup, jouer_son_sifflement, jouer_son_verre, jouer_son_tampon } from "./sons.js";
+import { jouer_son_coup, jouer_son_sifflement, jouer_son_verre, jouer_son_tampon, jouer_son_marteau } from "./sons.js";
 import { style_texte, style_mot } from "./styles.js";
 import { pensees } from "./pensees.js";
 
@@ -31,8 +32,9 @@ import { pensees } from "./pensees.js";
 
 var sol_y = 144; // le haut du sol
 
-// ou chaque scene se declenche (colonne que le joueur souris depasse)
-var colonnes_des_scenes = [22, 57, 93, 138, 178];
+// ou chaque scene se declenche (colonne que le joueur souris depasse) :
+// la salle, la chambre, la rue, le tribunal, la nuit
+var colonnes_des_scenes = [22, 57, 93, 149, 178];
 
 // les numeros de tuiles du jeu de tuiles du lycee (voir Tileset-lycee.png)
 var tuile_chaise_renversee = [465, 466];
@@ -40,21 +42,37 @@ var tuile_lampe_cassee = 479;
 var tuile_miroir_fele = [481, 497];
 var tuile_vitre_cassee = [523, 524, 539, 540];
 
-// les voix de J2 : { qui: "rationnelle" ou "emotionnelle", texte }, apres chaque scene
-var voix = [
-  [{ qui: "emotionnelle", texte: "Ce n'est rien. Elle était en colère." }, { qui: "rationnelle", texte: "Non. Ce n'est pas rien." }],
-  [{ qui: "emotionnelle", texte: "Je l'aime encore." }, { qui: "rationnelle", texte: "Ça recommence." }],
-  [{ qui: "emotionnelle", texte: "Elle va s'excuser. Comme d'habitude." }, { qui: "rationnelle", texte: "Tu peux partir." }],
-  [{ qui: "rationnelle", texte: "Tu n'as rien fait." }, { qui: "emotionnelle", texte: "Pourquoi on ne me croit pas ?" }],
-  [{ qui: "emotionnelle", texte: "J'ai peur de m'endormir." }, { qui: "rationnelle", texte: "Je suis là." }]
+// Les trois coups, de plus en plus violents.
+//   duree_ombre : combien de temps l'ombre met a arriver (plus violent = plus vite)
+//   force       : le bruit du coup (0 a 1)
+//   chute       : l'angle de la chute (12 = il trebuche, 80 = il est a terre)
+//   decalage    : de combien il est projete (pixels)
+//   secousse    : [duree en ms, intensite] de l'ecran
+//   sifflement  : duree des oreilles qui sifflent (0 = aucun)
+//   a_terre     : combien de temps il reste a terre (ms)
+//   pression    : combien la pression monte
+//   j1 / j2     : ce que disent J1 et les deux voix de J2, avec le delai (ms) apres le coup
+var coups = [
+  // 1. presque rien : il trouve ca drole
+  { duree_ombre: 1300, force: 0.2, chute: 12, decalage: 5, secousse: [110, 0.004], sifflement: 0, a_terre: 500, pression: 0.04,
+    j1: [{ texte: "Haha. Arrête.", delai: 700 }],
+    j2: [{ qui: "emotionnelle", texte: "C'est rien. Elle plaisante.", delai: 1900 }, { qui: "rationnelle", texte: "Ça ne devrait pas arriver.", delai: 3900 }] },
+  // 2. plus fort : il se pose des questions, il trouve des excuses
+  { duree_ombre: 1000, force: 0.55, chute: 55, decalage: 12, secousse: [260, 0.009], sifflement: 1.4, a_terre: 1700, pression: 0.15,
+    j1: [{ texte: "Pourquoi ?", delai: 800 }, { texte: "J'ai dû faire quelque chose.", delai: 2900 }],
+    j2: [{ qui: "emotionnelle", texte: "Elle était fatiguée.", delai: 1500 }, { qui: "rationnelle", texte: "Non. Ce n'est pas une excuse.", delai: 4400 }] },
+  // 3. violent : il ne dit plus rien, par habitude
+  { duree_ombre: 750, force: 0.9, chute: 80, decalage: 20, secousse: [380, 0.014], sifflement: 3.2, a_terre: 2600, pression: 0.26,
+    j1: [{ texte: "...", delai: 1400 }],
+    j2: [{ qui: "emotionnelle", texte: "Je ne dis plus rien. Ça ne sert à rien.", delai: 1200 }, { qui: "rationnelle", texte: "Tu peux partir.", delai: 4200 }] }
 ];
-
-var accusations = ["Il ment.", "Il est dangereux.", "Il l'a menacée.", "Il ne dit rien."];
 
 var delai_entre_cauchemars = 7000; // ms (la nuit)
 var duree_pour_tenir = 6000; // ms a rester l'un a cote de l'autre pour finir la nuit
 
-var texte_de_fin = "Classé sans suite. Mais les nuits, elles, continuent.\n\n" +
+var texte_de_fin = "Une plainte. Une audience. Des mots qu'on a mis dans ta bouche.\n\n" +
+  "Le dossier a été classé sans suite : rien n'a été prouvé, rien n'a été réparé.\n\n" +
+  "Il reste les nuits.\n\n" +
   "Si tu as vécu de la violence dans une relation, tu n'es pas seul. Le 116 006 (aide aux victimes) et le 3114 répondent gratuitement.\n\n" +
   "Clique pour revenir à l'accueil.";
 
@@ -68,7 +86,9 @@ export default class niveau5 extends niveau {
   preload() {
     super.preload(); // la carte, les tuiles, les personnages...
     if (this.textures.exists("img_ombre") == false) {
-      this.load.image("img_ombre", "assets/sprites/characters/ombre.png");
+      // l'ombre : 5 images (debout, 2 de marche, bras leve, bras tendu) ; le tribunal : juge, avocat
+      this.load.spritesheet("img_ombre", "assets/sprites/characters/ombre.png", { frameWidth: 16, frameHeight: 32 });
+      this.load.spritesheet("img_tribunal", "assets/sprites/characters/tribunal.png", { frameWidth: 16, frameHeight: 32 });
     }
   }
 
@@ -80,6 +100,15 @@ export default class niveau5 extends niveau {
     this.temps_ensemble_nuit = 0;
     this.nuit_commencee = false;
     this.fin_en_cours = false;
+    this.textes_suivis = []; // les textes qui suivent un personnage (voir dire)
+    this.joueur_souris.haut_texte = 14; // la hauteur des textes au-dessus de chaque joueur :
+    this.joueur_clavier.haut_texte = 30; // ceux de J2 sont plus hauts, pour ne pas recouvrir ceux de J1
+
+    // le juge, derriere son bureau (on ne voit que son buste)
+    this.juge = this.add.sprite(2440, 124, "img_tribunal", 0);
+    this.juge.setCrop(0, 0, 16, 16);
+    this.juge.setDepth(6);
+    this.juge.haut_texte = 22;
 
     this.fige_par_le_niveau = false;
     var scene = this;
@@ -94,6 +123,7 @@ export default class niveau5 extends niveau {
   mettre_a_jour_particularites(temps, delta) {
     mettre_a_jour_pastilles(this);
     mettre_a_jour_pression(this, delta);
+    this.suivre_les_textes(delta);
 
     // chaque scene se declenche quand le joueur souris passe sa colonne (une seule fois)
     if (this.fige_par_le_niveau == false) {
@@ -109,9 +139,6 @@ export default class niveau5 extends niveau {
     this.mettre_a_jour_la_nuit(delta);
   }
 
-
-  // --- Une scene : le coup (suggere, jamais montre) ---
-
   jouer_la_scene(i) {
     if (i == 3) {
       this.scene_du_tribunal();
@@ -122,73 +149,171 @@ export default class niveau5 extends niveau {
     }
   }
 
-  // Une ombre arrive derriere le personnage ; on entend le choc ; il tombe ; la
-  // piece garde la trace ; il se releve. i = 0 (salle), 1 (chambre), 2 (rue).
+
+  // --- Figer les deux joueurs POUR DE VRAI, puis les liberer ---
+
+  // plus de mouvement, plus de physique, plus d'ordre de marche : rien ne peut les deplacer
+  figer_les_joueurs() {
+    var joueurs = [this.joueur_souris, this.joueur_clavier];
+    for (var i = 0; i < joueurs.length; i++) {
+      joueurs[i].y_repos = joueurs[i].y; // le sol : ou ils reviendront
+      joueurs[i].body.setVelocity(0, 0);
+      joueurs[i].body.enable = false;
+      joueurs[i].anims.stop();
+      joueurs[i].setFrame(3);
+    }
+    this.destination_x = null;
+    this.apres_arrivee = null;
+    this.fige_par_le_niveau = true;
+  }
+
+  // ils reviennent exactement au sol, droits, et la physique repart
+  liberer_les_joueurs() {
+    var joueurs = [this.joueur_souris, this.joueur_clavier];
+    for (var i = 0; i < joueurs.length; i++) {
+      this.tweens.killTweensOf(joueurs[i]);
+      joueurs[i].setAngle(0);
+      joueurs[i].clearTint();
+      joueurs[i].body.reset(joueurs[i].x, joueurs[i].y_repos);
+      joueurs[i].body.enable = true;
+    }
+    this.fige_par_le_niveau = false;
+  }
+
+
+  // --- Les textes : separes par qui parle, et qui SUIVENT leur personnage ---
+
+  // qui : "j1", "rationnelle", "emotionnelle", "juge" ou "avocat" ; apres `delai` ms
+  dire(qui, contenu, delai, duree) {
+    var scene = this;
+    var duree_du_texte = duree == undefined ? 2800 : duree;
+    this.time.delayedCall(delai, function () {
+      var cible = scene.joueur_souris;
+      var style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 110 }, align: "center" });
+      if (qui == "rationnelle") {
+        cible = scene.joueur_clavier;
+        style = Object.assign({}, style_texte, { color: "#ffffff", stroke: "#000000", wordWrap: { width: 100 } });
+      } else if (qui == "emotionnelle") {
+        cible = scene.joueur_clavier;
+        style = Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff", wordWrap: { width: 100 } });
+      } else if (qui == "juge") {
+        cible = scene.juge;
+        style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 130 }, align: "center" });
+      } else if (qui == "avocat") {
+        cible = scene.avocat;
+        style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 130 }, align: "center" });
+      }
+      var texte = scene.add.text(cible.x, cible.y, contenu, style);
+      texte.setOrigin(0.5, 1);
+      texte.setDepth(25);
+      texte.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+      texte.setAlpha(0);
+      scene.textes_suivis.push({ texte: texte, cible: cible, age: 0, duree: duree_du_texte });
+    }, null, this);
+  }
+
+  // chaque image : chaque texte se place au-dessus de SA cible, la ou elle est maintenant
+  suivre_les_textes(delta) {
+    for (var i = this.textes_suivis.length - 1; i >= 0; i--) {
+      var t = this.textes_suivis[i];
+      t.age = t.age + delta;
+      var haut = t.cible.haut_texte == undefined ? 14 : t.cible.haut_texte;
+      var montee = Math.min(10, t.age / 250);
+      t.texte.setPosition(t.cible.x, t.cible.y - haut - montee);
+      // en fondu a l'arrivee (300 ms), puis en fondu a la fin (600 ms)
+      var alpha = Math.min(1, t.age / 300);
+      if (t.age > t.duree - 600) {
+        alpha = Math.max(0, (t.duree - t.age) / 600);
+      }
+      t.texte.setAlpha(alpha);
+      if (t.age >= t.duree) {
+        t.texte.destroy();
+        this.textes_suivis.splice(i, 1);
+      }
+    }
+  }
+
+
+  // --- Un coup (suggere, jamais montre) : i = 0 (salle), 1 (chambre), 2 (rue) ---
+
   coup(i) {
     var scene = this;
     var j = this.joueur_souris;
-    this.fige_par_le_niveau = true;
-    j.body.setVelocity(0, 0);
-    this.destination_x = null;
+    var c = coups[i];
+    this.figer_les_joueurs();
 
-    // 1) l'ombre arrive en glissant, par derriere
-    var ombre = this.add.sprite(j.x - 100, sol_y, "img_ombre");
+    // 1) l'ombre arrive en marchant, par derriere : debout, puis le pas, puis le bras leve
+    var ombre = this.add.sprite(j.x - 110, sol_y, "img_ombre", 0);
     ombre.setOrigin(0.5, 1);
     ombre.setDepth(8);
     ombre.setAlpha(0);
-    this.tweens.add({ targets: ombre, alpha: 0.85, duration: 350 });
+    this.tweens.add({ targets: ombre, alpha: 0.9, duration: 300 });
+    var pas = 0;
+    var minuteur_de_pas = this.time.addEvent({
+      delay: 150,
+      loop: true,
+      callback: function () {
+        pas = pas + 1;
+        ombre.setFrame(1 + (pas % 2));
+      }
+    });
     this.tweens.add({
       targets: ombre,
-      x: j.x - 8,
-      duration: 900,
+      x: j.x - 14,
+      duration: c.duree_ombre,
       ease: "Quad.easeIn",
       onComplete: function () {
-        scene.choc(i, ombre);
+        minuteur_de_pas.remove();
+        ombre.setFrame(3); // le bras leve
+        scene.time.delayedCall(140, function () {
+          ombre.setFrame(4); // le bras tendu : le coup
+          scene.choc(i, ombre);
+        }, null, scene);
       }
     });
   }
 
-  // le choc : un son sourd, un flash sur le personnage, il tombe, la piece change
+  // le choc : un son, un flash sur le personnage, il tombe ou trebuche, la piece change
   choc(i, ombre) {
     var scene = this;
     var j = this.joueur_souris;
-    this.tweens.add({ targets: ombre, alpha: 0, duration: 120, onComplete: function () { ombre.destroy(); } });
-    jouer_son_coup();
-    jouer_son_sifflement();
-    this.cameras.main.shake(380, 0.014);
+    var c = coups[i];
+    jouer_son_coup(c.force);
+    if (c.sifflement > 0) {
+      jouer_son_sifflement(c.sifflement);
+    }
+    this.cameras.main.shake(c.secousse[0], c.secousse[1]);
     j.setTintFill(0xffffff);
     this.time.delayedCall(90, function () {
       j.clearTint();
     }, null, this);
 
-    // il tombe (le corps ne bouge plus tout seul pendant ce temps)
-    j.body.enable = false;
-    this.tweens.add({ targets: j, x: j.x + 18, y: j.y + 6, angle: 80, duration: 170, ease: "Quad.easeOut" });
+    // il est projete : il trebuche (petit coup) ou tombe (gros coup)
+    this.tweens.add({ targets: j, x: j.x + c.decalage, y: j.y_repos + (c.chute > 40 ? 6 : 0), angle: c.chute, duration: 170, ease: "Quad.easeOut" });
 
-    // la trace dans la piece
     this.laisser_une_trace(i);
-    ajouter_pression(this, 0.22);
+    ajouter_pression(this, c.pression);
 
-    // les deux voix de J2, l'une apres l'autre
-    this.dire(voix[i][0], 700);
-    this.dire(voix[i][1], 3000);
-
-    // il se releve, doucement
-    this.time.delayedCall(2600, function () {
-      scene.tweens.add({
-        targets: j,
-        angle: 0,
-        y: j.y - 6,
-        duration: 600,
-        ease: "Quad.easeInOut",
-        onComplete: function () {
-          j.body.reset(j.x, j.y);
-          j.body.enable = true;
-        }
-      });
+    // l'ombre disparait
+    this.time.delayedCall(450, function () {
+      scene.tweens.add({ targets: ombre, alpha: 0, duration: 400, onComplete: function () { ombre.destroy(); } });
     }, null, this);
-    this.time.delayedCall(4400, function () {
-      scene.fige_par_le_niveau = false;
+
+    // ce que dit J1, et les deux voix de J2
+    for (var k = 0; k < c.j1.length; k++) {
+      this.dire("j1", c.j1[k].texte, c.j1[k].delai, 2300);
+    }
+    for (var m = 0; m < c.j2.length; m++) {
+      this.dire(c.j2[m].qui, c.j2[m].texte, c.j2[m].delai, 2600);
+    }
+
+    // il se releve, doucement, puis les joueurs sont liberes
+    this.time.delayedCall(c.a_terre, function () {
+      scene.tweens.add({ targets: j, angle: 0, y: j.y_repos, duration: 500, ease: "Quad.easeInOut" });
+    }, null, this);
+    var fin = Math.max(c.a_terre + 900, c.j2[c.j2.length - 1].delai + 2800);
+    this.time.delayedCall(fin, function () {
+      scene.liberer_les_joueurs();
     }, null, this);
   }
 
@@ -218,87 +343,114 @@ export default class niveau5 extends niveau {
   }
 
 
-  // --- Les voix de J2 : une part de lui, rationnelle ou emotionnelle ---
-
-  dire(voix_de_j2, delai) {
-    var scene = this;
-    this.time.delayedCall(delai, function () {
-      var rationnelle = voix_de_j2.qui == "rationnelle";
-      var style = Object.assign({}, style_texte, {
-        color: rationnelle ? "#ffffff" : "#000000",
-        stroke: rationnelle ? "#000000" : "#ffffff",
-        wordWrap: { width: 90 }
-      });
-      var texte = scene.add.text(scene.joueur_clavier.x, scene.joueur_clavier.y - 22, voix_de_j2.texte, style);
-      texte.setOrigin(0.5, 1);
-      texte.setDepth(25);
-      texte.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      texte.setAlpha(0);
-      scene.tweens.add({ targets: texte, alpha: 1, duration: 300 });
-      scene.tweens.add({ targets: texte, y: texte.y - 10, duration: 2400 });
-      scene.tweens.add({ targets: texte, alpha: 0, delay: 1900, duration: 700, onComplete: function () { texte.destroy(); } });
-    }, null, this);
-  }
-
-
-  // --- Le tribunal : des accusations fausses, puis « classe sans suite » ---
+  // --- Le tribunal : la gravite. Un juge, un avocat, des accusations, un classement. ---
 
   scene_du_tribunal() {
     var scene = this;
     var j = this.joueur_souris;
-    this.fige_par_le_niveau = true;
-    j.body.setVelocity(0, 0);
-    this.destination_x = null;
+    this.figer_les_joueurs();
+    this.joueur_clavier.haut_texte = 66; // les voix de J2 plus haut : pour ne pas recouvrir les accusations
+
+    // l'avocat apparait a cote du personnage
+    this.avocat = this.add.sprite(j.x - 26, sol_y, "img_tribunal", 1);
+    this.avocat.setOrigin(0.5, 1);
+    this.avocat.setDepth(8);
+    this.avocat.haut_texte = 36;
+    this.avocat.setAlpha(0);
+    this.tweens.add({ targets: this.avocat, alpha: 1, duration: 600 });
+
+    // le juge ouvre l'audience
+    this.dire("juge", "Audience du tribunal correctionnel.", 600, 3000);
+    this.time.delayedCall(700, function () { jouer_son_marteau(); }, null, this);
+    this.dire("juge", "Vous êtes poursuivi pour violences volontaires sur conjoint.", 3800, 3600);
 
     // les accusations tombent sur lui, une a une, et s'empilent au-dessus de sa tete
     var mots = [];
+    var accusations = ["Il ment.", "Il est dangereux.", "Il l'a menacée.", "Il ne dit rien."];
     for (var k = 0; k < accusations.length; k++) {
-      this.time.delayedCall(k * 900, function (indice) {
+      this.time.delayedCall(7600 + k * 1000, function (indice) {
         var mot = scene.add.text(j.x, j.y - 40, accusations[indice], Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff" }));
         mot.setOrigin(0.5, 1);
         mot.setDepth(25);
         mot.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-        mots.push(mot);
-        scene.tweens.add({ targets: mot, y: j.y - 14 - indice * 8, duration: 350, ease: "Quad.easeIn" });
-        jouer_son_coup();
-        ajouter_pression(scene, 0.05);
+        mots.push({ texte: mot, rang: indice });
+        jouer_son_coup(0.35);
+        scene.cameras.main.shake(120, 0.004);
+        ajouter_pression(scene, 0.04);
       }, [k], this);
     }
+    // les accusations suivent le personnage (empilees)
+    this.piles_du_tribunal = mots;
 
-    // le tampon : « Classe sans suite. »
-    this.time.delayedCall(accusations.length * 900 + 800, function () {
-      var plaque = scene.add.text(j.x, j.y - 60, "CLASSÉ SANS SUITE", Object.assign({}, style_mot, { fontSize: "8px" }));
+    // la defense
+    this.dire("avocat", "Mon client conteste les faits.", 12200, 3000);
+    this.dire("j1", "...", 12500, 2600);
+
+    // la decision
+    this.dire("juge", "Après examen du dossier, la procédure est classée sans suite.", 15600, 4200);
+    this.time.delayedCall(15900, function () { jouer_son_marteau(); }, null, this);
+
+    // le tampon : « CLASSE SANS SUITE »
+    this.time.delayedCall(19600, function () {
+      var plaque = scene.add.text(j.x, j.y - 70, "CLASSÉ SANS SUITE", Object.assign({}, style_mot, { fontSize: "8px" }));
       plaque.setOrigin(0.5, 1);
       plaque.setDepth(26);
       plaque.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      plaque.setScale(1.6);
-      scene.tweens.add({ targets: plaque, scale: 1, duration: 120, ease: "Quad.easeIn" });
+      plaque.setScale(1.7);
+      scene.tweens.add({ targets: plaque, scale: 1, duration: 130, ease: "Quad.easeIn" });
       jouer_son_tampon();
-      scene.cameras.main.shake(180, 0.006);
-      ajouter_pression(scene, 0.1);
-      scene.dire(voix[3][0], 400);
-      scene.dire(voix[3][1], 2600);
-      // tout s'efface doucement : mais les sequelles restent
-      scene.time.delayedCall(4500, function () {
-        scene.tweens.add({ targets: mots.concat([plaque]), alpha: 0, duration: 1500, onComplete: function () {
-          for (var m = 0; m < mots.length; m++) {
-            mots[m].destroy();
-          }
-          plaque.destroy();
-        } });
-        scene.fige_par_le_niveau = false;
-      }, null, scene);
+      scene.cameras.main.shake(260, 0.01);
+      ajouter_pression(scene, 0.12);
+      scene.plaque_du_tribunal = plaque;
+    }, null, this);
+
+    // les deux voix de J2
+    this.dire("rationnelle", "Tu n'as rien fait.", 20800, 2800);
+    this.dire("emotionnelle", "Alors pourquoi je me sens coupable ?", 23200, 3400);
+
+    // tout s'efface doucement : mais les sequelles restent
+    this.time.delayedCall(26800, function () {
+      var a_effacer = [scene.plaque_du_tribunal];
+      for (var m = 0; m < mots.length; m++) {
+        a_effacer.push(mots[m].texte);
+      }
+      scene.tweens.add({ targets: a_effacer, alpha: 0, duration: 1500, onComplete: function () {
+        for (var n = 0; n < a_effacer.length; n++) {
+          a_effacer[n].destroy();
+        }
+        scene.piles_du_tribunal = [];
+      } });
+      scene.tweens.add({ targets: scene.avocat, alpha: 0, duration: 1500 });
+      scene.joueur_clavier.haut_texte = 30;
+      scene.liberer_les_joueurs();
     }, null, this);
   }
 
 
-  // --- La nuit : les cauchemars. Il faut rester ensemble pour tenir. ---
+  // --- La nuit : il pleure, il ne sait plus quoi faire. Les coups reviennent en ombres. ---
 
   commencer_la_nuit() {
     var scene = this;
     this.nuit_commencee = true;
-    this.dire(voix[4][0], 600);
-    this.dire(voix[4][1], 3000);
+    this.dire("j1", "Je ne sais plus quoi faire.", 700, 3600);
+    this.dire("emotionnelle", "J'ai peur de m'endormir.", 2400, 3000);
+    this.dire("rationnelle", "Je suis là.", 5000, 3000);
+
+    // des larmes : de petits pixels qui coulent du visage, tant que la nuit dure
+    this.time.addEvent({
+      delay: 380,
+      loop: true,
+      callback: function () {
+        if (scene.fin_en_cours == true) {
+          return;
+        }
+        var larme = scene.add.circle(scene.joueur_souris.x + Phaser.Math.Between(-2, 2), scene.joueur_souris.y - 4, 1.2, 0xffffff);
+        larme.setStrokeStyle(0.8, 0x000000);
+        larme.setDepth(20);
+        scene.tweens.add({ targets: larme, y: larme.y + 12, alpha: 0, duration: 900, onComplete: function () { larme.destroy(); } });
+      }
+    });
+
     // toutes les 7 s : une ombre traverse la piece en silence, un choc lointain
     this.time.addEvent({
       delay: delai_entre_cauchemars,
@@ -307,16 +459,16 @@ export default class niveau5 extends niveau {
         if (scene.fin_en_cours == true) {
           return;
         }
-        var depart = scene.joueur_souris.x + 120;
-        var ombre = scene.add.sprite(depart, sol_y, "img_ombre");
+        var depart = scene.joueur_souris.x + 130;
+        var ombre = scene.add.sprite(depart, sol_y, "img_ombre", 3);
         ombre.setOrigin(0.5, 1);
         ombre.setDepth(8);
-        ombre.setAlpha(0.5);
-        scene.tweens.add({ targets: ombre, x: depart - 260, alpha: 0, duration: 2600, onComplete: function () { ombre.destroy(); } });
-        scene.time.delayedCall(1300, function () {
-          jouer_son_coup();
+        ombre.setAlpha(0.45);
+        scene.tweens.add({ targets: ombre, x: depart - 270, alpha: 0, duration: 2800, onComplete: function () { ombre.destroy(); } });
+        scene.time.delayedCall(1400, function () {
+          jouer_son_coup(0.3);
           scene.cameras.main.shake(160, 0.006);
-          ajouter_pression(scene, 0.08);
+          ajouter_pression(scene, 0.07);
         }, null, scene);
       }
     });
@@ -325,6 +477,17 @@ export default class niveau5 extends niveau {
   // chaque image (la nuit) : si les deux joueurs restent l'un a cote de l'autre assez
   // longtemps, la nuit se termine
   mettre_a_jour_la_nuit(delta) {
+    // les accusations du tribunal suivent le personnage (empilees au-dessus de sa tete)
+    if (this.piles_du_tribunal != undefined) {
+      for (var p = 0; p < this.piles_du_tribunal.length; p++) {
+        var pile = this.piles_du_tribunal[p];
+        pile.texte.setPosition(this.joueur_souris.x, this.joueur_souris.y - 14 - pile.rang * 8);
+      }
+      if (this.plaque_du_tribunal != undefined && this.plaque_du_tribunal.active) {
+        this.plaque_du_tribunal.setPosition(this.joueur_souris.x, this.joueur_souris.y - 70);
+      }
+    }
+
     if (this.nuit_commencee == false || this.fin_en_cours == true) {
       return;
     }
