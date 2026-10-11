@@ -23,7 +23,7 @@ export default class niveau3 extends niveau {
   }
 
   mettre_a_jour_particularites(temps, delta) {
-    mettre_a_jour_phrases(this);
+    mettre_a_jour_phrases(this, delta);
     mettre_a_jour_gare(this);
   }
 }

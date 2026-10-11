@@ -75,6 +75,8 @@ function jouer_une_note(frequence_debut, frequence_fin, duree, volume, type) {
 // change de niveau.
 
 var musique_lancee = false;
+var bourdon_oscillateur = null; // gardes pour pouvoir alourdir la musique (voir peser_sur_la_musique)
+var poids_musique = 0; // 0 = normale ; 1 = tres grave
 
 export function demarrer_la_musique() {
   var c = obtenir_le_contexte();
@@ -93,6 +95,7 @@ export function demarrer_la_musique() {
   bourdon.connect(volume);
   volume.connect(c.destination);
   bourdon.start();
+  bourdon_oscillateur = bourdon;
 
   // la pulsation : un 2e oscillateur tres lent fait monter et descendre le
   // volume du bourdon (environ une pulsation toutes les 8 secondes)
@@ -107,9 +110,20 @@ export function demarrer_la_musique() {
 
   // une petite note douce de la gamme, toutes les 2,4 secondes
   setInterval(function () {
-    var note = gamme[Math.floor(Math.random() * gamme.length)];
+    var note = gamme[Math.floor(Math.random() * gamme.length)] * (1 - 0.3 * poids_musique); // plus grave quand ca pese
     jouer_une_note(note, note * 0.99, 1.8, volume_notes, "sine");
   }, delai_entre_notes);
+}
+
+
+// La musique s'alourdit : poids de 0 (normale) a 1 (le bourdon et les notes sont
+// bien plus graves). Appelee quand les joueurs portent des mots (voir phrases.js).
+export function peser_sur_la_musique(poids) {
+  poids_musique = poids;
+  if (bourdon_oscillateur != null) {
+    var c = obtenir_le_contexte();
+    bourdon_oscillateur.frequency.setTargetAtTime(frequence_bourdon * (1 - 0.35 * poids), c.currentTime, 0.4);
+  }
 }
 
 
@@ -201,4 +215,13 @@ export function jouer_son_portail() {
 // une chute dans le vide : un son qui tombe
 export function jouer_son_chute() {
   jouer_une_note(600, 70, 0.6, 0.1, "sawtooth");
+}
+
+// la sonnerie du college : une cloche sourde qui sonne six coups rapides
+export function jouer_son_sonnerie() {
+  for (var i = 0; i < 6; i++) {
+    setTimeout(function () {
+      jouer_une_note(1040, 960, 0.16, 0.07, "triangle");
+    }, i * 110);
+  }
 }
