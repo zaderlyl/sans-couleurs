@@ -1,8 +1,10 @@
 // gare.js — la gare et le voyage en train.
 //
-// Le joueur souris clique sur la gare : il y marche, le train clignote, tremble,
+// Le joueur souris clique sur la gare : il y marche. Le train ne part que si les
+// DEUX joueurs sont dans la gare : personne n'est laisse derriere (sinon, le
+// joueur souris dit qu'il manque quelqu'un). Alors le train clignote, tremble,
 // demarre, l'ecran devient noir, puis on passe au niveau suivant (ou, si ce
-// niveau n'a pas de suite, le joueur revient ou il etait).
+// niveau n'a pas de suite, les joueurs reviennent ou ils etaient).
 // Dans le niveau d'arrivee, un ecran noir (voir ecran_texte.js) affiche quelques phrases ("Le train
 // quitte la gare..."), puis le train arrive en douceur et les joueurs descendent.
 //
@@ -22,6 +24,7 @@
 
 import { afficher_phrases } from "./ecran_texte.js";
 import { rendre_cliquable_sur_les_pixels } from "./zone_cliquable.js";
+import { style_texte } from "./styles.js";
 
 // --- Reglages : la calibration de l'image du train ---------------------------
 //
@@ -42,6 +45,13 @@ var decalage_normal = 88;
 var decalage_flippe = 8;
 
 var hauteur_icone = 80; // l'icone "E" est a cette hauteur fixe au-dessus du sol
+
+// ce que dit le joueur souris quand il manque quelqu'un dans la gare
+var phrases_il_manque_quelqu_un = [
+  "Je ne peux pas partir sans lui.",
+  "On ne laisse personne derriere.",
+  "Pas sans l'autre."
+];
 
 var phrases_du_voyage = [
   "Le train quitte la gare.",
@@ -77,7 +87,14 @@ export function creer_gare(scene, options) {
 
   // ou le joueur souris marche avant de partir : le milieu de la zone de la gare
   var col_centre = boite.col_min + Math.floor((boite.col_max - boite.col_min) / 2);
-  gare.x_depart = (boite.col_min * 16 + (col_centre + 4) * 16) / 2;
+  var x_min = boite.col_min * 16;
+  var x_max = (col_centre + 4) * 16;
+  gare.x_depart = (x_min + x_max) / 2;
+
+  // la zone de la gare : les DEUX joueurs doivent y etre pour que le train parte
+  // (de la tuile la plus a gauche jusqu'a x_max, un peu au-dessus et en dessous du quai)
+  gare.zone = new Phaser.Geom.Rectangle(x_min, boite.rangee_min * 16 - 8, x_max - x_min, (boite.rangee_max - boite.rangee_min) * 16 + 48);
+  gare.parole = null; // le texte "il manque quelqu'un", quand il est affiche
 
   // --- l'image du train, posee sur le bloc de tuiles ---
   creer_les_animations(scene);
@@ -119,6 +136,11 @@ export function creer_gare(scene, options) {
       return;
     }
     scene.aller_vers(gare.x_depart, function () {
+      // le joueur souris est arrive : les deux joueurs sont-ils dans la gare ?
+      if (les_deux_sont_dans_la_gare(scene) == false) {
+        dire_qu_il_manque_quelqu_un(scene);
+        return;
+      }
       appuyer_sur_l_icone_puis(scene, partir);
     });
   });
@@ -178,10 +200,12 @@ export function mettre_a_jour_gare(scene) {
 
   // la souris sur la gare : l'icone apparait et le train tremble ("on peut cliquer")
   var survole = gare.souris_dessus == true && peut_partir(scene) == true && scene.en_mode_tir != true;
+  // les deux joueurs sont dans la gare : l'icone reste affichee ("tout le monde est la")
+  var pret = peut_partir(scene) == true && les_deux_sont_dans_la_gare(scene) == true;
 
   if (scene.etat_gare == "attente" && gare.pressee == false) {
-    gare.icone.setVisible(survole);
-    if (survole == true) {
+    gare.icone.setVisible(survole || pret);
+    if (survole == true || pret == true) {
       gare.icone.anims.play("anim_icone_attente", true);
     }
     var tremblement_x = 0;
@@ -218,11 +242,14 @@ function partir(scene) {
   scene.etat_gare = "enCours"; // les joueurs sont figes
   scene.forcer_ecran_entier = true; // pas d'ecran separe pendant le voyage
 
-  // le joueur souris "monte dans le train" : on ne le voit plus. On retient ou
-  // il etait, pour le ramener si le train ne mene nulle part.
-  var avant_x = scene.joueur_souris.x;
-  var avant_y = scene.joueur_souris.y;
+  // les deux joueurs "montent dans le train" : on ne les voit plus. On retient
+  // ou ils etaient, pour les ramener si le train ne mene nulle part.
+  var avant = {
+    souris_x: scene.joueur_souris.x, souris_y: scene.joueur_souris.y,
+    clavier_x: scene.joueur_clavier.x, clavier_y: scene.joueur_clavier.y
+  };
   cacher_le_joueur(scene.joueur_souris);
+  cacher_le_joueur(scene.joueur_clavier);
 
   // 1) le train clignote
   gare.sprite.play("anim_gare_clignote");
@@ -234,7 +261,7 @@ function partir(scene) {
       gare.sprite.once("animationcomplete", function () {
         // 4) l'ecran devient noir, puis on change de niveau
         fondu_au_noir(scene, function () {
-          changer_de_niveau(scene, avant_x, avant_y);
+          changer_de_niveau(scene, avant);
         });
       });
     });
@@ -242,8 +269,8 @@ function partir(scene) {
 }
 
 // Fin du voyage. Le niveau suivant, s'il y en a un ; sinon le train ne mene
-// nulle part : le joueur revient ou il etait.
-function changer_de_niveau(scene, avant_x, avant_y) {
+// nulle part : les joueurs reviennent ou ils etaient.
+function changer_de_niveau(scene, avant) {
   var gare = scene.gare;
 
   if (gare.options.niveau_suivant != null) {
@@ -254,8 +281,10 @@ function changer_de_niveau(scene, avant_x, avant_y) {
   }
 
   gare.sprite.setFrame(0);
-  scene.joueur_souris.setPosition(avant_x, avant_y);
+  scene.joueur_souris.setPosition(avant.souris_x, avant.souris_y);
+  scene.joueur_clavier.setPosition(avant.clavier_x, avant.clavier_y);
   montrer_le_joueur(scene.joueur_souris);
+  montrer_le_joueur(scene.joueur_clavier);
   scene.cameras.main.fadeIn(500, 0, 0, 0);
   scene.camera2.fadeIn(500, 0, 0, 0);
   scene.etat_gare = "attente";
@@ -279,11 +308,12 @@ function arriver_en_train(scene) {
   scene.etat_gare = "enCours"; // figes pendant l'arrivee
   scene.forcer_ecran_entier = true;
 
-  // les joueurs sont dans le train, sur le bloc de la gare : le joueur clavier
-  // un peu plus loin, et le joueur souris invisible jusqu'a la fin de l'arrivee
+  // les joueurs sont dans le train, sur le bloc de la gare (le joueur clavier
+  // un peu plus loin) : invisibles jusqu'a la fin de l'arrivee
   scene.joueur_souris.setPosition(gare.centre_x, gare.haut_y);
   scene.joueur_clavier.setPosition(gare.centre_x + 24, gare.haut_y);
   cacher_le_joueur(scene.joueur_souris);
+  cacher_le_joueur(scene.joueur_clavier);
 
   // on cache le monde (ecran noir) jusqu'a la fin des phrases
   scene.cameras.main.fadeOut(0, 0, 0, 0);
@@ -310,13 +340,53 @@ function jouer_l_arrivee(scene) {
   gare.sprite.once("animationcomplete", function () {
     gare.sprite.setFrame(0); // le train reste la, a l'arret
     montrer_le_joueur(scene.joueur_souris);
+    montrer_le_joueur(scene.joueur_clavier);
     scene.etat_gare = "attente";
     scene.forcer_ecran_entier = false;
   });
 }
 
 
-// --- 5. Outils ---------------------------------------------------------------------------------------
+// --- 5. Les deux joueurs doivent etre la ---------------------------------------------------------
+
+// true si le centre de CHACUN des deux joueurs est dans la zone de la gare
+function les_deux_sont_dans_la_gare(scene) {
+  var zone = scene.gare.zone;
+  var souris_est_la = Phaser.Geom.Rectangle.Contains(zone, scene.joueur_souris.x, scene.joueur_souris.y);
+  var clavier_est_la = Phaser.Geom.Rectangle.Contains(zone, scene.joueur_clavier.x, scene.joueur_clavier.y);
+  return souris_est_la == true && clavier_est_la == true;
+}
+
+// le joueur souris dit, au-dessus de lui, qu'il manque quelqu'un ; le texte s'efface
+function dire_qu_il_manque_quelqu_un(scene) {
+  var gare = scene.gare;
+  if (gare.parole != null) {
+    return; // il parle deja
+  }
+  var phrase = Phaser.Utils.Array.GetRandom(phrases_il_manque_quelqu_un);
+  var parole = scene.add.text(scene.joueur_souris.x, scene.joueur_souris.y - 28, phrase, style_texte);
+  parole.setOrigin(0.5, 1);
+  parole.setDepth(25);
+  // pixelArt: true met les textures en NEAREST : flou pour un texte agrandi.
+  parole.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  gare.parole = parole;
+
+  // il reste lisible 1,8 s, puis il s'efface en 0,6 s
+  scene.time.delayedCall(1800, function () {
+    scene.tweens.add({
+      targets: parole,
+      alpha: 0,
+      duration: 600,
+      onComplete: function () {
+        parole.destroy();
+        gare.parole = null;
+      }
+    });
+  }, null, scene);
+}
+
+
+// --- 6. Outils ---------------------------------------------------------------------------------------
 
 // Boite des tuiles non vides d'un calque : { col_min, col_max, rangee_min, rangee_max }, ou null
 function boite_des_tuiles(carte, nom_calque) {
