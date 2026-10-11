@@ -1,4 +1,5 @@
 // ecran_texte.js — un grand ecran noir avec du texte blanc par-dessus le jeu.
+import { t } from "./langue.js";
 //
 // C'est un <div> HTML (pas un objet du jeu) : il couvre tout l'ecran, quelle
 // que soit la camera. Deux usages :
@@ -69,6 +70,7 @@ function refermer(ecran) {
 // --- Des phrases qui s'ecrivent, puis `quand_fini` --------------------------------
 
 export function afficher_phrases(scene, phrases, quand_fini) {
+  phrases = phrases.map(t); // dans la langue choisie
   var ecran = obtenir_l_ecran(scene);
 
   var indice_phrase = 0; // quelle phrase
@@ -110,7 +112,7 @@ export function afficher_phrases(scene, phrases, quand_fini) {
 
 export function afficher_texte(scene, texte, quand_clic) {
   var ecran = obtenir_l_ecran(scene);
-  ecran.textContent = texte;
+  ecran.textContent = t(texte);
   ecran.onclick = function () {
     refermer(ecran);
     quand_clic();
@@ -128,6 +130,12 @@ export function afficher_texte(scene, texte, quand_clic) {
 // passe a la suivante ; apres la derniere, un clic ferme l'ecran.
 
 export function afficher_dialogue(scene, lignes, quand_fini) {
+  // les repliques dans la langue choisie
+  var lignes_traduites = [];
+  for (var i = 0; i < lignes.length; i++) {
+    lignes_traduites.push({ qui: lignes[i].qui, texte: t(lignes[i].texte) });
+  }
+  lignes = lignes_traduites;
   var ecran = obtenir_l_ecran(scene);
   ecran.style.flexDirection = "column";
   ecran.style.alignItems = "stretch";

@@ -68,6 +68,8 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 ├── src/                        Code du jeu (modules ES, un fichier = un sujet)
 │   ├── index.js                Config Phaser + liste des scenes
 │   ├── accueil.js              Menu principal en objets Phaser (jouer, niveaux, reglages, credits)
+│   ├── langue.js               La langue (francais / anglais) et la fonction t() qui traduit un texte
+│   ├── traductions.js          Les textes du jeu en anglais (cle = texte francais)
 │   ├── niveau.js               Classe de base des niveaux (carte, 2 joueurs, tir, decor)
 │   ├── niveau1.js              Niveau 1 : mini-tuto (panneaux + cible d'entrainement) + gare
 │   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage

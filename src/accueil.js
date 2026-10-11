@@ -13,10 +13,13 @@ import {
   jouer_son_mot_pose
 } from "./sons.js";
 import { afficher_texte } from "./ecran_texte.js";
+import { t, lire_langue, choisir_langue } from "./langue.js";
 
-var texte_avertissement = "Ce jeu raconte des moments difficiles de la vie d'un personnage : le harcèlement, le mal-être, la violence dans une relation, et l'envie d'en finir.\n\n" +
-  "Si tu traverses quelque chose de difficile, tu n'es pas seul. En France, le 3114 (numéro national de prévention du suicide) et le 116 006 (aide aux victimes) répondent gratuitement.\n\n" +
-  "Clique pour continuer.";
+var texte_avertissement = [
+  t("Ce jeu raconte des moments difficiles de la vie d'un personnage : le harcèlement, le mal-être, la violence dans une relation, et l'envie d'en finir."),
+  t("Si tu traverses quelque chose de difficile, tu n'es pas seul. En France, le 3114 (numéro national de prévention du suicide) et le 116 006 (aide aux victimes) répondent gratuitement."),
+  t("Clique pour continuer.")
+].join("\n\n");
 
 var avertissement_deja_vu = false; // l'ecran d'avertissement ne s'affiche qu'une fois
 
@@ -27,21 +30,21 @@ var style_menu = {
 };
 
 var lignes_credits = [
-  "Un jeu de Lilian Cornet",
-  "Histoire vraie",
+  t("Un jeu de Lilian Cornet"),
+  t("Histoire vraie"),
   "",
-  "Inspiré par BPM (raitwag.itch.io/bpm)",
-  "pour son style pixel noir et blanc",
+  t("Inspiré par BPM (raitwag.itch.io/bpm)"),
+  t("pour son style pixel noir et blanc"),
   "",
-  "Fait avec Phaser 3 et Tiled",
-  "Tuiles, sprites et code : Lilian Cornet",
-  "Police : Deltarune Extended (police de fans)",
+  t("Fait avec Phaser 3 et Tiled"),
+  t("Tuiles, sprites et code : Lilian Cornet"),
+  t("Police : Deltarune Extended (police de fans)"),
   "",
-  "Musiques d'ambiance :",
+  t("Musiques d'ambiance :"),
   "tunetank - dark ambient soundscape music",
   "cosmic scapes - soft brown noise",
-  "Bip : Beep of a cash register (BigSoundBank.com)",
-  "(sons de tiers, sous leur licence)"
+  t("Bip : Beep of a cash register (BigSoundBank.com)"),
+  t("(sons de tiers, sous leur licence)")
 ];
 
 export default class accueil extends Phaser.Scene {
@@ -180,46 +183,60 @@ export default class accueil extends Phaser.Scene {
   // --- La page principale : jouer / niveaux / reglages / credits ---
   creer_page_principale() {
     var page = this.creer_page("principale");
-    this.creer_bouton(page, "Jouer", -60, function () { this.lancer("niveau1"); });
-    this.creer_bouton(page, "Niveaux", 10, function () { this.afficher_page("niveaux"); });
-    this.creer_bouton(page, "Réglages", 80, function () { this.afficher_page("reglages"); });
-    this.creer_bouton(page, "Crédits", 150, function () { this.afficher_page("credits"); });
+    this.creer_bouton(page, t("Jouer"), -60, function () { this.lancer("niveau1"); });
+    this.creer_bouton(page, t("Niveaux"), 10, function () { this.afficher_page("niveaux"); });
+    this.creer_bouton(page, t("Réglages"), 80, function () { this.afficher_page("reglages"); });
+    this.creer_bouton(page, t("Crédits"), 150, function () { this.afficher_page("credits"); });
   }
 
   // --- La page des niveaux : jouer un monde precis ---
   creer_page_niveaux() {
     var page = this.creer_page("niveaux");
-    this.creer_etiquette(page, "Choisis un monde", -110, 24);
-    this.creer_bouton(page, "1 · Le début", -60, function () { this.lancer("niveau1"); });
-    this.creer_bouton(page, "2 · L'enfance", 0, function () { this.lancer("niveau2"); });
-    this.creer_bouton(page, "3 · Le collège", 60, function () { this.lancer("niveau3"); });
-    this.creer_bouton(page, "4 · La coupure", 120, function () { this.lancer("niveau4"); });
-    this.creer_bouton(page, "5 · Le lycée", 180, function () { this.lancer("niveau5"); });
-    this.creer_bouton(page, "Retour", 260, function () { this.afficher_page("principale"); }, 200);
+    this.creer_etiquette(page, t("Choisis un monde"), -110, 24);
+    this.creer_bouton(page, t("1 · Le début"), -60, function () { this.lancer("niveau1"); });
+    this.creer_bouton(page, t("2 · L'enfance"), 0, function () { this.lancer("niveau2"); });
+    this.creer_bouton(page, t("3 · Le collège"), 60, function () { this.lancer("niveau3"); });
+    this.creer_bouton(page, t("4 · La coupure"), 120, function () { this.lancer("niveau4"); });
+    this.creer_bouton(page, t("5 · Le lycée"), 180, function () { this.lancer("niveau5"); });
+    this.creer_bouton(page, t("Retour"), 260, function () { this.afficher_page("principale"); }, 200);
   }
 
-  // --- La page des reglages : volume de la musique, bruitages ---
+  // --- La page des reglages : volume de la musique, bruitages, langue ---
   creer_page_reglages() {
     var page = this.creer_page("reglages");
-    this.creer_etiquette(page, "Réglages", -110, 24);
+    this.creer_etiquette(page, t("Réglages"), -120, 24);
 
     // le volume de la musique : un bouton - , la valeur, un bouton +
-    this.creer_etiquette(page, "Musique", -60, 24);
-    this.creer_bouton(page, "-", 0, function () { this.changer_volume(-0.1); }, 70, -120);
-    this.texte_volume = this.creer_etiquette(page, "", 0, 28);
-    this.creer_bouton(page, "+", 0, function () { this.changer_volume(0.1); }, 70, 120);
+    this.creer_etiquette(page, t("Musique"), -85, 24);
+    this.creer_bouton(page, "-", -30, function () { this.changer_volume(-0.1); }, 70, -120);
+    this.texte_volume = this.creer_etiquette(page, "", -30, 28);
+    this.creer_bouton(page, "+", -30, function () { this.changer_volume(0.1); }, 70, 120);
     this.mettre_a_jour_volume();
 
     // les bruitages : un bouton qui bascule entre oui et non
-    this.creer_etiquette(page, "Bruitages", 70, 24);
-    this.bouton_effets = this.creer_bouton(page, "", 130, function () {
+    this.creer_etiquette(page, t("Bruitages"), 12, 24);
+    this.bouton_effets = this.creer_bouton(page, "", 55, function () {
       regler_effets_actifs(lire_effets_actifs() == false);
       this.mettre_a_jour_effets();
       jouer_son_mot_pose(0); // un petit son pour entendre le resultat
     }, 200);
     this.mettre_a_jour_effets();
 
-    this.creer_bouton(page, "Retour", 230, function () { this.afficher_page("principale"); }, 200);
+    // la langue : un bouton qui bascule entre francais et anglais (la page se recharge)
+    this.creer_etiquette(page, t("Langue"), 107, 24);
+    var nom_de_la_langue = "Français";
+    if (lire_langue() == "en") {
+      nom_de_la_langue = "English";
+    }
+    this.creer_bouton(page, nom_de_la_langue, 150, function () {
+      if (lire_langue() == "fr") {
+        choisir_langue("en");
+      } else {
+        choisir_langue("fr");
+      }
+    }, 200);
+
+    this.creer_bouton(page, t("Retour"), 240, function () { this.afficher_page("principale"); }, 200);
   }
 
   // change le volume de la musique de `ecart` (+0.1 ou -0.1)
@@ -236,18 +253,18 @@ export default class accueil extends Phaser.Scene {
   // affiche l'etat des bruitages
   mettre_a_jour_effets() {
     if (lire_effets_actifs() == true) {
-      this.bouton_effets.setText("Oui");
+      this.bouton_effets.setText(t("Oui"));
     } else {
-      this.bouton_effets.setText("Non");
+      this.bouton_effets.setText(t("Non"));
     }
   }
 
   // --- La page des credits ---
   creer_page_credits() {
     var page = this.creer_page("credits");
-    this.creer_etiquette(page, "Crédits", -110, 24);
+    this.creer_etiquette(page, t("Crédits"), -110, 24);
     var texte_credits = this.creer_etiquette(page, lignes_credits.join("\n"), -85, 16);
     texte_credits.setOrigin(0.5, 0); // le texte part du haut, sous le titre de la page
-    this.creer_bouton(page, "Retour", 275, function () { this.afficher_page("principale"); }, 200);
+    this.creer_bouton(page, t("Retour"), 275, function () { this.afficher_page("principale"); }, 200);
   }
 }

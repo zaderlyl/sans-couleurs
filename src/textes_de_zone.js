@@ -13,6 +13,7 @@
 //   mettre_a_jour_textes_de_zone(this);  // dans update
 
 import { style_texte } from "./styles.js";
+import { t } from "./langue.js";
 
 var delai_par_lettre = 70; // ms entre deux lettres
 var duree_affichage = 1800; // ms : le texte reste lisible une fois ecrit
@@ -30,7 +31,7 @@ export function creer_textes_de_zone(scene) {
     var proprietes = objets[i].properties || [];
     for (var j = 0; j < proprietes.length; j++) {
       if (proprietes[j].name == "texte") {
-        phrase = proprietes[j].value;
+        phrase = t(proprietes[j].value);
       }
     }
     if (phrase == null || phrase == "") {

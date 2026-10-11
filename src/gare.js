@@ -31,6 +31,7 @@ import { afficher_phrases, afficher_pensees } from "./ecran_texte.js";
 import { pensees } from "./pensees.js";
 import { rendre_cliquable_sur_les_pixels } from "./zone_cliquable.js";
 import { style_texte } from "./styles.js";
+import { t } from "./langue.js";
 
 // --- Reglages : la calibration de l'image du train ---------------------------
 //
@@ -54,19 +55,19 @@ var hauteur_icone = 80; // l'icone "E" est a cette hauteur fixe au-dessus du sol
 
 // ce que dit le joueur souris quand il manque quelqu'un dans la gare
 var phrases_il_manque_quelqu_un = [
-  "Je ne peux pas partir sans lui.",
-  "On ne laisse personne derriere.",
-  "Pas sans l'autre."
+  t("Je ne peux pas partir sans lui."),
+  t("On ne laisse personne derriere."),
+  t("Pas sans l'autre.")
 ];
 
 // ce que dit un joueur pret pendant qu'il attend l'autre
-var phrase_d_attente_souris = "J'attends l'autre...";
-var phrase_d_attente_clavier = "J'attends...";
+var phrase_d_attente_souris = t("J'attends l'autre...");
+var phrase_d_attente_clavier = t("J'attends...");
 
 var phrases_du_voyage = [
-  "Le train quitte la gare.",
-  "Les paysages defilent derriere la vitre.",
-  "Quelques instants plus tard..."
+  t("Le train quitte la gare."),
+  t("Les paysages defilent derriere la vitre."),
+  t("Quelques instants plus tard...")
 ];
 
 

@@ -38,6 +38,7 @@
 import { creer_gestes_des_mots, preparer_le_mot } from "./mots_a_placer.js";
 import { style_texte, style_mot } from "./styles.js";
 import { jouer_son_rire_moqueur, jouer_son_mot_pris } from "./sons.js";
+import { t } from "./langue.js";
 
 
 // --- Reglages ------------------------------------------------------------
@@ -45,10 +46,10 @@ import { jouer_son_rire_moqueur, jouer_son_mot_pris } from "./sons.js";
 // les repliques du PNJ quand aucune n'est ecrite pour le mot choisi
 // ("{mot}" est remplace par le mot que le joueur a place)
 var repliques_generales = [
-  "« {mot} » ? Tu dis ca bizarrement...",
-  "Pourquoi tu parles comme ca ?",
-  "« {mot} »... Euh... d'accord.",
-  "Personne ne dit « {mot} » comme ca..."
+  t("« {mot} » ? Tu dis ca bizarrement..."),
+  t("Pourquoi tu parles comme ca ?"),
+  t("« {mot} »... Euh... d'accord."),
+  t("Personne ne dit « {mot} » comme ca...")
 ];
 
 var delai_affichage = 900; // ms : combien de temps on lit la phrase du PNJ, l'intro
@@ -59,7 +60,7 @@ var mots_en_plus = 2; // des mots en plus des trous : le joueur souris a le choi
 
 // des mots d'enfant en plus des mots de la page (tous donnent la meme reaction :
 // l'enfant est mal a l'aise, peu importe le mot)
-var mots_en_plus_possibles = ["gentil", "grand", "petit", "bleu", "jouer", "peur", "seul", "maman", "chaud", "content", "triste", "dormir", "rire"];
+var mots_en_plus_possibles = ["gentil", "grand", "petit", "bleu", "jouer", "peur", "seul", "maman", "chaud", "content", "triste", "dormir", "rire"].map(t);
 
 
 // --- 1. Mise en place (une fois, dans create) ---------------------------------

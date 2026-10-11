@@ -11,6 +11,7 @@ import { creer_tuto, mettre_a_jour_tuto } from "./tuto.js";
 import { creer_gare, mettre_a_jour_gare } from "./gare.js";
 import { creer_pastilles, mettre_a_jour_pastilles } from "./pastilles.js";
 import { pensees } from "./pensees.js";
+import { t } from "./langue.js";
 
 export default class niveau1 extends niveau {
   constructor() {
@@ -27,9 +28,9 @@ export default class niveau1 extends niveau {
 
     // les panneaux du tuto, le long du chemin ; le dernier est devant la gare
     creer_tuto(this, [
-      { x: 90, lignes: ["Souris : clique pour marcher.", "Clavier : fleches gauche et droite."] },
-      { x: 200, lignes: ["Tirer sur la cible.", "Souris : Ctrl (ou Cmd) + clic.", "Clavier : barre espace."] },
-      { x: this.gare.centre_x - 110, lignes: ["Le train : la souris clique sur la gare,", "le clavier appuie sur E dans la gare.", "Il faut etre deux pour partir."] }
+      { x: 90, lignes: [t("Souris : clique pour marcher."), t("Clavier : fleches gauche et droite.")] },
+      { x: 200, lignes: [t("Tirer sur la cible."), t("Souris : Ctrl (ou Cmd) + clic."), t("Clavier : barre espace.")] },
+      { x: this.gare.centre_x - 110, lignes: [t("Le train : la souris clique sur la gare,"), t("le clavier appuie sur E dans la gare."), t("Il faut etre deux pour partir.")] }
     ]);
   }
 

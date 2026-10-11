@@ -26,6 +26,7 @@ import { afficher_texte, afficher_pensees } from "./ecran_texte.js";
 import { jouer_son_coup, jouer_son_sifflement, jouer_son_verre, jouer_son_tampon, jouer_son_marteau } from "./sons.js";
 import { style_texte, style_mot } from "./styles.js";
 import { pensees } from "./pensees.js";
+import { t } from "./langue.js";
 
 
 // --- Reglages ------------------------------------------------------------
@@ -76,11 +77,13 @@ var hauteur_de_la_pile = 120; // les accusations : la 1re est ici, les suivantes
 var delai_entre_cauchemars = 7000; // ms (la nuit)
 var duree_pour_tenir = 6000; // ms a rester l'un a cote de l'autre pour finir la nuit
 
-var texte_de_fin = "Une plainte. Une audience. Des mots qu'on a mis dans ta bouche.\n\n" +
-  "Le dossier a été classé sans suite : rien n'a été prouvé, rien n'a été réparé.\n\n" +
-  "Il reste les nuits.\n\n" +
-  "Si tu as vécu de la violence dans une relation, tu n'es pas seul. Le 116 006 (aide aux victimes) et le 3114 répondent gratuitement.\n\n" +
-  "Clique pour revenir à l'accueil.";
+var texte_de_fin = [
+  t("Une plainte. Une audience. Des mots qu'on a mis dans ta bouche."),
+  t("Le dossier a été classé sans suite : rien n'a été prouvé, rien n'a été réparé."),
+  t("Il reste les nuits."),
+  t("Si tu as vécu de la violence dans une relation, tu n'es pas seul. Le 116 006 (aide aux victimes) et le 3114 répondent gratuitement."),
+  t("Clique pour revenir à l'accueil.")
+].join("\n\n");
 
 
 export default class niveau5 extends niveau {
@@ -195,6 +198,7 @@ export default class niveau5 extends niveau {
     var duree_du_texte = duree == undefined ? 2800 : duree;
     this.time.delayedCall(delai, function () {
       var cible = scene.joueur_souris;
+      contenu = t(contenu);
       var style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 110 }, align: "center" });
       if (qui == "rationnelle") {
         cible = scene.joueur_clavier;
@@ -380,7 +384,7 @@ export default class niveau5 extends niveau {
 
     // les accusations tombent sur lui, une a une, et s'empilent au-dessus de sa tete
     var mots = [];
-    var accusations = ["Il ment.", "Il est dangereux.", "Il l'a menacée.", "Il ne dit rien."];
+    var accusations = [t("Il ment."), t("Il est dangereux."), t("Il l'a menacée."), t("Il ne dit rien.")];
     for (var k = 0; k < accusations.length; k++) {
       this.time.delayedCall(7600 + k * 1000, function (indice) {
         var mot = scene.add.text(j.x, hauteur_de_la_pile - indice * 9, accusations[indice], Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff" }));
@@ -406,7 +410,7 @@ export default class niveau5 extends niveau {
 
     // le tampon : « CLASSE SANS SUITE »
     this.time.delayedCall(19600, function () {
-      var plaque = scene.add.text(j.x, 42, "CLASSÉ SANS SUITE", Object.assign({}, style_mot, { fontSize: "8px" }));
+      var plaque = scene.add.text(j.x, 42, t("CLASSÉ SANS SUITE"), Object.assign({}, style_mot, { fontSize: "8px" }));
       plaque.setOrigin(0.5, 1);
       plaque.setDepth(26);
       plaque.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);

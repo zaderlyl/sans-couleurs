@@ -14,6 +14,7 @@
 
 import { jouer_son_cible } from "./sons.js";
 import { style_mot } from "./styles.js";
+import { t } from "./langue.js";
 
 var delai_apparition = 1500; // ms avant l'apparition de la cible (timer simple)
 var delai_retour = 6000; // ms entre deux retours de la cible (timer recurrent)
@@ -79,8 +80,8 @@ function toucher_cible(scene, projectile, cible) {
     }
   });
 
-  // un petit "Touche." qui monte et s'efface
-  var texte = scene.add.text(cible.x, cible.y - 12, "Touche.", style_mot);
+  // un petit t("Touche.") qui monte et s'efface
+  var texte = scene.add.text(cible.x, cible.y - 12, t("Touche."), style_mot);
   texte.setOrigin(0.5, 1);
   texte.setDepth(25);
   texte.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
