@@ -67,6 +67,8 @@ export var traductions = {
   "Il reste les nuits.": "The nights remain.",
   "Si tu as vécu de la violence dans une relation, tu n'es pas seul. Le 116 006 (aide aux victimes) et le 3114 répondent gratuitement.": "If you have experienced violence in a relationship, you are not alone. In France, 116 006 (victim support) and 3114 answer for free. Elsewhere, please look up your local helpline.",
   "Plainte pour viol, déposée par Madame contre le prévenu.": "Complaint for rape, filed by the complainant against the defendant.",
+  "Si tu me quittes, je porte plainte.": "If you leave me, I'll file a complaint.",
+  "Tout le monde saura.": "Everyone will know.",
   "Il m'a forcée.": "He forced me.",
   "Il l'a fait.": "He did it.",
   "Tout le monde le sait.": "Everybody knows it.",

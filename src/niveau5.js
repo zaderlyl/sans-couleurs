@@ -52,6 +52,8 @@ var tuile_vitre_cassee = [523, 524, 539, 540];
 //   sifflement  : duree des oreilles qui sifflent (0 = aucun)
 //   a_terre     : combien de temps il reste a terre (ms)
 //   pression    : combien la pression monte
+//   elle        : (facultatif) ce que dit l'ombre elle-meme, avec le delai ; ombre_reste : combien de
+//                 temps elle reste visible apres le coup (ms, 450 par defaut)
 //   j1 / j2     : ce que disent J1 et les deux voix de J2, avec le delai (ms) apres le coup
 var coups = [
   // 1. presque rien : il trouve ca drole
@@ -63,9 +65,12 @@ var coups = [
     j1: [{ texte: "Pourquoi ?", delai: 800 }, { texte: "J'ai dû faire quelque chose.", delai: 2900 }],
     j2: [{ qui: "emotionnelle", texte: "Elle était fatiguée.", delai: 1500 }, { qui: "rationnelle", texte: "Non. Ce n'est pas une excuse.", delai: 4400 }] },
   // 3. violent : il ne dit plus rien, par habitude
-  { duree_ombre: 750, force: 0.9, chute: 80, decalage: 20, secousse: [380, 0.014], sifflement: 3.2, a_terre: 2600, pression: 0.26,
-    j1: [{ texte: "...", delai: 1400 }],
-    j2: [{ qui: "emotionnelle", texte: "Je ne dis plus rien. Ça ne sert à rien.", delai: 1200 }, { qui: "rationnelle", texte: "Tu peux partir.", delai: 4200 }] }
+  // (dans la rue, il vient de lui dire qu'il la quitte : elle le menace, avant de partir)
+  { duree_ombre: 750, force: 0.9, chute: 80, decalage: 20, secousse: [380, 0.014], sifflement: 3.2, a_terre: 3600, pression: 0.26,
+    ombre_reste: 5800,
+    elle: [{ texte: "Si tu me quittes, je porte plainte.", delai: 600 }, { texte: "Tout le monde saura.", delai: 3000 }],
+    j1: [{ texte: "...", delai: 4200 }],
+    j2: [{ qui: "emotionnelle", texte: "Je ne dis plus rien. Ça ne sert à rien.", delai: 4000 }, { qui: "rationnelle", texte: "Tu peux partir.", delai: 6800 }] }
 ];
 
 // Au tribunal, la camera recule et chaque personne parle dans SA ligne (hauteur du
@@ -191,7 +196,7 @@ export default class niveau5 extends niveau {
 
   // --- Les textes : separes par qui parle, et qui SUIVENT leur personnage ---
 
-  // qui : "j1", "rationnelle", "emotionnelle", "juge" ou "avocat" ; apres `delai` ms
+  // qui : "j1", "rationnelle", "emotionnelle", "elle" (l'ombre), "juge" ou "avocat" ; apres `delai` ms
   dire(qui, contenu, delai, duree) {
     var scene = this;
     var duree_du_texte = duree == undefined ? 2800 : duree;
@@ -206,6 +211,9 @@ export default class niveau5 extends niveau {
       } else if (qui == "emotionnelle") {
         cible = scene.joueur_clavier;
         style = Object.assign({}, style_texte, { color: "#000000", stroke: "#ffffff", wordWrap: { width: 100 } });
+      } else if (qui == "elle") {
+        cible = scene.ombre_courante;
+        style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 110 }, align: "center" });
       } else if (qui == "juge") {
         cible = scene.juge;
         style = Object.assign({}, style_mot, { fontSize: "6px", color: "#ffffff", wordWrap: { width: 200 }, align: "center" });
@@ -264,6 +272,8 @@ export default class niveau5 extends niveau {
     ombre.setOrigin(0.5, 1);
     ombre.setDepth(8);
     ombre.setAlpha(0);
+    ombre.haut_texte = 36;
+    this.ombre_courante = ombre; // (c'est elle qui parle, voir dire)
     this.tweens.add({ targets: ombre, alpha: 0.9, duration: 300 });
     var pas = 0;
     var minuteur_de_pas = this.time.addEvent({
@@ -311,12 +321,18 @@ export default class niveau5 extends niveau {
     this.laisser_une_trace(i);
     ajouter_pression(this, c.pression);
 
-    // l'ombre disparait
-    this.time.delayedCall(450, function () {
+    // l'ombre disparait (apres avoir parle, s'il y a lieu)
+    var ombre_reste = c.ombre_reste == undefined ? 450 : c.ombre_reste;
+    this.time.delayedCall(ombre_reste, function () {
       scene.tweens.add({ targets: ombre, alpha: 0, duration: 400, onComplete: function () { ombre.destroy(); } });
     }, null, this);
 
-    // ce que dit J1, et les deux voix de J2
+    // ce que dit elle (la menace), J1, et les deux voix de J2
+    if (c.elle != undefined) {
+      for (var e = 0; e < c.elle.length; e++) {
+        this.dire("elle", c.elle[e].texte, c.elle[e].delai, 2600);
+      }
+    }
     for (var k = 0; k < c.j1.length; k++) {
       this.dire("j1", c.j1[k].texte, c.j1[k].delai, 2300);
     }
