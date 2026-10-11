@@ -11,11 +11,11 @@
 //   1) le cardiogramme va doucement ;  2) moyen ;  3) rapide ;
 //   4) la ligne devient plate, avec un ton qui CONTINUE (l'animation et le son
 //      ne s'arretent plus). La television ne disparait pas.
-// Quand les trois sont plates, un fondu au noir mene a l'ecran final.
+// Quand les trois sont plates, un fondu au noir mene au niveau 5 (le lycee).
 
 import niveau from "./niveau.js";
 import { creer_pastilles, mettre_a_jour_pastilles } from "./pastilles.js";
-import { afficher_texte, afficher_phrases } from "./ecran_texte.js";
+import { afficher_phrases } from "./ecran_texte.js";
 import { changer_la_musique, jouer_un_bip, creer_ton_continu } from "./sons.js";
 import { est_un_clic_de_tir } from "./tir.js";
 import { pensees } from "./pensees.js";
@@ -35,9 +35,6 @@ var distance_pour_entendre = 320; // px : au-dela, on n'entend pas les bips
 var distance_pour_interagir = 28; // px : le joueur clavier doit etre a cette distance d'une television
 var fichier_musique = "assets/audio/ambiance-monde4.mp3";
 
-var texte_de_fin = "Fin du niveau.\n\n" +
-  "Si tu te reconnais dans cette histoire, parles-en à quelqu'un. 3114 : gratuit, 24 h sur 24.\n\n" +
-  "Clique pour revenir à l'accueil.";
 
 
 export default class niveau4 extends niveau {
@@ -251,21 +248,13 @@ export default class niveau4 extends niveau {
 
   // --- La fin ---
 
-  // un fondu au noir, puis l'ecran final
+  // un fondu au noir, puis le niveau 5 (le lycee), avec les pensees du personnage
   finir() {
     var scene = this;
+    this.fige_par_le_niveau = true;
     this.cameras.main.fadeOut(2000, 0, 0, 0);
     this.cameras.main.once("camerafadeoutcomplete", function () {
-      scene.cameras.main.resetFX();
-      scene.montrer_la_fin();
-    });
-  }
-
-  montrer_la_fin() {
-    var scene = this;
-    this.fige_par_le_niveau = true;
-    afficher_texte(this, texte_de_fin, function () {
-      scene.scene.start("accueil");
+      scene.scene.start("niveau5", { arrivee_en_train: true, avec_transition: true, pensees: pensees.de_4_vers_5 });
     });
   }
 }

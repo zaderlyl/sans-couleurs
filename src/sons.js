@@ -275,3 +275,33 @@ export function creer_ton_continu() {
     }
   };
 }
+
+
+// --- Le monde 5 : les coups (on ne les montre pas, on les entend) ---------------------
+
+// un coup : un choc sourd, tres grave
+export function jouer_son_coup() {
+  jouer_une_note(140, 38, 0.3, 0.45, "triangle");
+  setTimeout(function () {
+    jouer_une_note(90, 30, 0.35, 0.3, "sine");
+  }, 70);
+}
+
+// apres un coup : les oreilles qui sifflent, un son aigu et fin qui s'etire
+export function jouer_son_sifflement() {
+  jouer_une_note(3200, 3000, 3.2, 0.05, "sine");
+}
+
+// du verre qui se brise
+export function jouer_son_verre() {
+  for (var i = 0; i < 4; i++) {
+    setTimeout(function () {
+      jouer_une_note(Phaser.Math.Between(1800, 3200), 500, 0.18, 0.07, "sawtooth");
+    }, i * 55);
+  }
+}
+
+// un tampon sur un papier : un "toc" sec
+export function jouer_son_tampon() {
+  jouer_une_note(220, 70, 0.14, 0.35, "square");
+}

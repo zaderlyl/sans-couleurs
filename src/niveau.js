@@ -59,6 +59,7 @@ export default class niveau extends Phaser.Scene {
     this.load.image("img_tuiles", "assets/tilesets/Tileset.png");
     this.load.image("img_tuiles_college", "assets/tilesets/Tileset-college.png"); // (le niveau 3 s'en sert)
     this.load.image("img_tuiles_enfance", "assets/tilesets/Tileset-enfance.png"); // (le niveau 2 s'en sert)
+    this.load.image("img_tuiles_lycee", "assets/tilesets/Tileset-lycee.png"); // (le niveau 5 s'en sert)
     this.load.spritesheet("img_perso", "assets/sprites/characters/player.png", {
       frameWidth: 16,
       frameHeight: 16
@@ -102,7 +103,12 @@ export default class niveau extends Phaser.Scene {
     // ou l'enfance (balancoire, toboggan, arbre...)
     if (this.carte.tilesets.length > 1) {
       var nom_du_2e = this.carte.tilesets[1].name;
-      var image_du_2e = nom_du_2e == "Tileset-enfance" ? "img_tuiles_enfance" : "img_tuiles_college";
+      var image_du_2e = "img_tuiles_college";
+      if (nom_du_2e == "Tileset-enfance") {
+        image_du_2e = "img_tuiles_enfance";
+      } else if (nom_du_2e == "Tileset-lycee") {
+        image_du_2e = "img_tuiles_lycee";
+      }
       tuiles.push(this.carte.addTilesetImage(nom_du_2e, image_du_2e));
     }
     this.tuiles = tuiles; // (retenu : decor.js en a besoin pour le calque "tunnel")
