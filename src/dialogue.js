@@ -324,6 +324,9 @@ function demarrer_la_recolte(scene) {
   // un rappel au-dessus du joueur clavier : il marche avec les fleches
   d.indice_clavier = creer_texte(scene, "← →", style_texte);
   d.indice_clavier.setOrigin(0.5, 1);
+  if (mode_solo_actif() == true) {
+    d.indice_clavier.setVisible(false); // (J2 est invisible en mode solo)
+  }
 
   // TIMER RECURRENT : un mot se met a tomber, puis un autre, jusqu'a ce que tous soient attrapes
   lancer_un_mot_qui_tombe(scene);

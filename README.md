@@ -68,7 +68,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 ├── src/                        Code du jeu (modules ES, un fichier = un sujet)
 │   ├── index.js                Config Phaser + liste des scenes
 │   ├── accueil.js              Menu principal en objets Phaser (jouer, niveaux, reglages, credits)
-│   ├── solo.js                 Le mode solo : J2 est dirige par l'ordinateur (il suit J1, va a la gare, attrape les mots)
+│   ├── solo.js                 Le mode solo : un seul personnage visible (souris + fleches) ; J2 est invisible et fait ses gestes tout seul
 │   ├── langue.js               La langue (francais / anglais) et la fonction t() qui traduit un texte
 │   ├── traductions.js          Les textes du jeu en anglais (cle = texte francais)
 │   ├── niveau.js               Classe de base des niveaux (carte, 2 joueurs, tir, decor)

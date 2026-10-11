@@ -146,7 +146,7 @@ export function creer_gare(scene, options) {
     scene.aller_vers(gare.x_depart, function () {
       // le joueur souris est arrive : il est pret (tant qu'il reste dans la gare)
       gare.souris_prete = true;
-      if (gare.clavier_pret == false) {
+      if (gare.clavier_pret == false && mode_solo_actif() == false) {
         dire_qu_il_manque_quelqu_un(scene);
       }
       verifier_le_depart(scene);
@@ -323,8 +323,8 @@ function mettre_a_jour_les_textes_d_attente(scene, clavier_dedans) {
   var gare = scene.gare;
   var en_route = scene.etat_gare != "attente";
 
-  gare.texte_souris = suivre_un_texte(scene, gare.texte_souris, gare.souris_prete == true && en_route == false, phrase_d_attente_souris, scene.joueur_souris);
-  gare.texte_clavier = suivre_un_texte(scene, gare.texte_clavier, gare.clavier_pret == true && en_route == false, phrase_d_attente_clavier, scene.joueur_clavier);
+  gare.texte_souris = suivre_un_texte(scene, gare.texte_souris, gare.souris_prete == true && en_route == false && mode_solo_actif() == false, phrase_d_attente_souris, scene.joueur_souris);
+  gare.texte_clavier = suivre_un_texte(scene, gare.texte_clavier, gare.clavier_pret == true && en_route == false && mode_solo_actif() == false, phrase_d_attente_clavier, scene.joueur_clavier);
   var veut_le_e = clavier_dedans == true && gare.clavier_pret == false && en_route == false && gare.options.sortie_active == true && mode_solo_actif() == false;
   gare.indice_e = suivre_un_texte(scene, gare.indice_e, veut_le_e, "[E]", scene.joueur_clavier);
 }
@@ -568,6 +568,6 @@ function cacher_le_joueur(joueur) {
   joueur.body.enable = false;
 }
 function montrer_le_joueur(joueur) {
-  joueur.setVisible(true);
+  joueur.setVisible(joueur.est_fantome != true); // (en mode solo, J2 reste invisible)
   joueur.body.enable = true;
 }

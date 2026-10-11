@@ -1,5 +1,6 @@
-// solo.js — le MODE SOLO : le joueur clavier (J2) est dirige par l'ordinateur. Il suit
-// le joueur souris (J1), et fait tout seul ses gestes de coop : se placer dans la
+// solo.js — le MODE SOLO : un seul personnage visible (J1, souris ET fleches). J2 existe
+// toujours mais il est INVISIBLE et dirige par l'ordinateur. Il suit
+// J1, et fait tout seul ses gestes de coop : se placer dans la
 // gare et appuyer sur E (voir gare.js), attraper les mots qui tombent (voir dialogue.js).
 // Le choix se fait dans les Reglages du menu ; il est retenu dans le navigateur.
 
@@ -10,7 +11,7 @@ try {
   solo = false;
 }
 
-var distance_de_suivi = 30; // px : J2 reste a peu pres a cette distance de J1
+var distance_de_suivi = 10; // px : J2 (invisible) reste tout pres de J1
 var precision_cible = 4; // px : quand il a une cible precise, il s'arrete a cette precision
 
 export function mode_solo_actif() {

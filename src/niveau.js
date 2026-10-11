@@ -146,6 +146,12 @@ export default class niveau extends Phaser.Scene {
     this.joueur_clavier = this.physics.add.sprite(depart.x + 24, depart.y, "img_perso2");
     this.physics.add.collider(this.joueur_clavier, this.calque_sol);
     this.joueur_clavier.setCollideWorldBounds(true);
+    // MODE SOLO : un seul personnage visible. J2 reste la, invisible : il suit J1 et fait
+    // ses gestes de coop tout seul (voir solo.js), pour que tout le jeu marche sans lui.
+    this.joueur_clavier.est_fantome = mode_solo_actif();
+    if (mode_solo_actif() == true) {
+      this.joueur_clavier.setVisible(false);
+    }
 
     // pour les bruits de pas et d'atterrissage (voir faire_les_bruits)
     this.joueur_souris.delai_pas = 0;
@@ -238,6 +244,12 @@ export default class niveau extends Phaser.Scene {
       }
     }
 
+    // MODE SOLO : appuyer sur une fleche annule la marche commencee avec la souris
+    if (mode_solo_actif() == true && (this.clavier.left.isDown || this.clavier.right.isDown)) {
+      this.destination_x = null;
+      this.apres_arrivee = null;
+    }
+
     // --- le joueur souris marche vers la destination ---
     if (this.destination_x !== null) {
       // ecart > 0 : la destination est a droite ; ecart < 0 : a gauche
@@ -267,11 +279,21 @@ export default class niveau extends Phaser.Scene {
       }
     }
 
-    // pas de destination : le joueur souris est immobile
+    // pas de destination : le joueur souris est immobile (en mode solo, les fleches le font marcher)
     if (this.destination_x === null) {
-      this.joueur_souris.setVelocityX(0);
-      this.joueur_souris.anims.stop();
-      this.joueur_souris.setFrame(3); // l'image "debout"
+      if (mode_solo_actif() == true && this.est_fige() == false && this.clavier.left.isDown) {
+        this.joueur_souris.setVelocityX(-70 * this.joueur_souris.facteur_vitesse);
+        this.joueur_souris.setFlipX(true);
+        this.joueur_souris.anims.play("anim_marche", true);
+      } else if (mode_solo_actif() == true && this.est_fige() == false && this.clavier.right.isDown) {
+        this.joueur_souris.setVelocityX(70 * this.joueur_souris.facteur_vitesse);
+        this.joueur_souris.setFlipX(false);
+        this.joueur_souris.anims.play("anim_marche", true);
+      } else {
+        this.joueur_souris.setVelocityX(0);
+        this.joueur_souris.anims.stop();
+        this.joueur_souris.setFrame(3); // l'image "debout"
+      }
     }
 
     // --- le joueur clavier : les fleches gauche et droite (en mode solo : l'ordinateur) ---
