@@ -76,7 +76,6 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── gare.js, passage.js         Interactions et changements de niveau
 │   ├── pnj.js, dialogue.js, mots_a_placer.js               PNJ et dialogues a trous
 │   ├── ecran_texte.js, decor.js, textes_de_zone.js         Ambiance
-│   ├── portails.js, casiers_faux.js, glitch.js    Anciens modules, plus utilises par les niveaux actuels
 │   ├── chute.js                Tomber dans le vide (bords du monde)
 │   ├── sons.js                 Sons synthetises (musique de fond + bruitages)
 │   └── styles.js, zone_cliquable.js   Petits utilitaires partages

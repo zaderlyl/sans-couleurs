@@ -7,7 +7,7 @@
 // - jouer_son_mot_pris(), jouer_son_mot_pose(rang), jouer_son_mot_refuse() : le
 //   dialogue ;
 // - jouer_son_tir(), jouer_son_impact(), jouer_son_cible() : le tir et les cibles ;
-// - jouer_son_portail(), jouer_son_chute() : les portails et la chute dans le vide.
+// - jouer_son_chute() : la chute dans le vide.
 //
 // Tant que le joueur n'a pas encore clique, les bruitages restent muets (sans
 // erreur) : le navigateur garde le contexte audio "suspendu".
@@ -206,11 +206,6 @@ export function jouer_son_cible() {
 
 
 // --- 5. Le reste ----------------------------------------------------------------------------------
-
-// un portail : un "wouch" qui monte
-export function jouer_son_portail() {
-  jouer_une_note(200, 900, 0.25, 0.07, "sine");
-}
 
 // une chute dans le vide : un son qui tombe
 export function jouer_son_chute() {
