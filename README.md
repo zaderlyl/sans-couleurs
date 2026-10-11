@@ -175,8 +175,7 @@ Quand les trois sont plates, un fondu au noir mene a l'ecran final. Le niveau a
 sa propre ambiance sonore.
 
 Le jeu aborde des sujets sensibles : un ecran d'avertissement, avec le 3114
-(numero national de prevention du suicide), s'affiche tout au debut du jeu, avant
-l'accueil, et l'ecran final le rappelle.
+(numero national de prevention du suicide), s'affiche la premiere fois qu'on appuie sur Jouer, et l'ecran final le rappelle.
 
 ## Le niveau 5 : le lycee
 

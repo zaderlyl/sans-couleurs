@@ -1,8 +1,8 @@
 // accueil.js — le menu principal, construit avec des objets Phaser (pas en
 // HTML) : un titre et quatre pages (principale, niveaux, reglages, credits),
 // chacune dans un conteneur qu'on affiche ou qu'on cache. Tout au debut du jeu
-// (une seule fois), un ecran d'avertissement previent que le jeu aborde des
-// sujets sensibles.
+// (une seule fois, apres le premier appui sur Jouer), un ecran d'avertissement
+// previent que le jeu aborde des sujets sensibles.
 
 import {
   demarrer_la_musique,
@@ -75,13 +75,6 @@ export default class accueil extends Phaser.Scene {
     this.creer_page_credits();
     this.afficher_page("principale");
 
-    // tout au debut du jeu : l'avertissement (par-dessus l'accueil, jusqu'au clic)
-    if (avertissement_deja_vu == false) {
-      afficher_texte(this, texte_avertissement, function () {
-        avertissement_deja_vu = true;
-      });
-    }
-
     // la barre espace lance aussi le niveau 1
     this.clavier = this.input.keyboard.createCursorKeys();
 
@@ -99,7 +92,7 @@ export default class accueil extends Phaser.Scene {
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.clavier.space) == true) {
       demarrer_la_musique(); // un appui de touche autorise aussi le son
-      this.scene.start("niveau1");
+      this.lancer("niveau1");
     }
   }
 
@@ -171,9 +164,17 @@ export default class accueil extends Phaser.Scene {
     return etiquette;
   }
 
-  // lance le niveau `cle_niveau`
+  // lance le niveau `cle_niveau`. La toute premiere fois, l'avertissement
+  // s'affiche d'abord (par-dessus le menu, jusqu'au clic).
   lancer(cle_niveau) {
-    this.scene.start(cle_niveau);
+    if (avertissement_deja_vu == true) {
+      this.scene.start(cle_niveau);
+      return;
+    }
+    afficher_texte(this, texte_avertissement, function () {
+      avertissement_deja_vu = true;
+      this.scene.start(cle_niveau);
+    }.bind(this));
   }
 
   // --- La page principale : jouer / niveaux / reglages / credits ---
