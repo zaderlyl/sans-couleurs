@@ -8,17 +8,13 @@
 // Un tir de l'autre joueur les traverse sans rien faire.
 //
 // Une phrase qui touche un joueur le RALENTIT (il perd de la vitesse un moment).
-// Plus il y a de phrases pres des joueurs, plus la "pression" monte, et avec elle
-// le glitch (voir glitch.js) : a son maximum, le joueur souris est ramene en arriere.
 //
 // Deux TIMERS RECURRENTS : une voix toutes les 4 s, un silence toutes les 5 s.
 // Les phrases cessent quand les deux joueurs arrivent a la gare.
 //
 // Comment s'en servir (dans un niveau, voir niveau3.js) :
-//   this.glitch_par_phrases = true;   // le glitch monte avec les phrases
 //   creer_phrases(this);              // apres creer_tir
 //   mettre_a_jour_phrases(this);      // dans mettre_a_jour_particularites
-// et un niveau qui veut un point de reprise plus proche definit point_de_reprise().
 
 import { style_texte } from "./styles.js";
 import { jouer_son_cible } from "./sons.js";
@@ -47,8 +43,6 @@ var hauteur_silence = [130, 140]; // y du monde : a hauteur d'epaule du joueur c
 var vitesse_derive = 6; // px/s : elles reculent tres lentement vers la gauche
 var duree_ralentissement = 1500; // ms de ralentissement apres un contact
 var facteur_ralenti = 0.35; // la vitesse d'un joueur ralenti (1 = normale)
-var distance_pression = 130; // une phrase pese si elle est a moins de ca d'un joueur
-var phrases_pour_pression_max = 6; // la pression vaut 1 avec ce nombre de phrases pres des joueurs
 var colonne_de_fin = 98; // quand les deux joueurs l'ont depassee, plus de phrases
 
 var id_indice = "indice-phrases";
@@ -58,7 +52,6 @@ var id_indice = "indice-phrases";
 
 export function creer_phrases(scene) {
   scene.groupe_phrases = scene.physics.add.group({ allowGravity: false });
-  scene.pression_phrases = 0; // de 0 a 1 : lue par glitch.js
   scene.phrases_actives = true;
 
   // une phrase qui touche un joueur le ralentit
@@ -170,20 +163,13 @@ export function mettre_a_jour_phrases(scene) {
 
   // chaque phrase flotte : elle recule doucement et monte / descend lentement
   var phrases = scene.groupe_phrases.getChildren();
-  var pesent = 0; // combien de phrases sont pres d'un joueur
   for (var i = 0; i < phrases.length; i++) {
     var phrase = phrases[i];
     if (phrase.efface == true) {
       continue;
     }
     phrase.body.setVelocity(-vitesse_derive, Math.cos((scene.time.now + phrase.decalage) / 700) * 5);
-    var pres = Phaser.Math.Distance.Between(phrase.x, phrase.y, scene.joueur_souris.x, scene.joueur_souris.y) < distance_pression ||
-               Phaser.Math.Distance.Between(phrase.x, phrase.y, scene.joueur_clavier.x, scene.joueur_clavier.y) < distance_pression;
-    if (pres == true) {
-      pesent = pesent + 1;
-    }
   }
-  scene.pression_phrases = Math.min(pesent / phrases_pour_pression_max, 1);
 }
 
 

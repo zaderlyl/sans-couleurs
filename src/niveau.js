@@ -46,6 +46,7 @@ export default class niveau extends Phaser.Scene {
   preload() {
     // l'image des tuiles, la carte Tiled (au format JSON) et les personnages
     this.load.image("img_tuiles", "assets/tilesets/Tileset.png");
+    this.load.image("img_tuiles_college", "assets/tilesets/Tileset-college.png"); // (le niveau 3 s'en sert)
     this.load.tilemapTiledJSON(this.nom_carte, "assets/maps/" + this.nom_carte + ".json");
     this.load.spritesheet("img_perso", "assets/sprites/characters/player.png", {
       frameWidth: 16,
@@ -85,7 +86,11 @@ export default class niveau extends Phaser.Scene {
     // --- la carte ---
     this.carte = this.make.tilemap({ key: this.nom_carte });
     // "Tileset" = le nom du jeu de tuiles dans Tiled, "img_tuiles" = l'image chargee
-    var tuiles = this.carte.addTilesetImage("Tileset", "img_tuiles");
+    var tuiles = [this.carte.addTilesetImage("Tileset", "img_tuiles")];
+    // une carte peut avoir un 2e jeu de tuiles (le college : portes, horloge, banc...)
+    if (this.carte.tilesets.length > 1) {
+      tuiles.push(this.carte.addTilesetImage("Tileset-college", "img_tuiles_college"));
+    }
     this.tuiles = tuiles; // (retenu : decor.js en a besoin pour le calque "tunnel")
 
     // les calques, du plus loin au plus proche (le dernier cree est dessus)
