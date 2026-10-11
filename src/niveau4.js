@@ -1,21 +1,22 @@
 // niveau4.js — le niveau 4 : la fin (la carte "map-4-fin"), le point de cesure
 // entre le college et le lycee.
 //
-// Une VRAIE plaine, immense et vide. D'un cote, l'epave du train : le train ne
-// repart plus, la vie a casse. Loin de l'autre, trois televisions tres espacees,
+// Une VRAIE plaine, immense et vide. D'un cote, l'epave du train (posee dans la
+// carte Tiled) : le train ne repart plus, la vie a casse. Loin de l'autre, trois televisions tres espacees,
 // qui montrent un cardiogramme et dont on entend le bip, de plus en plus fort
 // quand on s'approche.
 //
 // Chaque television reagit a 4 interactions (un clic du joueur souris, ou la
 // touche E du joueur clavier a cote d'elle) :
 //   1) le cardiogramme va doucement ;  2) moyen ;  3) rapide ;
-//   4) un long bip : la ligne devient plate. La television ne disparait pas.
+//   4) la ligne devient plate, avec un ton qui CONTINUE (l'animation et le son
+//      ne s'arretent plus). La television ne disparait pas.
 // Quand les trois sont plates, un fondu au noir mene a l'ecran final.
 
 import niveau from "./niveau.js";
 import { creer_pastilles, mettre_a_jour_pastilles } from "./pastilles.js";
 import { afficher_texte, afficher_phrases } from "./ecran_texte.js";
-import { changer_la_musique, jouer_un_bip, jouer_un_bip_long } from "./sons.js";
+import { changer_la_musique, jouer_un_bip, creer_ton_continu } from "./sons.js";
 import { est_un_clic_de_tir } from "./tir.js";
 import { pensees } from "./pensees.js";
 
@@ -23,7 +24,6 @@ import { pensees } from "./pensees.js";
 // --- Reglages ------------------------------------------------------------
 
 var sol_y = 144; // le haut du sol (en pixels du monde)
-var position_epave = 150; // x de l'epave du train
 var positions_des_teles = [900, 1450, 2000]; // x des trois televisions (tres espacees)
 
 // la vitesse du cardiogramme et le temps entre deux bips, selon le nombre
@@ -54,7 +54,6 @@ export default class niveau4 extends niveau {
     // la television : 13 images du cardiogramme ; puis 12 images de la ligne qui devient plate
     this.load.spritesheet("img_tele", "assets/sprites/props/tele.png", { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("img_tele_eteinte", "assets/sprites/props/tele_death.png", { frameWidth: 32, frameHeight: 32 });
-    this.load.image("img_epave", "assets/sprites/environment/epave_train.png");
   }
 
   creer_particularites() {
@@ -73,15 +72,9 @@ export default class niveau4 extends niveau {
         key: "anim_tele_eteinte",
         frames: this.anims.generateFrameNumbers("img_tele_eteinte", { start: 0, end: 11 }),
         frameRate: 8,
-        repeat: 0
+        repeat: -1 // la ligne plate tourne en boucle, sans fin
       });
     }
-
-    // l'epave du train, d'un cote (retournee en miroir)
-    var epave = this.add.image(position_epave, sol_y, "img_epave");
-    epave.setOrigin(0.5, 1);
-    epave.setFlipX(true);
-    epave.setDepth(5);
 
     // les trois televisions, loin de l'autre cote
     this.teles = [];
@@ -90,6 +83,16 @@ export default class niveau4 extends niveau {
     }
     this.interaction_en_cours = false; // le "E" d'une television est en train d'eclater
     this.teles_plates = 0; // combien de televisions sont arretees
+
+    // les tons continus des televisions arretees : on les coupe a la fin du niveau
+    var scene = this;
+    this.events.once("shutdown", function () {
+      for (var j = 0; j < scene.teles.length; j++) {
+        if (scene.teles[j].ton != null) {
+          scene.teles[j].ton.arreter();
+        }
+      }
+    });
 
     this.debuter();
   }
@@ -115,6 +118,7 @@ export default class niveau4 extends niveau {
     tele.souris_dessus = false;
     tele.x_repos = x;
     tele.prochain_bip = 0; // le moment du prochain bip (temps du jeu)
+    tele.ton = null; // le ton continu, une fois la ligne plate
 
     // l'icone "E" au-dessus de la tele (cachee au depart)
     tele.icone = this.add.sprite(x, sol_y - 44, "img_icone_e", 0);
@@ -147,10 +151,15 @@ export default class niveau4 extends niveau {
       var d_souris = Math.abs(this.joueur_souris.x - tele.x);
       var d_clavier = Math.abs(this.joueur_clavier.x - tele.x);
 
-      // le bip de cette tele : un bip toutes les `intervalle` ms, plus fort si on est pres
+      // le son de cette tele : plus fort si on est pres. Un bip toutes les
+      // `intervalle` ms ; une fois la ligne plate, un ton continu.
+      var volume = Phaser.Math.Clamp(1 - Math.min(d_souris, d_clavier) / distance_pour_entendre, 0, 1);
       if (tele.plate == false && temps >= tele.prochain_bip) {
-        jouer_un_bip(Phaser.Math.Clamp(1 - Math.min(d_souris, d_clavier) / distance_pour_entendre, 0, 1));
+        jouer_un_bip(volume);
         tele.prochain_bip = temps + intervalle_des_bips[tele.clics];
+      }
+      if (tele.ton != null) {
+        tele.ton.regler(volume);
       }
 
       // le survol (souris) ou la proximite (clavier) : la tele tremble, l'icone "E" apparait
@@ -221,14 +230,13 @@ export default class niveau4 extends niveau {
     });
   }
 
-  // la ligne devient plate, avec un long bip ; la tele reste la
+  // la ligne devient plate, avec un ton qui continue ; la tele reste la
   arreter_la_tele(tele) {
     var scene = this;
     tele.plate = true;
     tele.anims.timeScale = 1;
-    tele.play("anim_tele_eteinte");
-    var d = Math.min(Math.abs(this.joueur_souris.x - tele.x), Math.abs(this.joueur_clavier.x - tele.x));
-    jouer_un_bip_long(Phaser.Math.Clamp(1 - d / distance_pour_entendre, 0.4, 1));
+    tele.play("anim_tele_eteinte"); // en boucle
+    tele.ton = creer_ton_continu();
 
     this.teles_plates = this.teles_plates + 1;
     if (this.teles_plates >= this.teles.length) {

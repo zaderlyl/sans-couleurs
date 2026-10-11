@@ -166,7 +166,7 @@ television tremble et montre une icone « E ».
 
 Chaque television reagit a 4 interactions (un clic du joueur souris, ou la touche
 E du joueur clavier a cote d'elle) : le cardiogramme va doucement, puis moyen,
-puis rapide, puis un long bip : la ligne devient plate (la television reste la).
+puis rapide, puis la ligne devient plate, en boucle, avec un ton continu (la television reste la).
 Quand les trois sont plates, un fondu au noir mene a l'ecran final. Le niveau a
 sa propre ambiance sonore.
 

@@ -10,7 +10,7 @@
 //   dialogue ; jouer_son_rire_moqueur() : le PNJ rit apres une reponse ;
 // - jouer_son_tir(), jouer_son_impact(), jouer_son_cible() : le tir et les cibles ;
 // - jouer_son_chute() : la chute dans le vide ;
-// - changer_la_musique(), jouer_un_bip(), jouer_un_bip_long() : le monde 4.
+// - changer_la_musique(), jouer_un_bip(), creer_ton_continu() : le monde 4.
 //
 // Tant que le joueur n'a pas encore clique, les bruitages restent muets (sans
 // erreur) : le navigateur garde le contexte audio "suspendu".
@@ -251,9 +251,27 @@ export function jouer_un_bip(volume) {
   }
 }
 
-// le cardiogramme s'arrete : un long bip plat
-export function jouer_un_bip_long(volume) {
-  if (volume > 0.02) {
-    jouer_une_note(880, 880, 3, 0.2 * volume, "sine");
+// le cardiogramme s'arrete : un ton plat qui CONTINUE. Renvoie un objet avec
+// regler(volume) (de 0 a 1 : plus on est pres, plus c'est fort) et arreter().
+export function creer_ton_continu() {
+  var c = contexte_pret();
+  if (c == null) {
+    return { regler: function () {}, arreter: function () {} };
   }
+  var oscillateur = c.createOscillator();
+  oscillateur.type = "sine";
+  oscillateur.frequency.value = 880;
+  var gain = c.createGain();
+  gain.gain.value = 0;
+  oscillateur.connect(gain);
+  gain.connect(c.destination);
+  oscillateur.start();
+  return {
+    regler: function (volume) {
+      gain.gain.value = 0.14 * volume;
+    },
+    arreter: function () {
+      oscillateur.stop();
+    }
+  };
 }
