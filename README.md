@@ -2,9 +2,10 @@
 
 Jeu de plateforme 2D en pixel art pour **deux joueurs**, developpe avec Phaser 3.
 C'est l'histoire de la vie d'un personnage qui a mal vecu son enfance : un
-monde gris, des enfants qui le trouvent "different", un glitch de pixels de
-couleur. Un joueur joue a la souris, l'autre au clavier : le train ne part que
-si les deux sont dans la gare.
+monde gris, des enfants qui le trouvent "different", des mots qui pesent. Un
+joueur joue a la souris, l'autre au clavier : on n'avance qu'ensemble (le train
+ne part que si les deux sont dans la gare, et les mots du college ne
+s'allegent que si les deux restent cote a cote).
 
 ## Sommaire
 
@@ -13,6 +14,7 @@ si les deux sont dans la gare.
 - [Lancer le projet en local](#lancer-le-projet-en-local)
 - [Structure du depot](#structure-du-depot)
 - [Cartes et niveaux](#cartes-et-niveaux)
+- [Le niveau 3 : porter les mots a deux](#le-niveau-3--porter-les-mots-a-deux)
 - [Commandes](#commandes)
 - [Systeme de dialogue](#systeme-de-dialogue)
 - [Signaler un bug ou proposer une idee](#signaler-un-bug-ou-proposer-une-idee)
@@ -24,9 +26,9 @@ Le jeu tourne entierement dans le navigateur, sans etape de build ni
 dependance a installer : un fichier `index.html`, le code dans `src/` (modules
 ES, un seul point d'entree, **une scene Phaser par fichier**, ecrit simplement
 comme dans les tutoriels) et des assets exportes depuis
-[Tiled](https://www.mapeditor.org/). Les cartes, les zones de glitch, les textes
-de zone, les personnages non-joueurs et leurs dialogues sont definis depuis
-Tiled plutot que codes en dur.
+[Tiled](https://www.mapeditor.org/). Les cartes, les textes de zone, les
+personnages non-joueurs et leurs dialogues sont definis depuis Tiled plutot que
+codes en dur.
 
 ## Stack technique
 
@@ -67,18 +69,20 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── niveau.js               Classe de base des niveaux (carte, 2 joueurs, tir, decor)
 │   ├── niveau1.js              Niveau 1 : cibles + gare
 │   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage
-│   ├── niveau3.js              Niveau 3 (college) : portails, casiers, glitch, gare
-│   ├── ecran_separe.js         L'ecran qui se separe en deux (2 cameras)
+│   ├── niveau3.js              Niveau 3 (college) : mots a porter, pastilles, gare
+│   ├── ecran_separe.js         L'ecran qui se separe en deux (niveaux 1 et 2) ou camera unique (niveau 3)
 │   ├── tir.js, cibles.js       Le tir (souris / clavier) et les cibles + timers
-│   ├── portails.js, casiers_faux.js, gare.js, passage.js   Interactions
+│   ├── phrases.js, pastilles.js    Niveau 3 : les mots du college, la pastille d'un joueur hors cadre
+│   ├── gare.js, passage.js         Interactions et changements de niveau
 │   ├── pnj.js, dialogue.js, mots_a_placer.js               PNJ et dialogues a trous
-│   ├── glitch.js, ecran_texte.js, decor.js, textes_de_zone.js   Ambiance
+│   ├── ecran_texte.js, decor.js, textes_de_zone.js         Ambiance
+│   ├── portails.js, casiers_faux.js, glitch.js    Anciens modules, plus utilises par les niveaux actuels
 │   ├── chute.js                Tomber dans le vide (bords du monde)
 │   ├── sons.js                 Sons synthetises (musique de fond + bruitages)
 │   └── styles.js, zone_cliquable.js   Petits utilitaires partages
 ├── assets/                     Fichiers charges par le jeu au runtime, et rien d'autre
 │   ├── maps/                    Cartes exportees depuis Tiled (map-*.json)
-│   ├── tilesets/                Images de tuiles referencees par les cartes
+│   ├── tilesets/                Images de tuiles (Tileset.png ; Tileset-college.png pour le niveau 3)
 │   ├── sprites/                 Personnages, train, herbe animee, cibles...
 │   ├── ui/                      Icone d'interaction
 │   ├── fonts/                   Polices (voir le @font-face d'index.html)
@@ -100,8 +104,9 @@ elle passe dans `assets/tilesets/` au moment ou on la branche.
 
 Chaque niveau est une scene Phaser (un fichier `niveauN.js`) qui herite de la
 classe de base `niveau.js` et ne contient que ce qui lui est propre. La carte
-Tiled est chargee par nom (`map-1-debut`, `map-2-enfance`,
-`map-3-debut-college`). Cote fichiers Tiled : la source `.tmx` dans
+Tiled est chargee par nom (`map-1-debut`, `map-2-enfance`, `map-3-college`).
+Une carte peut avoir un deuxieme jeu de tuiles (le college a le sien, dessine
+pour lui : portes, horloge, bancs...). Cote fichiers Tiled : la source `.tmx` dans
 `tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`.
 
 Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (passage) → niveau 3.
@@ -113,10 +118,34 @@ calque `gare` de la carte.
 | | Joueur souris (J1) | Joueur clavier (J2) |
 |---|---|---|
 | Marcher | clic dans le vide | fleches gauche / droite |
-| Interagir | clic sur l'element (PNJ, gare, portail) | touche E (portails) |
-| Tirer | Ctrl ou Cmd + clic (vers le point clique) | barre espace (devant lui) |
+| Interagir | clic sur l'element (PNJ, gare) | se placer a cote (gare, autre joueur) |
+| Tirer (niveaux 1 et 2) | Ctrl ou Cmd + clic (vers le point clique) | barre espace (devant lui) |
 
-Le train ne part que si les deux joueurs sont dans la gare.
+Le train ne part que si les deux joueurs sont dans la gare. Il n'y a pas de tir
+dans le niveau 3.
+
+## Le niveau 3 : porter les mots a deux
+
+Le college est un long couloir (120 tuiles : la cour, l'entree, trois classes,
+la sortie de secours, puis la gare). Il n'y a ni ennemi ni tir :
+
+- toutes les 25 secondes, une sonnerie retentit et des mots arrivent **un par
+  un** ; les mots **clairs** sont des moqueries legeres (poids 1), les mots
+  **fonces** des insultes (poids 2) ;
+- un mot qui touche un joueur **s'accroche au-dessus de sa tete** : chaque point
+  de poids le ralentit, son ecran s'assombrit sur les bords et la musique devient
+  plus grave ;
+- on ne peut pas effacer les mots : ils ne se detachent que si **l'autre joueur
+  reste a cote** (moins de 40 pixels). Un mot fonce s'eclaircit d'abord, puis
+  se detache en devenant une phrase douce ;
+- un joueur qui porte le poids maximum pendant 8 secondes **s'effondre** : fondu
+  au noir, « Tu n'as pas pu avancer. », puis les deux joueurs repartent de la
+  derniere porte de classe passee ;
+- la camera est unique : un joueur sorti du cadre apparait en **pastille** (un
+  rond avec son visage et une fleche) au bord de l'ecran.
+
+Les reglages (rythme des vagues, poids, delais...) sont tout en haut de
+`src/phrases.js`.
 
 ## Systeme de dialogue
 
