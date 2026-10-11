@@ -268,11 +268,39 @@ export function jouer_son_sonnerie() {
 
 // --- Le cardiogramme du monde 4 : les bips des televisions (planifies par niveau4.js) ---
 
+// le son d'un bip (assets/audio/bip.mp3) : un seul bip, relance par niveau4.js
+// au rythme voulu. Il est charge une fois, au premier besoin.
+var son_du_bip = null;
+var bip_en_chargement = false;
+
+function charger_le_bip(c) {
+  bip_en_chargement = true;
+  fetch("assets/audio/bip.mp3")
+    .then(function (reponse) { return reponse.arrayBuffer(); })
+    .then(function (donnees) { return c.decodeAudioData(donnees); })
+    .then(function (son) { son_du_bip = son; })
+    .catch(function () { bip_en_chargement = false; });
+}
+
 // un bip de moniteur ; `volume` de 0 (rien) a 1
 export function jouer_un_bip(volume) {
-  if (volume > 0.02) {
-    jouer_une_note(1000, 1000, 0.09, 0.22 * volume, "sine");
+  var c = contexte_pret();
+  if (c == null || volume <= 0.02) {
+    return;
   }
+  if (son_du_bip == null) {
+    if (bip_en_chargement == false) {
+      charger_le_bip(c);
+    }
+    return; // pas encore charge : on joue le suivant
+  }
+  var source = c.createBufferSource();
+  source.buffer = son_du_bip;
+  var gain = c.createGain();
+  gain.gain.value = volume;
+  source.connect(gain);
+  gain.connect(c.destination);
+  source.start();
 }
 
 // le cardiogramme s'arrete : un ton plat qui CONTINUE. Renvoie un objet avec

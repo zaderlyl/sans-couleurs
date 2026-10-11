@@ -90,7 +90,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── sprites/                 Personnages, train, herbe animee, cible...
 │   ├── ui/                      Icone d'interaction
 │   ├── fonts/                   Polices (voir le @font-face d'index.html)
-│   └── audio/                   ambiance.mp3 : la musique de fond (les bruitages sont synthetises via Web Audio)
+│   └── audio/                   ambiance.mp3 : la musique de fond ; bip.mp3 : le bip des televisions (monde 4) ; les autres bruitages sont synthetises via Web Audio
 ├── tiled/                       Sources d'edition, jamais chargees par le jeu
 │   ├── maps/                    Fichiers sources Tiled (.tmx)
 │   └── art-source/              Images de travail et tuiles pas encore utilisees
@@ -250,8 +250,8 @@ de conserver la mention de copyright et le texte de la licence.
 
 Copyright (c) 2026 Lilian Cornet.
 
-Les musiques d'ambiance (`assets/audio/ambiance.mp3` et `ambiance-monde4.mp3`)
-sont des morceaux de tiers (telecharges sous les noms
+Les sons `assets/audio/ambiance.mp3`, `ambiance-monde4.mp3` et `bip.mp3`
+(ce dernier : « Beep of a cash register », BigSoundBank.com) sont des sons de tiers (telecharges sous les noms
 « tunetank-dark-ambient-soundscape-music » et « cosmic-scapes-soft-brown-noise ») :
 ils ne sont pas couverts par la licence MIT du code et restent soumis a la
 licence de leurs auteurs.
