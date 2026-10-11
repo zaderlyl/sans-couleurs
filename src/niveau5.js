@@ -26,6 +26,7 @@ import { afficher_texte, afficher_pensees } from "./ecran_texte.js";
 import { jouer_son_coup, jouer_son_sifflement, jouer_son_verre, jouer_son_tampon, jouer_son_marteau } from "./sons.js";
 import { style_texte, style_mot } from "./styles.js";
 import { pensees } from "./pensees.js";
+import { est_un_clic_de_tir } from "./tir.js";
 import { t } from "./langue.js";
 
 
@@ -79,8 +80,15 @@ var zoom_du_tribunal = 3.6;
 var lignes_du_tribunal = { j1: 128, rationnelle: 74, emotionnelle: 74, avocat: 68, juge: 54 };
 var hauteur_de_la_pile = 112; // les accusations : la 1re est ici, les suivantes au-dessus (9 px chacune)
 
-var delai_entre_cauchemars = 7000; // ms (la nuit)
-var duree_pour_tenir = 6000; // ms a rester l'un a cote de l'autre pour finir la nuit
+// La nuit : il se couche dans le lit, et elle vient le frapper quatre fois.
+var x_du_lit = 2880; // le milieu du lit de la derniere piece (colonnes 178 a 181)
+var delai_entre_les_coups_du_lit = 3200; // ms
+var coups_du_lit = [
+  { force: 0.45, pression: 0.05, voix: { qui: "emotionnelle", texte: "Ne bouge pas. Fais semblant de dormir." } },
+  { force: 0.65, pression: 0.07, voix: { qui: "rationnelle", texte: "Ce n'est pas ta faute." } },
+  { force: 0.85, pression: 0.09, voix: { qui: "emotionnelle", texte: "Pourquoi personne ne vient ?" } },
+  { force: 1, pression: 0.12, voix: null } // le dernier coup : plus rien, le silence
+];
 
 var texte_de_fin = [
   t("Des rumeurs. Une plainte. Une audience. Des mots qui ne sont pas les tiens."),
@@ -110,7 +118,7 @@ export default class niveau5 extends niveau {
     creer_pastilles(this);
     creer_pression(this);
     this.scene_jouee = [false, false, false, false, false]; // quelle scene a deja eu lieu
-    this.temps_ensemble_nuit = 0;
+    this.lit_pris = false;
     this.nuit_commencee = false;
     this.fin_en_cours = false;
     this.textes_suivis = []; // les textes qui suivent un personnage (voir dire)
@@ -476,7 +484,7 @@ export default class niveau5 extends niveau {
   }
 
 
-  // --- La nuit : il pleure, il ne sait plus quoi faire. Les coups reviennent en ombres. ---
+  // --- La nuit : il pleure, il ne sait plus quoi faire. Il se couche ; elle vient le frapper. Puis la fin. ---
 
   commencer_la_nuit() {
     var scene = this;
@@ -500,31 +508,111 @@ export default class niveau5 extends niveau {
       }
     });
 
-    // toutes les 7 s : une ombre traverse la piece en silence, un choc lointain
-    this.time.addEvent({
-      delay: delai_entre_cauchemars,
-      loop: true,
-      callback: function () {
-        if (scene.fin_en_cours == true) {
-          return;
-        }
-        var depart = scene.joueur_souris.x + 130;
-        var ombre = scene.add.sprite(depart, sol_y, "img_ombre", 3);
-        ombre.setOrigin(0.5, 1);
-        ombre.setDepth(8);
-        ombre.setAlpha(0.45);
-        scene.tweens.add({ targets: ombre, x: depart - 270, alpha: 0, duration: 2800, onComplete: function () { ombre.destroy(); } });
-        scene.time.delayedCall(1400, function () {
-          jouer_son_coup(0.3);
-          scene.cameras.main.shake(160, 0.006);
-          ajouter_pression(scene, 0.07);
-        }, null, scene);
+    // le lit : on peut s'y coucher (clic de la souris)
+    this.creer_le_lit();
+  }
+
+  // le lit est cliquable : un petit texte l'indique. J1 y marche et se couche.
+  creer_le_lit() {
+    var scene = this;
+    this.zone_du_lit = this.add.zone(x_du_lit, sol_y - 8, 66, 26);
+    this.zone_du_lit.setInteractive({ useHandCursor: true });
+    this.indice_du_lit = this.add.text(x_du_lit, sol_y - 30, t("Se coucher"), style_texte);
+    this.indice_du_lit.setOrigin(0.5, 1);
+    this.indice_du_lit.setDepth(25);
+    this.indice_du_lit.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    this.tweens.add({ targets: this.indice_du_lit, alpha: 0.35, duration: 900, yoyo: true, repeat: -1 });
+
+    this.zone_du_lit.on("pointerdown", function (pointeur) {
+      if (est_un_clic_de_tir(pointeur) == true || scene.lit_pris == true || scene.est_fige() == true) {
+        return;
       }
+      scene.lit_pris = true;
+      scene.aller_vers(x_du_lit - 8, function () {
+        scene.se_coucher();
+      });
     });
   }
 
-  // chaque image (la nuit) : si les deux joueurs restent l'un a cote de l'autre assez
-  // longtemps, la nuit se termine
+  // J1 se couche dans le lit ; puis elle arrive et le frappe, quatre fois
+  se_coucher() {
+    var scene = this;
+    var j = this.joueur_souris;
+    this.figer_les_joueurs();
+    this.zone_du_lit.disableInteractive();
+    this.indice_du_lit.destroy();
+    this.tweens.add({ targets: j, x: x_du_lit - 12, y: sol_y - 9, angle: 85, duration: 700, ease: "Sine.easeInOut" });
+    this.dire("j1", "Je n'ai plus la force.", 900, 2400);
+
+    // elle arrive en marchant, depuis la droite, et s'arrete a cote du lit
+    var elle = this.add.sprite(x_du_lit + 150, sol_y, "img_ombre", 0);
+    elle.setOrigin(0.5, 1);
+    elle.setDepth(8);
+    elle.setAlpha(0);
+    elle.haut_texte = 36;
+    this.ombre_courante = elle;
+    this.time.delayedCall(1800, function () {
+      scene.tweens.add({ targets: elle, alpha: 0.9, duration: 300 });
+      var pas = 0;
+      var minuteur_de_pas = scene.time.addEvent({
+        delay: 150,
+        loop: true,
+        callback: function () {
+          pas = pas + 1;
+          elle.setFrame(1 + (pas % 2));
+        }
+      });
+      scene.tweens.add({
+        targets: elle,
+        x: x_du_lit + 26,
+        duration: 2600,
+        ease: "Sine.easeIn",
+        onComplete: function () {
+          minuteur_de_pas.remove();
+          scene.frapper_dans_le_lit(0, elle);
+        }
+      });
+    }, null, this);
+  }
+
+  // le coup numero n (0 a 3) : le bras se leve, le choc, une voix de J2 ; puis le suivant
+  frapper_dans_le_lit(n, elle) {
+    var scene = this;
+    var j = this.joueur_souris;
+    var c = coups_du_lit[n];
+    elle.setFrame(3); // le bras leve
+    this.time.delayedCall(450, function () {
+      elle.setFrame(4); // le bras tendu : le coup
+      jouer_son_coup(c.force);
+      if (n >= 2) {
+        jouer_son_sifflement(1 + n);
+      }
+      scene.cameras.main.shake(180 + 160 * c.force, 0.005 + 0.01 * c.force);
+      j.setTintFill(0xffffff);
+      scene.time.delayedCall(90, function () { j.clearTint(); }, null, scene);
+      scene.tweens.add({ targets: j, y: j.y + 3, duration: 90, yoyo: true });
+      ajouter_pression(scene, c.pression);
+      if (c.voix != null) {
+        scene.dire(c.voix.qui, c.voix.texte, 800, 2400);
+      }
+    }, null, this);
+
+    if (n + 1 < coups_du_lit.length) {
+      this.time.delayedCall(delai_entre_les_coups_du_lit, function () {
+        scene.frapper_dans_le_lit(n + 1, elle);
+      }, null, this);
+    } else {
+      // apres le dernier coup : le silence, elle s'en va, et c'est la fin
+      this.time.delayedCall(2600, function () {
+        scene.tweens.add({ targets: elle, alpha: 0, duration: 900, onComplete: function () { elle.destroy(); } });
+      }, null, this);
+      this.time.delayedCall(4600, function () {
+        scene.finir();
+      }, null, this);
+    }
+  }
+
+  // chaque image (la nuit) : les accusations du tribunal suivent le personnage
   mettre_a_jour_la_nuit(delta) {
     // les accusations du tribunal suivent le personnage (empilees au-dessus de sa tete)
     if (this.piles_du_tribunal != undefined) {
@@ -539,19 +627,6 @@ export default class niveau5 extends niveau {
       if (this.plaque_du_tribunal != undefined && this.plaque_du_tribunal.active) {
         this.plaque_du_tribunal.setPosition(this.joueur_souris.x, 42);
       }
-    }
-
-    if (this.nuit_commencee == false || this.fin_en_cours == true) {
-      return;
-    }
-    var ecart = Phaser.Math.Distance.Between(this.joueur_souris.x, this.joueur_souris.y, this.joueur_clavier.x, this.joueur_clavier.y);
-    if (ecart < 40 && this.joueur_souris.x > 186 * 16) {
-      this.temps_ensemble_nuit = this.temps_ensemble_nuit + delta;
-    } else {
-      this.temps_ensemble_nuit = 0;
-    }
-    if (this.temps_ensemble_nuit >= duree_pour_tenir) {
-      this.finir();
     }
   }
 
