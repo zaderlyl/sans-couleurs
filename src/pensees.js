@@ -6,6 +6,7 @@
 //
 // Ce sont des BROUILLONS : a reecrire a ta facon.
 //
+//   de_2_vers_3 : entre le niveau 2 (l'enfance) et le niveau 3 (le college)
 //   de_1_vers_2 : entre le niveau 1 (le debut) et le niveau 2 (l'enfance)
 //   de_3_vers_4 : entre le niveau 3 (le college) et le niveau 4 (la coupure)
 //   de_4_vers_5 : entre le niveau 4 et le niveau 5 (le lycee)
@@ -16,6 +17,12 @@ export var pensees = {
     { qui: "j2", texte: "Parce que tout a commencé là." },
     { qui: "j1", texte: "Je ne m'en souviens pas bien." },
     { qui: "j2", texte: "Moi si. Je m'en souviens pour deux." }
+  ],
+  de_2_vers_3: [
+    { qui: "j1", texte: "Ils se moquent de moi." },
+    { qui: "j2", texte: "Je sais. Je l'ai entendu aussi." },
+    { qui: "j1", texte: "Le collège sera pareil ?" },
+    { qui: "j2", texte: "Peut-être. Mais on y va ensemble." }
   ],
   de_3_vers_4: [
     { qui: "j1", texte: "Je n'en peux plus." },

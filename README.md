@@ -72,7 +72,7 @@ Puis ouvrir `http://localhost:8765`. Avec un serveur qui met en cache (comme
 │   ├── traductions.js          Les textes du jeu en anglais (cle = texte francais)
 │   ├── niveau.js               Classe de base des niveaux (carte, 2 joueurs, tir, decor)
 │   ├── niveau1.js              Niveau 1 : mini-tuto (panneaux + cible d'entrainement) + gare
-│   ├── niveau2.js              Niveau 2 (enfance) : PNJ + gare + passage
+│   ├── niveau2.js              Niveau 2 (enfance) : PNJ + train d'arrivee + gare de depart
 │   ├── niveau3.js              Niveau 3 (college) : mots a porter, pastilles, gare
 │   ├── niveau4.js              Niveau 4 (la fin) : plaine, epave du train, trois televisions
 │   ├── niveau5.js, pression.js Niveau 5 (le lycee) : pieces, coups suggeres, pression
@@ -116,12 +116,13 @@ horloge, bancs...) et l'enfance aussi (balancoire, toboggan, arbre, bac a sable,
 portail de l'ecole...), dessines pour eux. Cote fichiers Tiled : la source `.tmx` dans
 `tiled/maps/`, l'export `.json` charge par le jeu dans `assets/maps/`.
 
-Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (passage) → niveau 3 →
+Les niveaux s'enchainent : niveau 1 → (train) → niveau 2 → (train) → niveau 3 →
 (train) → niveau 4 → niveau 5. Entre deux niveaux, un ecran noir affiche une conversation
 entre J1 (a gauche) et J2 (a droite, en couleurs inversees) : les deux parts du
 personnage, qui sont la meme personne (a ecrire dans `src/pensees.js`).
 La position de la gare n'est pas codee en dur : elle est recalculee depuis le
-calque `gare` de la carte.
+calque `gare` de la carte (le niveau 2 a aussi un calque `gare_depart` pour sa gare
+de depart ; le niveau 4 a un train d'arrivee en miroir).
 
 ## Commandes
 

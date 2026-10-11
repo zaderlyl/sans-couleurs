@@ -19,6 +19,7 @@ import { afficher_pensees } from "./ecran_texte.js";
 import { changer_la_musique, jouer_un_bip, creer_ton_continu } from "./sons.js";
 import { est_un_clic_de_tir } from "./tir.js";
 import { pensees } from "./pensees.js";
+import { creer_train_d_arrivee } from "./gare.js";
 
 
 // --- Reglages ------------------------------------------------------------
@@ -54,7 +55,6 @@ export default class niveau4 extends niveau {
   }
 
   creer_particularites() {
-    this.tir_desactive = true; // pas de tir dans ce niveau
     creer_pastilles(this);
 
     // les animations des televisions
@@ -182,19 +182,10 @@ export default class niveau4 extends niveau {
   // --- Le debut : les pensees (si on arrive en train), la musique ---
 
   debuter() {
-    var scene = this;
-    var commencer = function () {
-      changer_la_musique(fichier_musique);
-    };
-    if (this.arrivee_en_train == true) {
-      this.fige_par_le_niveau = true;
-      afficher_pensees(this, this.pensees || pensees.de_3_vers_4, function () {
-        scene.fige_par_le_niveau = false;
-        commencer();
-      });
-    } else {
-      commencer();
-    }
+    // le train en miroir : si on arrive du niveau 3, il arrive (apres l'ecran noir
+    // de la conversation J1 / J2) et reste la, a cote de l'epave
+    creer_train_d_arrivee(this);
+    changer_la_musique(fichier_musique);
   }
 
 
